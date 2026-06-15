@@ -226,6 +226,44 @@ fn place_and_show_overlay(app: &tauri::AppHandle) {
     }
 }
 
+/// Pill window height (logical px) when collapsed vs. expanded for the language
+/// menu. The menu is HTML *inside* the native window, so the window itself must
+/// be tall enough to draw it — otherwise the OS clips the dropdown.
+const PILL_WIDTH: f64 = 360.0;
+const PILL_HEIGHT_COLLAPSED: f64 = 72.0;
+const PILL_HEIGHT_EXPANDED: f64 = 340.0;
+
+/// Grow the pill upward (menu open) or shrink it back (menu closed), keeping its
+/// bottom edge anchored bottom-center so the pill itself does not move.
+pub(crate) fn set_overlay_expanded(app: &tauri::AppHandle, expanded: bool) {
+    if let Some(overlay) = app.get_webview_window("overlay") {
+        let h = if expanded {
+            PILL_HEIGHT_EXPANDED
+        } else {
+            PILL_HEIGHT_COLLAPSED
+        };
+        let _ = overlay.set_size(tauri::LogicalSize::new(PILL_WIDTH, h));
+        let monitor = overlay
+            .current_monitor()
+            .ok()
+            .flatten()
+            .or_else(|| overlay.primary_monitor().ok().flatten());
+        if let Some(mon) = monitor {
+            // bottom_center works in physical px; convert the logical size.
+            let sf = overlay.scale_factor().unwrap_or(1.0);
+            let win = (
+                (PILL_WIDTH * sf).round() as u32,
+                (h * sf).round() as u32,
+            );
+            let pos = mon.position();
+            let size = mon.size();
+            let (x, y) =
+                overlay::bottom_center((pos.x, pos.y), (size.width, size.height), win, 90);
+            let _ = overlay.set_position(tauri::PhysicalPosition::new(x, y));
+        }
+    }
+}
+
 /// Carry out a gesture [`HkAction`] against the audio pipeline.
 fn dispatch(app: &tauri::AppHandle, action: HkAction) {
     match action {
@@ -419,6 +457,7 @@ pub fn run() {
             commands::ui_stop_and_insert,
             commands::ui_cancel_recording,
             commands::set_language,
+            commands::set_pill_expanded,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

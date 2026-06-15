@@ -44,6 +44,8 @@ export const uiStopAndInsert = () => invoke<void>("ui_stop_and_insert");
 export const uiCancelRecording = () => invoke<void>("ui_cancel_recording");
 export const setLanguage = (lang: string) =>
   invoke<void>("set_language", { lang });
+export const setPillExpanded = (expanded: boolean) =>
+  invoke<void>("set_pill_expanded", { expanded });
 
 export type StatePayload = { state: string };
 export type LevelPayload = { level: number };

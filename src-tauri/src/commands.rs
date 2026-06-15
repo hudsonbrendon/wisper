@@ -203,3 +203,9 @@ pub fn set_language(
     let _ = app.emit("config_changed", serde_json::json!({ "language": saved }));
     Ok(())
 }
+
+/// Expand the pill window (so the language dropdown can render) or collapse it.
+#[tauri::command]
+pub fn set_pill_expanded(app: AppHandle, expanded: bool) {
+    crate::set_overlay_expanded(&app, expanded);
+}
