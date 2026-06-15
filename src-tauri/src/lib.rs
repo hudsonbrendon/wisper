@@ -32,7 +32,7 @@ fn transition(app: &tauri::AppHandle, ev: SmEvent) -> State {
 /// Start recording and show the overlay. Returns `true` if recording actually
 /// began; `false` if the app was busy (e.g. still transcribing) or the device
 /// failed, so the caller can reset the gesture detector.
-fn start_recording(app: &tauri::AppHandle) -> bool {
+pub(crate) fn start_recording(app: &tauri::AppHandle) -> bool {
     let new_state = transition(app, SmEvent::HotkeyPressed);
     if new_state != State::Recording {
         return false; // stray press while busy
@@ -42,9 +42,6 @@ fn start_recording(app: &tauri::AppHandle) -> bool {
     match audio::Recorder::start(device.as_deref()) {
         Ok(rec) => {
             *app_state.recorder.lock().unwrap() = Some(rec);
-            if let Some(w) = app.get_webview_window("overlay") {
-                let _ = w.show();
-            }
             // Spawn a ticker that emits the live mic level while recording.
             let app2 = app.clone();
             std::thread::spawn(move || loop {
@@ -71,7 +68,7 @@ fn start_recording(app: &tauri::AppHandle) -> bool {
 }
 
 /// Stop recording, transcribe, inject, hide overlay.
-fn stop_and_insert(app: &tauri::AppHandle) {
+pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
     let app_state = app.state::<AppState>();
     {
         let machine = app_state.machine.lock().unwrap();
@@ -109,7 +106,6 @@ fn stop_and_insert(app: &tauri::AppHandle) {
                 }),
             );
             transition(&app, SmEvent::Error); // -> Idle
-            hide_overlay_after_error(&app);
             return;
         }
 
@@ -154,15 +150,11 @@ fn stop_and_insert(app: &tauri::AppHandle) {
                 match inject::insert(&text, method) {
                     Ok(()) => {
                         transition(&app, SmEvent::InjectionDone); // -> Idle
-                        if let Some(w) = app.get_webview_window("overlay") {
-                            let _ = w.hide();
-                        }
                     }
                     Err(e) => {
                         eprintln!("inject failed: {e}");
                         let _ = app.emit("error", serde_json::json!({ "message": e }));
                         transition(&app, SmEvent::InjectionDone); // -> Idle
-                        hide_overlay_after_error(&app);
                     }
                 }
             }
@@ -170,19 +162,24 @@ fn stop_and_insert(app: &tauri::AppHandle) {
                 eprintln!("transcribe failed: {e}");
                 let _ = app.emit("error", serde_json::json!({ "message": e }));
                 transition(&app, SmEvent::Error); // -> Idle
-                hide_overlay_after_error(&app);
             }
         }
     });
 }
 
-/// Keep the overlay on screen briefly so the user can read the error toast it
-/// just received, then hide it. Runs on the calling (already background) thread.
-fn hide_overlay_after_error(app: &tauri::AppHandle) {
-    std::thread::sleep(std::time::Duration::from_secs(4));
-    if let Some(w) = app.get_webview_window("overlay") {
-        let _ = w.hide();
+/// Discard the in-progress take: drop the recorder (halting capture and
+/// throwing away the buffer) and return to Idle without transcribing.
+pub(crate) fn cancel_recording(app: &tauri::AppHandle) {
+    {
+        let app_state = app.state::<AppState>();
+        let machine = app_state.machine.lock().unwrap();
+        if *machine != State::Recording {
+            return; // nothing to cancel
+        }
     }
+    // Dropping the recorder stops the stream; the level ticker sees `None` and exits.
+    let _ = app.state::<AppState>().recorder.lock().unwrap().take();
+    transition(app, SmEvent::Cancel); // -> Idle
 }
 
 /// Convert the overlay window to a non-activating NSPanel (macOS only). The
@@ -418,6 +415,10 @@ pub fn run() {
             commands::get_state,
             commands::get_history,
             commands::clear_history,
+            commands::ui_start_recording,
+            commands::ui_stop_and_insert,
+            commands::ui_cancel_recording,
+            commands::set_language,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

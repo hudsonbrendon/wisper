@@ -168,3 +168,38 @@ pub fn clear_history(app: AppHandle, state: tauri::State<AppState>) -> Result<()
     let _ = app.emit("history_changed", serde_json::json!({}));
     Ok(())
 }
+
+/// Start recording from the pill (same pipeline as the hotkey).
+#[tauri::command]
+pub fn ui_start_recording(app: AppHandle) {
+    crate::start_recording(&app);
+}
+
+/// Stop recording from the pill, transcribe and insert.
+#[tauri::command]
+pub fn ui_stop_and_insert(app: AppHandle) {
+    crate::stop_and_insert(&app);
+}
+
+/// Discard the in-progress take from the pill.
+#[tauri::command]
+pub fn ui_cancel_recording(app: AppHandle) {
+    crate::cancel_recording(&app);
+}
+
+/// Set and persist the transcription language, then notify the pill.
+#[tauri::command]
+pub fn set_language(
+    app: AppHandle,
+    state: tauri::State<AppState>,
+    lang: String,
+) -> Result<(), String> {
+    let saved = {
+        let mut cfg = state.config.lock().unwrap();
+        cfg.language = lang;
+        config::save(&state.config_dir, &cfg).map_err(|e| format!("save config: {e}"))?;
+        cfg.language.clone()
+    };
+    let _ = app.emit("config_changed", serde_json::json!({ "language": saved }));
+    Ok(())
+}
