@@ -1,3 +1,4 @@
+mod audio;
 mod config;
 mod model_manager;
 mod state;
