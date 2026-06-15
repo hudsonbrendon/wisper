@@ -102,6 +102,9 @@ const en: Dict = {
   "overlay.listening": "Listening…",
   "overlay.transcribing": "Transcribing…",
   "overlay.inserting": "Inserting…",
+  "overlay.clickToRecord": "Click to record",
+  "overlay.cancel": "Cancel",
+  "overlay.stop": "Stop & insert",
 };
 
 const pt: Dict = {
@@ -170,6 +173,9 @@ const pt: Dict = {
   "overlay.listening": "Ouvindo…",
   "overlay.transcribing": "Transcrevendo…",
   "overlay.inserting": "Inserindo…",
+  "overlay.clickToRecord": "Clique para gravar",
+  "overlay.cancel": "Cancelar",
+  "overlay.stop": "Parar e inserir",
 };
 
 const es: Dict = {
@@ -238,6 +244,9 @@ const es: Dict = {
   "overlay.listening": "Escuchando…",
   "overlay.transcribing": "Transcribiendo…",
   "overlay.inserting": "Insertando…",
+  "overlay.clickToRecord": "Haz clic para grabar",
+  "overlay.cancel": "Cancelar",
+  "overlay.stop": "Detener e insertar",
 };
 
 const fr: Dict = {
@@ -306,6 +315,9 @@ const fr: Dict = {
   "overlay.listening": "Écoute…",
   "overlay.transcribing": "Transcription…",
   "overlay.inserting": "Insertion…",
+  "overlay.clickToRecord": "Cliquez pour enregistrer",
+  "overlay.cancel": "Annuler",
+  "overlay.stop": "Arrêter et insérer",
 };
 
 const de: Dict = {
@@ -374,6 +386,9 @@ const de: Dict = {
   "overlay.listening": "Höre zu…",
   "overlay.transcribing": "Transkribiere…",
   "overlay.inserting": "Füge ein…",
+  "overlay.clickToRecord": "Klicken zum Aufnehmen",
+  "overlay.cancel": "Abbrechen",
+  "overlay.stop": "Stoppen & einfügen",
 };
 
 const it: Dict = {
@@ -442,6 +457,9 @@ const it: Dict = {
   "overlay.listening": "In ascolto…",
   "overlay.transcribing": "Trascrizione…",
   "overlay.inserting": "Inserimento…",
+  "overlay.clickToRecord": "Clicca per registrare",
+  "overlay.cancel": "Annulla",
+  "overlay.stop": "Ferma e inserisci",
 };
 
 const nl: Dict = {
@@ -510,6 +528,9 @@ const nl: Dict = {
   "overlay.listening": "Luisteren…",
   "overlay.transcribing": "Transcriberen…",
   "overlay.inserting": "Invoegen…",
+  "overlay.clickToRecord": "Klik om op te nemen",
+  "overlay.cancel": "Annuleren",
+  "overlay.stop": "Stoppen en invoegen",
 };
 
 const ru: Dict = {
@@ -578,6 +599,9 @@ const ru: Dict = {
   "overlay.listening": "Слушаю…",
   "overlay.transcribing": "Расшифровка…",
   "overlay.inserting": "Вставка…",
+  "overlay.clickToRecord": "Нажмите для записи",
+  "overlay.cancel": "Отмена",
+  "overlay.stop": "Стоп и вставить",
 };
 
 const pl: Dict = {
@@ -646,6 +670,9 @@ const pl: Dict = {
   "overlay.listening": "Słucham…",
   "overlay.transcribing": "Transkrypcja…",
   "overlay.inserting": "Wstawianie…",
+  "overlay.clickToRecord": "Kliknij, aby nagrać",
+  "overlay.cancel": "Anuluj",
+  "overlay.stop": "Zatrzymaj i wstaw",
 };
 
 const tr: Dict = {
@@ -714,6 +741,9 @@ const tr: Dict = {
   "overlay.listening": "Dinleniyor…",
   "overlay.transcribing": "Yazıya dökülüyor…",
   "overlay.inserting": "Ekleniyor…",
+  "overlay.clickToRecord": "Kaydetmek için tıkla",
+  "overlay.cancel": "İptal",
+  "overlay.stop": "Durdur ve ekle",
 };
 
 const ja: Dict = {
@@ -782,6 +812,9 @@ const ja: Dict = {
   "overlay.listening": "聞き取り中…",
   "overlay.transcribing": "文字起こし中…",
   "overlay.inserting": "挿入中…",
+  "overlay.clickToRecord": "クリックして録音",
+  "overlay.cancel": "キャンセル",
+  "overlay.stop": "停止して挿入",
 };
 
 const ko: Dict = {
@@ -849,6 +882,9 @@ const ko: Dict = {
   "overlay.listening": "듣는 중…",
   "overlay.transcribing": "전사 중…",
   "overlay.inserting": "삽입 중…",
+  "overlay.clickToRecord": "클릭하여 녹음",
+  "overlay.cancel": "취소",
+  "overlay.stop": "중지 및 삽입",
 };
 
 const zh: Dict = {
@@ -915,6 +951,9 @@ const zh: Dict = {
   "overlay.listening": "正在聆听…",
   "overlay.transcribing": "正在转写…",
   "overlay.inserting": "正在插入…",
+  "overlay.clickToRecord": "点击录音",
+  "overlay.cancel": "取消",
+  "overlay.stop": "停止并插入",
 };
 
 const ar: Dict = {
@@ -982,6 +1021,9 @@ const ar: Dict = {
   "overlay.listening": "يستمع…",
   "overlay.transcribing": "ينسخ…",
   "overlay.inserting": "يُدرج…",
+  "overlay.clickToRecord": "انقر للتسجيل",
+  "overlay.cancel": "إلغاء",
+  "overlay.stop": "إيقاف وإدراج",
 };
 
 const hi: Dict = {
@@ -1049,6 +1091,9 @@ const hi: Dict = {
   "overlay.listening": "सुन रहा है…",
   "overlay.transcribing": "ट्रांसक्राइब हो रहा है…",
   "overlay.inserting": "सम्मिलित हो रहा है…",
+  "overlay.clickToRecord": "रिकॉर्ड करने के लिए क्लिक करें",
+  "overlay.cancel": "रद्द करें",
+  "overlay.stop": "रोकें और डालें",
 };
 
 const DICTS: Record<string, Dict> = {
