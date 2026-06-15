@@ -5,6 +5,7 @@ mod history;
 mod hotkey;
 mod inject;
 mod model_manager;
+mod overlay;
 mod state;
 pub mod stt;
 
