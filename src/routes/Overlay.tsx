@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { onEvent, type StatePayload, type LevelPayload } from "../lib/api";
+import { useI18n } from "../lib/i18n";
 
 export default function Overlay() {
+  const { t } = useI18n();
   const [state, setState] = useState("idle");
   const [level, setLevel] = useState(0);
   const [error, setError] = useState("");
@@ -29,9 +31,9 @@ export default function Overlay() {
 
   const labels: Record<string, string> = {
     idle: "",
-    recording: "Listening…",
-    transcribing: "Transcribing…",
-    injecting: "Inserting…",
+    recording: t("overlay.listening"),
+    transcribing: t("overlay.transcribing"),
+    injecting: t("overlay.inserting"),
   };
 
   // Scale the meter bar width from RMS level (0..~0.3 typical speech).

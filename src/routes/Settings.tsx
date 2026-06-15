@@ -13,9 +13,11 @@ import {
   type ModelMeta,
   type DownloadProgressPayload,
 } from "../lib/api";
+import { useI18n, UI_LANGUAGES } from "../lib/i18n";
 
 /// Whisper language options. "auto" lets Whisper detect the spoken language.
-/// Codes are Whisper's ISO 639-1 language codes.
+/// Codes are Whisper's ISO 639-1 language codes. The "auto" label is
+/// translated at render time via t("lang.auto").
 const LANGUAGES: { code: string; name: string }[] = [
   { code: "auto", name: "Detect automatically" },
   { code: "pt", name: "Português" },
@@ -92,6 +94,7 @@ const selectClass =
   "w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200";
 
 export default function Settings() {
+  const { t, lang, setLang } = useI18n();
   const [config, setConfig] = useState<Config | null>(null);
   const [mics, setMics] = useState<string[]>([]);
   const [models, setModels] = useState<ModelMeta[]>([]);
@@ -186,7 +189,7 @@ export default function Settings() {
     return () => window.removeEventListener("keydown", handler, true);
   }, [capturing]);
 
-  if (!config) return <div className="text-stone-500">Loading…</div>;
+  if (!config) return <div className="text-stone-500">{t("settings.loading")}</div>;
 
   const update = (patch: Partial<Config>) => {
     const next = { ...config, ...patch };
@@ -201,31 +204,38 @@ export default function Settings() {
   };
 
   return (
-    <div className="max-w-3xl">
+    <div className="mx-auto max-w-3xl">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight text-stone-900">
-          Settings
+          {t("settings.title")}
         </h1>
         {saved && (
-          <span className="text-sm font-medium text-teal-600">Saved ✓</span>
+          <span className="text-sm font-medium text-teal-600">
+            {t("settings.saved")}
+          </span>
         )}
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-        <Field
-          label="Hotkey"
-          hint={
-            <>
-              Click, then press your combo <em>including a normal key</em> — e.g.{" "}
-              <span className="font-mono">Alt+Space</span>. Hold to talk;
-              double-tap for hands-free. Saves immediately.
-            </>
-          }
-        >
+        <Field label={t("settings.uiLanguage")} hint={t("settings.uiLanguageHint")}>
+          <select
+            className={selectClass}
+            value={lang}
+            onChange={(e) => setLang(e.target.value)}
+          >
+            {UI_LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label={t("settings.hotkey")} hint={t("settings.hotkeyHint")}>
           <button
             type="button"
             onClick={() => {
-              setCaptureHint("Press a key combo… (Esc to cancel)");
+              setCaptureHint(t("settings.hotkeyPress"));
               setCapturing((c) => !c);
             }}
             className={
@@ -235,22 +245,20 @@ export default function Settings() {
                 : "border border-stone-300 bg-white text-stone-800 hover:bg-stone-50")
             }
           >
-            {capturing
-              ? captureHint || "Press a key combo… (Esc to cancel)"
-              : config.hotkey}
+            {capturing ? captureHint || t("settings.hotkeyPress") : config.hotkey}
           </button>
           {hotkeyError && (
             <span className="mt-1 block text-xs text-rose-500">{hotkeyError}</span>
           )}
         </Field>
 
-        <Field label="Microphone">
+        <Field label={t("settings.microphone")}>
           <select
             className={selectClass}
             value={config.mic_device ?? ""}
             onChange={(e) => update({ mic_device: e.target.value || null })}
           >
-            <option value="">System default</option>
+            <option value="">{t("settings.systemDefault")}</option>
             {mics.map((m) => (
               <option key={m} value={m}>
                 {m}
@@ -259,7 +267,7 @@ export default function Settings() {
           </select>
         </Field>
 
-        <Field label="Language">
+        <Field label={t("settings.language")} hint={t("settings.languageHint")}>
           <select
             className={selectClass}
             value={config.language}
@@ -267,15 +275,15 @@ export default function Settings() {
           >
             {LANGUAGES.map((l) => (
               <option key={l.code} value={l.code}>
-                {l.name} ({l.code})
+                {l.code === "auto" ? t("lang.auto") : `${l.name} (${l.code})`}
               </option>
             ))}
           </select>
         </Field>
 
         <Field
-          label="Insert method"
-          hint="How transcribed text reaches the focused app."
+          label={t("settings.insert")}
+          hint={t("settings.insertHint")}
         >
           <select
             className={selectClass}
@@ -286,12 +294,12 @@ export default function Settings() {
               })
             }
           >
-            <option value="type">Type (synthetic keystrokes)</option>
-            <option value="paste">Paste (clipboard + Cmd/Ctrl+V)</option>
+            <option value="type">{t("settings.insertType")}</option>
+            <option value="paste">{t("settings.insertPaste")}</option>
           </select>
         </Field>
 
-        <Field label="Models" hint="Download a Whisper model to transcribe with.">
+        <Field label={t("settings.models")} hint={t("settings.modelsHint")}>
           <div className="space-y-2">
             {models.map((m) => (
               <div
@@ -304,7 +312,7 @@ export default function Settings() {
                   </span>
                   {config.model_id === m.id && (
                     <span className="ml-2 rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700">
-                      active
+                      {t("settings.active")}
                     </span>
                   )}
                   <span
@@ -315,14 +323,16 @@ export default function Settings() {
                         : "bg-stone-200 text-stone-600")
                     }
                   >
-                    {m.id.endsWith(".en") ? "English only" : "multilingual"}
+                    {m.id.endsWith(".en")
+                      ? t("settings.englishOnly")
+                      : t("settings.multilingual")}
                   </span>
                   <span className="ml-2 text-xs text-stone-500">
                     {downloading.has(m.id)
-                      ? `baixando… ${progress[m.id] ?? 0}%`
+                      ? t("settings.downloading", { pct: progress[m.id] ?? 0 })
                       : m.downloaded
-                        ? "downloaded"
-                        : "not downloaded"}
+                        ? t("settings.downloaded")
+                        : t("settings.notDownloaded")}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -331,7 +341,7 @@ export default function Settings() {
                       className="rounded-md bg-amber-400 px-3 py-1 text-sm font-medium text-stone-900 hover:bg-amber-300"
                       onClick={() => cancelDownload(m.id)}
                     >
-                      Cancel
+                      {t("btn.cancel")}
                     </button>
                   ) : m.downloaded ? (
                     <button
@@ -341,7 +351,7 @@ export default function Settings() {
                         listModels().then(setModels);
                       }}
                     >
-                      Remove
+                      {t("btn.remove")}
                     </button>
                   ) : (
                     <button
@@ -353,7 +363,7 @@ export default function Settings() {
                         downloadModel(m.id).catch(() => clearDownloading(m.id));
                       }}
                     >
-                      Download
+                      {t("btn.download")}
                     </button>
                   )}
                 </div>
@@ -362,10 +372,7 @@ export default function Settings() {
           </div>
         </Field>
 
-        <Field
-          label="History"
-          hint="Transcriptions are stored locally to power Home and Insights."
-        >
+        <Field label={t("settings.history")} hint={t("settings.historyHint")}>
           <button
             type="button"
             onClick={async () => {
@@ -375,7 +382,7 @@ export default function Settings() {
             }}
             className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100"
           >
-            {historyCleared ? "Cleared ✓" : "Clear history"}
+            {historyCleared ? t("settings.cleared") : t("settings.clearHistory")}
           </button>
         </Field>
       </div>

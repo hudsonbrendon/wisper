@@ -270,6 +270,11 @@ pub fn run() {
             // TCC — recovering from a stale grant left behind by a prior build.
             inject::prompt_accessibility_on_startup();
 
+            // Trigger the Microphone permission prompt early (off the UI thread)
+            // so capture works on the first dictation instead of recording
+            // silence while the dialog is still up.
+            std::thread::spawn(audio::prompt_microphone_access);
+
             // Resolve OS dirs and load config.
             let config_dir = handle.path().app_config_dir().expect("config dir");
             let data_dir = handle.path().app_data_dir().expect("data dir");

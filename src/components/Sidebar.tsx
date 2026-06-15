@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useI18n } from "../lib/i18n";
 
 export type View = "home" | "insights" | "settings";
 
@@ -90,6 +91,7 @@ export default function Sidebar({
   view: View;
   onNavigate: (v: View) => void;
 }) {
+  const { t } = useI18n();
   return (
     <aside className="flex w-56 shrink-0 flex-col px-3 py-5">
       {/* Brand */}
@@ -116,13 +118,13 @@ export default function Sidebar({
       <nav className="flex flex-col gap-1">
         <NavButton
           icon="home"
-          label="Home"
+          label={t("nav.home")}
           active={view === "home"}
           onClick={() => onNavigate("home")}
         />
         <NavButton
           icon="insights"
-          label="Insights"
+          label={t("nav.insights")}
           active={view === "insights"}
           onClick={() => onNavigate("insights")}
         />
@@ -132,7 +134,7 @@ export default function Sidebar({
       <div className="mt-auto flex flex-col gap-1 border-t border-stone-200 pt-3">
         <NavButton
           icon="settings"
-          label="Settings"
+          label={t("nav.settings")}
           active={view === "settings"}
           onClick={() => onNavigate("settings")}
         />
@@ -143,7 +145,7 @@ export default function Sidebar({
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition-colors hover:bg-stone-200/40 hover:text-stone-900"
         >
           <Icon name="help" />
-          <span className="flex-1">Help</span>
+          <span className="flex-1">{t("nav.help")}</span>
         </a>
       </div>
     </aside>

@@ -6,11 +6,13 @@ import {
   heatmap,
   type HeatCell,
 } from "../lib/insights";
+import { useI18n } from "../lib/i18n";
 
 /// Insights: visual summary of dictation activity. Every number and chart is
 /// derived from the local history (see lib/insights), so nothing here is
 /// fabricated — empty history yields honest zeros and a flat grid.
 export default function Insights() {
+  const { t, lang } = useI18n();
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
 
   useEffect(() => {
@@ -29,28 +31,26 @@ export default function Insights() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-semibold tracking-tight text-stone-900">
-        Insights
+        {t("insights.title")}
       </h1>
 
       {/* Top stat cards */}
       <div className="mb-5 grid grid-cols-1 gap-5 md:grid-cols-3">
         <Card>
           <BigNumber value={String(stats.wpm)} />
-          <Caption>words per minute</Caption>
+          <Caption>{t("insights.wpm")}</Caption>
         </Card>
         <Card>
-          <BigNumber value={stats.totalWords.toLocaleString("en-US")} />
-          <Caption>total words dictated</Caption>
-          <p className="mt-3 text-sm text-stone-500">
-            {wordsContext(stats.totalWords)}
-          </p>
+          <BigNumber value={stats.totalWords.toLocaleString(lang)} />
+          <Caption>{t("insights.totalWords")}</Caption>
+          <p className="mt-3 text-sm text-stone-500">{wordsContext(stats.totalWords, t)}</p>
         </Card>
         <Card>
           <BigNumber value={String(stats.totalEntries)} />
-          <Caption>transcriptions</Caption>
+          <Caption>{t("insights.transcriptions")}</Caption>
           <p className="mt-3 flex items-center gap-2 text-sm text-stone-500">
             <span className="inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700">
-              {stats.streak} day streak
+              {t("insights.streakBadge", { n: stats.streak })}
             </span>
           </p>
         </Card>
@@ -60,20 +60,20 @@ export default function Insights() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card>
           <h2 className="text-lg font-semibold text-stone-900">
-            Daily activity
+            {t("insights.dailyActivity")}
           </h2>
           <p className="mb-6 text-xs uppercase tracking-wider text-stone-400">
-            words · last 14 days
+            {t("insights.dailySub")}
           </p>
           <div className="flex h-40 items-end gap-1.5">
             {daily.map((d) => (
               <div
                 key={d.key}
                 className="group relative flex flex-1 flex-col items-center justify-end"
-                title={`${d.date.toLocaleDateString("en-US", {
+                title={`${d.date.toLocaleDateString(lang, {
                   month: "short",
                   day: "numeric",
-                })}: ${d.words} words`}
+                })}: ${d.words}`}
               >
                 <div
                   className="w-full rounded-t bg-teal-700/85 transition-colors group-hover:bg-teal-600"
@@ -86,26 +86,26 @@ export default function Insights() {
           </div>
           <div className="mt-2 flex justify-between text-xs text-stone-400">
             <span>
-              {daily[0]?.date.toLocaleDateString("en-US", {
+              {daily[0]?.date.toLocaleDateString(lang, {
                 month: "short",
                 day: "numeric",
               })}
             </span>
-            <span>Today</span>
+            <span>{t("insights.today")}</span>
           </div>
         </Card>
 
         <Card>
           <div className="mb-1 flex items-baseline justify-between">
             <h2 className="text-lg font-semibold text-stone-900">
-              {stats.streak} day streak
+              {t("insights.streakBadge", { n: stats.streak })}
             </h2>
             <span className="text-xs uppercase tracking-wider text-stone-400">
-              last 20 weeks
+              {t("insights.last20w")}
             </span>
           </div>
-          <Heatmap grid={grid} />
-          <Legend />
+          <Heatmap grid={grid} locale={lang} />
+          <Legend t={t} />
         </Card>
       </div>
     </div>
@@ -120,7 +120,7 @@ const HEAT_CLASSES: Record<HeatCell["level"], string> = {
   4: "bg-teal-800",
 };
 
-function Heatmap({ grid }: { grid: HeatCell[][] }) {
+function Heatmap({ grid, locale }: { grid: HeatCell[][]; locale: string }) {
   return (
     <div className="mt-4 flex gap-[3px] overflow-x-auto pb-1">
       {grid.map((col, ci) => (
@@ -131,10 +131,10 @@ function Heatmap({ grid }: { grid: HeatCell[][] }) {
               title={
                 cell.future
                   ? ""
-                  : `${cell.date.toLocaleDateString("en-US", {
+                  : `${cell.date.toLocaleDateString(locale, {
                       month: "short",
                       day: "numeric",
-                    })}: ${cell.words} words`
+                    })}: ${cell.words}`
               }
               className={
                 "h-[13px] w-[13px] rounded-sm " +
@@ -148,23 +148,26 @@ function Heatmap({ grid }: { grid: HeatCell[][] }) {
   );
 }
 
-function Legend() {
+function Legend({ t }: { t: (k: string) => string }) {
   return (
     <div className="mt-3 flex items-center justify-end gap-1.5 text-xs text-stone-400">
-      <span>Less</span>
+      <span>{t("insights.less")}</span>
       {([0, 1, 2, 3, 4] as const).map((l) => (
         <span key={l} className={"h-[11px] w-[11px] rounded-sm " + HEAT_CLASSES[l]} />
       ))}
-      <span>More</span>
+      <span>{t("insights.more")}</span>
     </div>
   );
 }
 
 /// A light, honest gloss on the total — no fabricated comparisons.
-function wordsContext(total: number): string {
-  if (total === 0) return "Start dictating to fill this in.";
+function wordsContext(
+  total: number,
+  t: (k: string, v?: Record<string, string | number>) => string,
+): string {
+  if (total === 0) return t("insights.start");
   const pages = Math.max(1, Math.round(total / 500));
-  return `About ${pages} page${pages === 1 ? "" : "s"} of writing.`;
+  return pages === 1 ? t("insights.pagesOne") : t("insights.pages", { n: pages });
 }
 
 function Card({ children }: { children: React.ReactNode }) {

@@ -133,42 +133,53 @@ export function heatmap(entries: HistoryEntry[], weeks: number): HeatCell[][] {
   return cols;
 }
 
-/// "01:05 pm" style clock label used in the Home history list.
-export function timeLabel(ts: number): string {
+/// "01:05 pm" style clock label used in the Home history list. `locale` lets
+/// the time format follow the chosen UI language.
+export function timeLabel(ts: number, locale: string = "en-US"): string {
   return new Date(ts)
-    .toLocaleTimeString("en-US", {
+    .toLocaleTimeString(locale, {
       hour: "2-digit",
       minute: "2-digit",
-      hour12: true,
     })
     .toLowerCase();
 }
 
-/// Friendly date header: "Today", "Yesterday", else "Mon, Jun 10".
-export function dateHeader(ts: number): string {
+/// Whether a day section header is Today, Yesterday, or a plain date — the
+/// caller translates the first two and formats the date in its own locale.
+export type DayHeaderKind = "today" | "yesterday" | "date";
+
+export function dayHeaderKind(ts: number): DayHeaderKind {
   const k = dayKey(ts);
   const now = Date.now();
-  if (k === dayKey(now)) return "Today";
-  if (k === dayKey(now - DAY_MS)) return "Yesterday";
-  return new Date(ts).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  if (k === dayKey(now)) return "today";
+  if (k === dayKey(now - DAY_MS)) return "yesterday";
+  return "date";
 }
 
 /// Group entries (already newest-first) into ordered day sections for the list.
+/// Header text is left to the component (it needs the active language), so each
+/// group exposes the header kind plus the first timestamp to format from.
 export function groupByDay(
   entries: HistoryEntry[],
-): { header: string; key: string; items: HistoryEntry[] }[] {
-  const groups: { header: string; key: string; items: HistoryEntry[] }[] = [];
+): { kind: DayHeaderKind; ts: number; key: string; items: HistoryEntry[] }[] {
+  const groups: {
+    kind: DayHeaderKind;
+    ts: number;
+    key: string;
+    items: HistoryEntry[];
+  }[] = [];
   for (const e of entries) {
     const k = dayKey(e.ts_ms);
     const last = groups[groups.length - 1];
     if (last && last.key === k) {
       last.items.push(e);
     } else {
-      groups.push({ header: dateHeader(e.ts_ms), key: k, items: [e] });
+      groups.push({
+        kind: dayHeaderKind(e.ts_ms),
+        ts: e.ts_ms,
+        key: k,
+        items: [e],
+      });
     }
   }
   return groups;
