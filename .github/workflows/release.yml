@@ -18,12 +18,16 @@ jobs:
         include:
           - platform: macos-latest # Apple Silicon
             args: "--target aarch64-apple-darwin"
+            macos_target: "11.0"
           - platform: macos-latest # Intel
             args: "--target x86_64-apple-darwin"
+            macos_target: "10.15"
           - platform: ubuntu-22.04
             args: ""
+            macos_target: ""
           - platform: windows-latest
             args: ""
+            macos_target: ""
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -37,7 +41,9 @@ jobs:
             libwebkit2gtk-4.1-dev \
             libappindicator3-dev \
             librsvg2-dev \
-            patchelf
+            patchelf \
+            libasound2-dev \
+            libxdo-dev
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -67,6 +73,9 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # whisper.cpp uses std::filesystem (needs macOS 10.15+); without this
+          # the C++ build fails with "'path' is unavailable" on CI's low default.
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "OpenWispr ${{ github.ref_name }}"
