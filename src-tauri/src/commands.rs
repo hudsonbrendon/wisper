@@ -20,6 +20,9 @@ pub struct AppState {
     pub recorder: Mutex<Option<crate::audio::Recorder>>,
     pub config_dir: PathBuf,
     pub data_dir: PathBuf,
+    /// Model ids with a pending cancel request. The download loop checks this
+    /// each chunk and aborts when its id is present.
+    pub cancels: Mutex<std::collections::HashSet<String>>,
 }
 
 /// Metadata sent to the frontend for each catalog model.
@@ -66,20 +69,65 @@ pub async fn download_model(app: AppHandle, id: String) -> Result<(), String> {
     let info: &ModelInfo =
         model_manager::find(&id).ok_or_else(|| format!("unknown model: {id}"))?;
     let data_dir = app.state::<AppState>().data_dir.clone();
+    // Clear any stale cancel flag from a previous run before starting.
+    app.state::<AppState>().cancels.lock().unwrap().remove(&id);
 
     let app_for_progress = app.clone();
-    let path = model_manager::download(&data_dir, info, move |received, total| {
+    let id_for_check = id.clone();
+    let result = model_manager::download(&data_dir, info, move |received, total| {
         let _ = app_for_progress.emit(
             "download_progress",
             serde_json::json!({ "id": info.id, "received": received, "total": total }),
         );
+        // Continue unless a cancel was requested for this id.
+        !app_for_progress
+            .state::<AppState>()
+            .cancels
+            .lock()
+            .unwrap()
+            .contains(&id_for_check)
     })
-    .await?;
+    .await;
+
+    let path = match result {
+        Ok(p) => p,
+        Err(e) if e == model_manager::CANCELLED => {
+            app.state::<AppState>().cancels.lock().unwrap().remove(&id);
+            let _ = app.emit("download_cancelled", serde_json::json!({ "id": id }));
+            return Ok(());
+        }
+        Err(e) => return Err(e),
+    };
 
     // Load it as the active transcriber.
     let transcriber = Transcriber::load(path.to_str().ok_or("bad model path")?)?;
     *app.state::<AppState>().transcriber.lock().unwrap() = Some(transcriber);
     let _ = app.emit("model_ready", serde_json::json!({ "id": id }));
+    Ok(())
+}
+
+/// Request cancellation of an in-flight download for `id`. The download loop
+/// notices the flag on its next chunk and aborts, cleaning up the partial file.
+#[tauri::command]
+pub fn cancel_download(state: tauri::State<AppState>, id: String) {
+    state.cancels.lock().unwrap().insert(id);
+}
+
+/// Delete a downloaded model from disk. If it is the currently-loaded model,
+/// also drop the active transcriber so the file is no longer held open.
+#[tauri::command]
+pub fn remove_model(app: AppHandle, id: String) -> Result<(), String> {
+    let info: &ModelInfo =
+        model_manager::find(&id).ok_or_else(|| format!("unknown model: {id}"))?;
+    let state = app.state::<AppState>();
+
+    let is_active = state.config.lock().unwrap().model_id == id;
+    if is_active {
+        *state.transcriber.lock().unwrap() = None;
+    }
+
+    model_manager::remove(&state.data_dir, info)?;
+    let _ = app.emit("model_removed", serde_json::json!({ "id": id }));
     Ok(())
 }
 

@@ -14,12 +14,66 @@ pub struct ModelInfo {
 /// ggml-org/whisper.cpp Hugging Face repo. Verify against the repo before
 /// trusting a new entry.
 pub fn catalog() -> &'static [ModelInfo] {
-    &[ModelInfo {
-        id: "base.en",
-        filename: "ggml-base.en.bin",
-        url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin",
-        sha256: "a03779c86df3323075f5e796cb2ce5029f00ec8869eee3fdfb897afe36c6d002",
-    }]
+    // Multilingual models (tiny/base/small/medium/large) transcribe all 99
+    // Whisper languages from a single file; the `.en` variants are English-only
+    // but a bit faster/smaller. Bigger = more accurate and slower. Sizes are
+    // approximate on-disk footprints.
+    &[
+        ModelInfo {
+            id: "tiny", // ~75 MB, multilingual
+            filename: "ggml-tiny.bin",
+            url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin",
+            sha256: "be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21",
+        },
+        ModelInfo {
+            id: "tiny.en", // ~75 MB, English-only
+            filename: "ggml-tiny.en.bin",
+            url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin",
+            sha256: "921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f",
+        },
+        ModelInfo {
+            id: "base", // ~142 MB, multilingual
+            filename: "ggml-base.bin",
+            url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
+            sha256: "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe",
+        },
+        ModelInfo {
+            id: "base.en", // ~142 MB, English-only
+            filename: "ggml-base.en.bin",
+            url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin",
+            sha256: "a03779c86df3323075f5e796cb2ce5029f00ec8869eee3fdfb897afe36c6d002",
+        },
+        ModelInfo {
+            id: "small", // ~466 MB, multilingual
+            filename: "ggml-small.bin",
+            url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin",
+            sha256: "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b",
+        },
+        ModelInfo {
+            id: "small.en", // ~466 MB, English-only
+            filename: "ggml-small.en.bin",
+            url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin",
+            sha256: "c6138d6d58ecc8322097e0f987c32f1be8bb0a18532a3f88f734d1bbf9c41e5d",
+        },
+        ModelInfo {
+            id: "medium", // ~1.5 GB, multilingual
+            filename: "ggml-medium.bin",
+            url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin",
+            sha256: "6c14d5adee5f86394037b4e4e8b59f1673b6cee10e3cf0b11bbdbee79c156208",
+        },
+        ModelInfo {
+            id: "medium.en", // ~1.5 GB, English-only
+            filename: "ggml-medium.en.bin",
+            url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.en.bin",
+            sha256: "cc37e93478338ec7700281a7ac30a10128929eb8f427dda2e865faa8f6da4356",
+        },
+        ModelInfo {
+            id: "large-v3-turbo", // ~1.6 GB, multilingual, near-large accuracy & fast
+            filename: "ggml-large-v3-turbo.bin",
+            url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin",
+            sha256: "1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69",
+        },
+    ]
 }
 
 /// Look up a model by id.
@@ -55,15 +109,36 @@ pub fn is_downloaded(app_data_dir: &Path, info: &ModelInfo) -> bool {
     }
 }
 
+/// Delete a model's file from the app-data dir. Succeeds (no-op) if the file is
+/// already gone; also clears any leftover `.part` from an interrupted download.
+pub fn remove(app_data_dir: &Path, info: &ModelInfo) -> Result<(), String> {
+    let path = model_path(app_data_dir, info);
+    match std::fs::remove_file(&path) {
+        Ok(()) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => return Err(format!("remove model: {e}")),
+    }
+    let part = path.with_extension("bin.part");
+    let _ = std::fs::remove_file(part);
+    Ok(())
+}
+
+/// Returned by `download` when `on_progress` asks to stop. The caller treats
+/// this as a user cancel rather than a hard error.
+pub const CANCELLED: &str = "cancelled";
+
 /// Download `info` into the app-data dir, invoking `on_progress(received, total)`
 /// as bytes arrive, then verify the hash. Returns the final path.
+///
+/// `on_progress` returns `false` to cancel: the partial `.part` file is removed
+/// and the call returns `Err(CANCELLED)`.
 pub async fn download<F>(
     app_data_dir: &Path,
     info: &ModelInfo,
     mut on_progress: F,
 ) -> Result<PathBuf, String>
 where
-    F: FnMut(u64, u64),
+    F: FnMut(u64, u64) -> bool,
 {
     use futures_util::StreamExt;
     use tokio::io::AsyncWriteExt;
@@ -90,7 +165,11 @@ where
             .await
             .map_err(|e| format!("write chunk: {e}"))?;
         received += chunk.len() as u64;
-        on_progress(received, total);
+        if !on_progress(received, total) {
+            drop(file);
+            let _ = tokio::fs::remove_file(&tmp_path).await;
+            return Err(CANCELLED.to_string());
+        }
     }
     file.flush().await.map_err(|e| format!("flush: {e}"))?;
     drop(file);

@@ -89,6 +89,23 @@ fn on_release(app: &tauri::AppHandle) {
             .clone();
         let method = app.state::<AppState>().config.lock().unwrap().inject_method;
 
+        // Guard against empty/too-short captures (e.g. a quick tap): Whisper
+        // errors on an empty buffer. Require ~0.1s of audio (1600 @ 16kHz).
+        if samples.len() < 1600 {
+            eprintln!("no audio captured ({} samples)", samples.len());
+            let _ = app.emit(
+                "error",
+                serde_json::json!({
+                    "message": "No audio captured — hold the hotkey while you speak."
+                }),
+            );
+            transition(&app, SmEvent::Error); // -> Idle
+            if let Some(w) = app.get_webview_window("overlay") {
+                let _ = w.hide();
+            }
+            return;
+        }
+
         let text = {
             let app_state = app.state::<AppState>();
             let guard = app_state.transcriber.lock().unwrap();
@@ -149,6 +166,7 @@ pub fn run() {
                 recorder: Mutex::new(None),
                 config_dir,
                 data_dir,
+                cancels: Mutex::new(std::collections::HashSet::new()),
             });
 
             // Tray with a Settings + Quit menu.
@@ -182,6 +200,18 @@ pub fn run() {
                 }
             })?;
 
+            // Closing the main window hides it instead of quitting — the app
+            // keeps running in the tray. Only the tray's Quit item exits.
+            if let Some(main) = app.get_webview_window("main") {
+                let main_for_close = main.clone();
+                main.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = main_for_close.hide();
+                    }
+                });
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -190,8 +220,20 @@ pub fn run() {
             commands::list_microphones,
             commands::list_models,
             commands::download_model,
+            commands::cancel_download,
+            commands::remove_model,
             commands::get_state,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app, event| {
+            // Keep the app alive in the tray when windows close. `code.is_none()`
+            // means the exit came from closing windows; an explicit `app.exit(n)`
+            // (the tray Quit item) carries `Some(n)` and is allowed through.
+            if let tauri::RunEvent::ExitRequested { code, api, .. } = event {
+                if code.is_none() {
+                    api.prevent_exit();
+                }
+            }
+        });
 }

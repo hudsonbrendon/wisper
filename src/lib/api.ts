@@ -24,6 +24,10 @@ export const listMicrophones = () => invoke<string[]>("list_microphones");
 export const listModels = () => invoke<ModelMeta[]>("list_models");
 export const downloadModel = (id: string) =>
   invoke<void>("download_model", { id });
+export const cancelDownload = (id: string) =>
+  invoke<void>("cancel_download", { id });
+export const removeModel = (id: string) =>
+  invoke<void>("remove_model", { id });
 export const getState = () => invoke<string>("get_state");
 
 export type StatePayload = { state: string };
