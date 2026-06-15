@@ -73,9 +73,13 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # whisper.cpp uses std::filesystem (needs macOS 10.15+); without this
-          # the C++ build fails with "'path' is unavailable" on CI's low default.
+          # whisper.cpp uses std::filesystem (needs macOS 10.15+). The `cmake`
+          # crate that builds it does NOT read MACOSX_DEPLOYMENT_TARGET, so the
+          # CMake var must be set explicitly or the C++ build fails with
+          # "'path' is unavailable". Set both: CMAKE_* for the whisper build,
+          # MACOSX_* for Tauri's bundle minimum-version.
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target }}
+          CMAKE_OSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "OpenWispr ${{ github.ref_name }}"
