@@ -1,4 +1,5 @@
 mod audio;
+mod commands;
 mod config;
 pub mod inject;
 mod model_manager;
