@@ -17,6 +17,16 @@ export interface ModelMeta {
   downloaded: boolean;
 }
 
+export interface HistoryEntry {
+  ts_ms: number;
+  text: string;
+  words: number;
+  duration_ms: number;
+}
+
+export const getHistory = () => invoke<HistoryEntry[]>("get_history");
+export const clearHistory = () => invoke<void>("clear_history");
+
 export const getConfig = () => invoke<Config>("get_config");
 export const saveConfig = (newConfig: Config) =>
   invoke<void>("save_config", { newConfig });

@@ -1,6 +1,6 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useState } from "react";
-import Settings from "./routes/Settings";
+import Dashboard from "./routes/Dashboard";
 import Overlay from "./routes/Overlay";
 
 export default function App() {
@@ -11,5 +11,5 @@ export default function App() {
   }, []);
 
   if (label === null) return null;
-  return label === "overlay" ? <Overlay /> : <Settings />;
+  return label === "overlay" ? <Overlay /> : <Dashboard />;
 }

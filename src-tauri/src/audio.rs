@@ -68,15 +68,27 @@ impl Recorder {
     /// Start capturing from `device_name` (None = system default input).
     pub fn start(device_name: Option<&str>) -> Result<Recorder, String> {
         let host = cpal::default_host();
+        let default_device = || {
+            host.default_input_device()
+                .ok_or_else(|| "no default input device".to_string())
+        };
         let device = match device_name {
-            Some(name) => host
-                .input_devices()
-                .map_err(|e| format!("enumerate devices: {e}"))?
-                .find(|d| d.to_string() == name)
-                .ok_or_else(|| format!("input device not found: {name}"))?,
-            None => host
-                .default_input_device()
-                .ok_or_else(|| "no default input device".to_string())?,
+            Some(name) => {
+                let found = host
+                    .input_devices()
+                    .map_err(|e| format!("enumerate devices: {e}"))?
+                    .find(|d| d.to_string() == name);
+                match found {
+                    Some(d) => d,
+                    None => {
+                        // The saved device is gone (e.g. AirPods disconnected) —
+                        // fall back to the system default so dictation still works.
+                        eprintln!("input device '{name}' not found; using system default");
+                        default_device()?
+                    }
+                }
+            }
+            None => default_device()?,
         };
         let cfg = device
             .default_input_config()

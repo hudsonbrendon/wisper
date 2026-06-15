@@ -25,9 +25,13 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             hotkey: "Alt+Space".to_string(),
-            model_id: "base.en".to_string(),
+            // Multilingual model + auto language detection by default. The `.en`
+            // models are English-only: feeding them e.g. Portuguese produces
+            // garbage (Whisper emits a stray "you"), so they are never the
+            // default — users opt into them explicitly for English-only speed.
+            model_id: "base".to_string(),
             mic_device: None,
-            language: "en".to_string(),
+            language: "auto".to_string(),
             inject_method: InjectMethod::Type,
         }
     }

@@ -23,6 +23,8 @@ pub struct AppState {
     /// Model ids with a pending cancel request. The download loop checks this
     /// each chunk and aborts when its id is present.
     pub cancels: Mutex<std::collections::HashSet<String>>,
+    /// Hotkey gesture detector (hold vs double-tap).
+    pub hotkey: Mutex<crate::hotkey::Controller>,
 }
 
 /// Metadata sent to the frontend for each catalog model.
@@ -39,7 +41,23 @@ pub fn get_config(state: tauri::State<AppState>) -> Config {
 }
 
 #[tauri::command]
-pub fn save_config(state: tauri::State<AppState>, new_config: Config) -> Result<(), String> {
+pub fn save_config(
+    app: AppHandle,
+    state: tauri::State<AppState>,
+    new_config: Config,
+) -> Result<(), String> {
+    let old_hotkey = state.config.lock().unwrap().hotkey.clone();
+    let hotkey_changed = old_hotkey != new_config.hotkey;
+    // Register the new shortcut FIRST. If the accelerator is invalid or
+    // unsupported (e.g. modifiers with no key), bail out before persisting so a
+    // broken hotkey is never saved and the old one keeps working.
+    if hotkey_changed {
+        crate::register_hotkey(&app, &new_config.hotkey).map_err(|e| {
+            // Restore the previous, known-good binding.
+            let _ = crate::register_hotkey(&app, &old_hotkey);
+            format!("'{}' is not a valid shortcut: {e}", new_config.hotkey)
+        })?;
+    }
     config::save(&state.config_dir, &new_config).map_err(|e| format!("save config: {e}"))?;
     *state.config.lock().unwrap() = new_config;
     Ok(())
@@ -134,4 +152,19 @@ pub fn remove_model(app: AppHandle, id: String) -> Result<(), String> {
 #[tauri::command]
 pub fn get_state(state: tauri::State<AppState>) -> String {
     crate::state::label(*state.machine.lock().unwrap()).to_string()
+}
+
+/// All recorded dictations, newest first. Powers the Home history list and the
+/// Insights charts (which derive every stat from these entries on the frontend).
+#[tauri::command]
+pub fn get_history(state: tauri::State<AppState>) -> Vec<crate::history::Entry> {
+    crate::history::read_all(&state.data_dir)
+}
+
+/// Wipe the local transcription history.
+#[tauri::command]
+pub fn clear_history(app: AppHandle, state: tauri::State<AppState>) -> Result<(), String> {
+    crate::history::clear(&state.data_dir).map_err(|e| format!("clear history: {e}"))?;
+    let _ = app.emit("history_changed", serde_json::json!({}));
+    Ok(())
 }
