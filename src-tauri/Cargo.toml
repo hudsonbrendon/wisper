@@ -28,4 +28,8 @@ reqwest = { version = "0.13.4", default-features = false, features = ["rustls", 
 futures-util = "0.3.32"
 tokio = { version = "1.52.3", features = ["fs", "io-util"] }
 cpal = "0.18.1"
+whisper-rs = "0.16.0"
+
+[dev-dependencies]
+hound = "3.5.1"
 

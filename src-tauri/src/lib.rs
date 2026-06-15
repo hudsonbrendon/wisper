@@ -2,6 +2,7 @@ mod audio;
 mod config;
 mod model_manager;
 mod state;
+pub mod stt;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
