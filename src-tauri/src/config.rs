@@ -67,9 +67,7 @@ pub fn load(app_config_dir: &std::path::Path) -> Config {
 /// Save config to `app_config_dir/config.toml`, creating the dir if needed.
 pub fn save(app_config_dir: &std::path::Path, cfg: &Config) -> std::io::Result<()> {
     std::fs::create_dir_all(app_config_dir)?;
-    let text = cfg
-        .to_toml()
-        .map_err(std::io::Error::other)?;
+    let text = cfg.to_toml().map_err(std::io::Error::other)?;
     std::fs::write(config_path(app_config_dir), text)
 }
 
