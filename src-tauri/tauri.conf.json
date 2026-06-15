@@ -12,11 +12,29 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "OpenWispr",
-        "width": 800,
-        "height": 600
+        "width": 520,
+        "height": 640,
+        "resizable": true,
+        "visible": true
+      },
+      {
+        "label": "overlay",
+        "url": "index.html",
+        "width": 260,
+        "height": 80,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "shadow": false,
+        "visible": false,
+        "focus": false
       }
     ],
+    "macOSPrivateApi": true,
     "security": {
       "csp": null
     }
