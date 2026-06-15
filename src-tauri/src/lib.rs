@@ -46,8 +46,8 @@ fn on_press(app: &tauri::AppHandle) {
                 let guard = st.recorder.lock().unwrap();
                 match guard.as_ref() {
                     Some(rec) => {
-                        let _ = app2
-                            .emit("audio_level", serde_json::json!({ "level": rec.level() }));
+                        let _ =
+                            app2.emit("audio_level", serde_json::json!({ "level": rec.level() }));
                     }
                     None => break,
                 }
@@ -80,7 +80,13 @@ fn on_release(app: &tauri::AppHandle) {
     let app = app.clone();
     // Whisper is CPU-heavy and blocking; run off the UI thread.
     std::thread::spawn(move || {
-        let language = app.state::<AppState>().config.lock().unwrap().language.clone();
+        let language = app
+            .state::<AppState>()
+            .config
+            .lock()
+            .unwrap()
+            .language
+            .clone();
         let method = app.state::<AppState>().config.lock().unwrap().inject_method;
 
         let text = {
@@ -146,8 +152,7 @@ pub fn run() {
             });
 
             // Tray with a Settings + Quit menu.
-            let settings_item =
-                MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+            let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&settings_item, &quit_item])?;
             // build() registers a clone of the TrayIcon in the App's resource

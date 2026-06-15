@@ -51,9 +51,7 @@ impl Transcriber {
             let seg = state
                 .get_segment(i)
                 .ok_or_else(|| format!("segment {i} out of bounds"))?;
-            let text = seg
-                .to_str()
-                .map_err(|e| format!("segment text: {e}"))?;
+            let text = seg.to_str().map_err(|e| format!("segment text: {e}"))?;
             out.push_str(text);
         }
         Ok(out.trim().to_string())

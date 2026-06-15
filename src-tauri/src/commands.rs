@@ -63,7 +63,8 @@ pub fn list_models(state: tauri::State<AppState>) -> Vec<ModelMeta> {
 /// then load it as the active transcriber.
 #[tauri::command]
 pub async fn download_model(app: AppHandle, id: String) -> Result<(), String> {
-    let info: &ModelInfo = model_manager::find(&id).ok_or_else(|| format!("unknown model: {id}"))?;
+    let info: &ModelInfo =
+        model_manager::find(&id).ok_or_else(|| format!("unknown model: {id}"))?;
     let data_dir = app.state::<AppState>().data_dir.clone();
 
     let app_for_progress = app.clone();

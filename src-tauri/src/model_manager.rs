@@ -14,14 +14,12 @@ pub struct ModelInfo {
 /// ggml-org/whisper.cpp Hugging Face repo. Verify against the repo before
 /// trusting a new entry.
 pub fn catalog() -> &'static [ModelInfo] {
-    &[
-        ModelInfo {
-            id: "base.en",
-            filename: "ggml-base.en.bin",
-            url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin",
-            sha256: "a03779c86df3323075f5e796cb2ce5029f00ec8869eee3fdfb897afe36c6d002",
-        },
-    ]
+    &[ModelInfo {
+        id: "base.en",
+        filename: "ggml-base.en.bin",
+        url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin",
+        sha256: "a03779c86df3323075f5e796cb2ce5029f00ec8869eee3fdfb897afe36c6d002",
+    }]
 }
 
 /// Look up a model by id.
@@ -34,7 +32,10 @@ pub fn verify_sha256(bytes: &[u8], expected: &str) -> bool {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
     let actual = hasher.finalize();
-    let actual_hex = actual.iter().map(|b| format!("{b:02x}")).collect::<String>();
+    let actual_hex = actual
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect::<String>();
     actual_hex.eq_ignore_ascii_case(expected)
 }
 
@@ -120,7 +121,10 @@ mod tests {
 
     #[test]
     fn verify_rejects_wrong_hash() {
-        assert!(!verify_sha256(b"hello", "0000000000000000000000000000000000000000000000000000000000000000"));
+        assert!(!verify_sha256(
+            b"hello",
+            "0000000000000000000000000000000000000000000000000000000000000000"
+        ));
     }
 
     #[test]

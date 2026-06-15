@@ -69,7 +69,7 @@ pub fn save(app_config_dir: &std::path::Path, cfg: &Config) -> std::io::Result<(
     std::fs::create_dir_all(app_config_dir)?;
     let text = cfg
         .to_toml()
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        .map_err(std::io::Error::other)?;
     std::fs::write(config_path(app_config_dir), text)
 }
 
@@ -108,8 +108,10 @@ mod tests {
     fn save_then_load_round_trips() {
         let dir = std::env::temp_dir().join("openwispr_test_save_load");
         let _ = std::fs::remove_dir_all(&dir);
-        let mut cfg = Config::default();
-        cfg.language = "pt".to_string();
+        let cfg = Config {
+            language: "pt".to_string(),
+            ..Config::default()
+        };
         save(&dir, &cfg).expect("save");
         assert_eq!(load(&dir), cfg);
         let _ = std::fs::remove_dir_all(&dir);

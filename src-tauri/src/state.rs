@@ -71,7 +71,10 @@ mod tests {
     #[test]
     fn stray_events_are_no_ops() {
         assert_eq!(next(State::Idle, Event::HotkeyReleased), State::Idle);
-        assert_eq!(next(State::Recording, Event::HotkeyPressed), State::Recording);
+        assert_eq!(
+            next(State::Recording, Event::HotkeyPressed),
+            State::Recording
+        );
     }
 
     #[test]
