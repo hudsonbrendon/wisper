@@ -29,6 +29,8 @@ futures-util = "0.3.32"
 tokio = { version = "1.52.3", features = ["fs", "io-util"] }
 cpal = "0.18.1"
 whisper-rs = "0.16.0"
+enigo = "0.6.1"
+arboard = "3.6.1"
 
 [dev-dependencies]
 hound = "3.5.1"

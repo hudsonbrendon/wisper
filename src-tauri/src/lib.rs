@@ -1,5 +1,6 @@
 mod audio;
 mod config;
+pub mod inject;
 mod model_manager;
 mod state;
 pub mod stt;
