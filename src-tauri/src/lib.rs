@@ -150,7 +150,10 @@ pub fn run() {
                 MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&settings_item, &quit_item])?;
-            let _tray = TrayIconBuilder::new()
+            // build() registers a clone of the TrayIcon in the App's resource
+            // table (manager.tray.icons), so the icon persists for the app's
+            // lifetime even though the local handle is dropped here.
+            TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {
