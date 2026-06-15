@@ -185,6 +185,50 @@ fn hide_overlay_after_error(app: &tauri::AppHandle) {
     }
 }
 
+/// Convert the overlay window to a non-activating NSPanel (macOS only). The
+/// NonActivatingPanel style mask (1 << 7) lets it receive clicks without
+/// activating the app, so the previously-focused app stays frontmost and
+/// injection still lands there. Best-effort: logs and continues on failure.
+#[cfg(target_os = "macos")]
+fn convert_overlay_to_panel(app: &tauri::AppHandle) {
+    use tauri_nspanel::WebviewWindowExt;
+    if let Some(overlay) = app.get_webview_window("overlay") {
+        match overlay.to_panel() {
+            Ok(panel) => panel.set_style_mask(1 << 7),
+            Err(e) => eprintln!("overlay panel conversion failed: {e:?}"),
+        }
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn convert_overlay_to_panel(_app: &tauri::AppHandle) {}
+
+/// Anchor the pill bottom-center above the Dock/taskbar, then show it.
+fn place_and_show_overlay(app: &tauri::AppHandle) {
+    if let Some(overlay) = app.get_webview_window("overlay") {
+        let monitor = overlay
+            .current_monitor()
+            .ok()
+            .flatten()
+            .or_else(|| overlay.primary_monitor().ok().flatten());
+        if let Some(mon) = monitor {
+            let pos = mon.position();
+            let size = mon.size();
+            let win = overlay
+                .outer_size()
+                .unwrap_or(tauri::PhysicalSize::new(360, 72));
+            let (x, y) = overlay::bottom_center(
+                (pos.x, pos.y),
+                (size.width, size.height),
+                (win.width, win.height),
+                90,
+            );
+            let _ = overlay.set_position(tauri::PhysicalPosition::new(x, y));
+        }
+        let _ = overlay.show();
+    }
+}
+
 /// Carry out a gesture [`HkAction`] against the audio pipeline.
 fn dispatch(app: &tauri::AppHandle, action: HkAction) {
     match action {
@@ -263,6 +307,20 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        // macOS: enables converting the overlay into a non-activating NSPanel
+        // so clicking the pill never steals focus from the target app.
+        // (no-op registration on other platforms via the cfg below)
+        .plugin({
+            #[cfg(target_os = "macos")]
+            {
+                tauri_nspanel::init()
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                // A harmless no-op plugin on non-macOS targets.
+                tauri::plugin::Builder::new("noop-nspanel").build()
+            }
+        })
         .setup(|app| {
             let handle = app.handle().clone();
 
@@ -341,6 +399,11 @@ pub fn run() {
                     }
                 });
             }
+
+            // Pill: make the overlay a non-activating panel, place it
+            // bottom-center, and keep it on screen for the app's lifetime.
+            convert_overlay_to_panel(&handle);
+            place_and_show_overlay(&handle);
 
             Ok(())
         })
