@@ -14,6 +14,8 @@ pub enum Event {
     HotkeyReleased,
     TranscriptionDone,
     InjectionDone,
+    /// User discarded the in-progress take from the pill.
+    Cancel,
     /// Any failure returns the machine to Idle.
     Error,
 }
@@ -28,6 +30,7 @@ pub fn next(state: State, event: Event) -> State {
         (Recording, HotkeyReleased) => Transcribing,
         (Transcribing, TranscriptionDone) => Injecting,
         (Injecting, InjectionDone) => Idle,
+        (Recording, Cancel) => Idle,
         (_, Error) => Idle,
         // Any other pairing is a no-op.
         (s, _) => s,
@@ -83,5 +86,17 @@ mod tests {
         assert_eq!(label(State::Recording), "recording");
         assert_eq!(label(State::Transcribing), "transcribing");
         assert_eq!(label(State::Injecting), "injecting");
+    }
+
+    #[test]
+    fn cancel_from_recording_returns_to_idle() {
+        assert_eq!(next(State::Recording, Event::Cancel), State::Idle);
+    }
+
+    #[test]
+    fn cancel_is_noop_outside_recording() {
+        assert_eq!(next(State::Idle, Event::Cancel), State::Idle);
+        assert_eq!(next(State::Transcribing, Event::Cancel), State::Transcribing);
+        assert_eq!(next(State::Injecting, Event::Cancel), State::Injecting);
     }
 }
