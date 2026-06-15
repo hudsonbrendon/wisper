@@ -14,28 +14,7 @@ import {
   type DownloadProgressPayload,
 } from "../lib/api";
 import { useI18n, UI_LANGUAGES } from "../lib/i18n";
-
-/// Whisper language options. "auto" lets Whisper detect the spoken language.
-/// Codes are Whisper's ISO 639-1 language codes. The "auto" label is
-/// translated at render time via t("lang.auto").
-const LANGUAGES: { code: string; name: string }[] = [
-  { code: "auto", name: "Detect automatically" },
-  { code: "pt", name: "Português" },
-  { code: "en", name: "English" },
-  { code: "es", name: "Español" },
-  { code: "fr", name: "Français" },
-  { code: "de", name: "Deutsch" },
-  { code: "it", name: "Italiano" },
-  { code: "nl", name: "Nederlands" },
-  { code: "ru", name: "Русский" },
-  { code: "pl", name: "Polski" },
-  { code: "tr", name: "Türkçe" },
-  { code: "ja", name: "日本語" },
-  { code: "ko", name: "한국어" },
-  { code: "zh", name: "中文" },
-  { code: "ar", name: "العربية" },
-  { code: "hi", name: "हिन्दी" },
-];
+import { LANGUAGES } from "../lib/languages";
 
 /// Build a Tauri global-shortcut accelerator string from a keydown event.
 /// Returns null while only modifier keys are held (combo not complete yet).

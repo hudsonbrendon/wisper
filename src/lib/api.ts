@@ -39,6 +39,11 @@ export const cancelDownload = (id: string) =>
 export const removeModel = (id: string) =>
   invoke<void>("remove_model", { id });
 export const getState = () => invoke<string>("get_state");
+export const uiStartRecording = () => invoke<void>("ui_start_recording");
+export const uiStopAndInsert = () => invoke<void>("ui_stop_and_insert");
+export const uiCancelRecording = () => invoke<void>("ui_cancel_recording");
+export const setLanguage = (lang: string) =>
+  invoke<void>("set_language", { lang });
 
 export type StatePayload = { state: string };
 export type LevelPayload = { level: number };
