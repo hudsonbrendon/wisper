@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useI18n } from "../lib/i18n";
+import { getTheme, setTheme, type Theme } from "../lib/theme";
 import UpdateControl from "./UpdateControl";
 
 export type View = "home" | "insights" | "dictionary" | "snippets" | "settings";
@@ -47,7 +48,36 @@ const icons: Record<string, ReactNode> = {
       <line x1="12" y1="17" x2="12.01" y2="17" />
     </>
   ),
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+    </>
+  ),
+  moon: <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />,
 };
+
+function ThemeToggle() {
+  const { t } = useI18n();
+  const [theme, setThemeState] = useState<Theme>(getTheme);
+  const toggle = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    setThemeState(next);
+  };
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition-colors hover:bg-stone-200/40 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100"
+    >
+      <Icon name={theme === "dark" ? "sun" : "moon"} />
+      <span className="flex-1">
+        {theme === "dark" ? t("nav.lightMode") : t("nav.darkMode")}
+      </span>
+    </button>
+  );
+}
 
 function Icon({ name }: { name: string }) {
   return (
@@ -85,8 +115,8 @@ function NavButton({
       className={
         "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors " +
         (active
-          ? "bg-stone-200/70 font-medium text-stone-900"
-          : "text-stone-600 hover:bg-stone-200/40 hover:text-stone-900")
+          ? "bg-stone-200/70 font-medium text-stone-900 dark:bg-stone-800 dark:text-stone-100"
+          : "text-stone-600 hover:bg-stone-200/40 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100")
       }
     >
       <Icon name={icon} />
@@ -109,7 +139,7 @@ export default function Sidebar({
       {/* Brand */}
       <div className="mb-6 flex items-center gap-2 px-2">
         <svg
-          className="h-5 w-5 text-stone-900"
+          className="h-5 w-5 text-stone-900 dark:text-stone-100"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -155,7 +185,7 @@ export default function Sidebar({
       </nav>
 
       {/* Bottom group */}
-      <div className="mt-auto flex flex-col gap-1 border-t border-stone-200 pt-3">
+      <div className="mt-auto flex flex-col gap-1 border-t border-stone-200 pt-3 dark:border-stone-800">
         <NavButton
           icon="settings"
           label={t("nav.settings")}
@@ -166,11 +196,12 @@ export default function Sidebar({
           href="https://github.com/hudsonbrendon/openwispr"
           target="_blank"
           rel="noreferrer"
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition-colors hover:bg-stone-200/40 hover:text-stone-900"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition-colors hover:bg-stone-200/40 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100"
         >
           <Icon name="help" />
           <span className="flex-1">{t("nav.help")}</span>
         </a>
+        <ThemeToggle />
         <UpdateControl />
       </div>
     </aside>

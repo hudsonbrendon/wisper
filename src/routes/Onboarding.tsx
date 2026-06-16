@@ -40,7 +40,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-100/95 p-6 backdrop-blur">
-      <div className="flex h-[560px] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-2xl">
+      <div className="flex h-[560px] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 shadow-2xl">
         {/* Progress */}
         <div className="flex items-center justify-between px-8 pt-6">
           <div className="flex gap-1.5">
@@ -62,7 +62,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
             <button
               type="button"
               onClick={finish}
-              className="text-xs text-stone-400 hover:text-stone-600"
+              className="text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600"
             >
               {t("onboarding.skip")}
             </button>
@@ -83,12 +83,12 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-stone-100 px-8 py-4">
+        <div className="flex items-center justify-between border-t border-stone-100 dark:border-stone-800 px-8 py-4">
           <button
             type="button"
             onClick={back}
             disabled={stepIdx === 0}
-            className="rounded-lg px-3 py-2 text-sm text-stone-500 hover:bg-stone-100 disabled:opacity-0"
+            className="rounded-lg px-3 py-2 text-sm text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 disabled:opacity-0"
           >
             {t("onboarding.back")}
           </button>
@@ -110,10 +110,10 @@ function Welcome() {
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
       <img src="/logo.png" alt="" className="mb-5 h-20 w-20" />
-      <h1 className="text-2xl font-semibold text-stone-900">
+      <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">
         {t("onboarding.welcome.title")}
       </h1>
-      <p className="mt-3 max-w-md text-sm text-stone-500">
+      <p className="mt-3 max-w-md text-sm text-stone-500 dark:text-stone-400">
         {t("onboarding.welcome.body")}
       </p>
     </div>
@@ -153,10 +153,10 @@ function HotkeyStep({
 
   return (
     <div>
-      <h2 className="text-xl font-semibold text-stone-900">
+      <h2 className="text-xl font-semibold text-stone-900 dark:text-stone-100">
         {t("onboarding.hotkey.title")}
       </h2>
-      <p className="mt-2 text-sm text-stone-500">
+      <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
         {t("onboarding.hotkey.body")}
       </p>
 
@@ -167,26 +167,26 @@ function HotkeyStep({
           "mt-5 w-full rounded-xl border px-4 py-3 text-center font-mono text-sm transition-colors " +
           (capturing
             ? "border-teal-300 bg-teal-600 text-white ring-2 ring-teal-200"
-            : "border-stone-300 text-stone-800 hover:bg-stone-50")
+            : "border-stone-300 dark:border-stone-700 text-stone-800 dark:text-stone-200 hover:bg-stone-50")
         }
       >
         {capturing ? t("onboarding.hotkey.press") : config.hotkey}
       </button>
 
       <div className="mt-6 grid grid-cols-2 gap-3">
-        <div className="rounded-xl bg-stone-50 p-4">
-          <div className="text-sm font-medium text-stone-800">
+        <div className="rounded-xl bg-stone-50 dark:bg-stone-900 p-4">
+          <div className="text-sm font-medium text-stone-800 dark:text-stone-200">
             {t("onboarding.hotkey.hold")}
           </div>
-          <p className="mt-1 text-xs text-stone-500">
+          <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
             {t("onboarding.hotkey.holdBody")}
           </p>
         </div>
-        <div className="rounded-xl bg-stone-50 p-4">
-          <div className="text-sm font-medium text-stone-800">
+        <div className="rounded-xl bg-stone-50 dark:bg-stone-900 p-4">
+          <div className="text-sm font-medium text-stone-800 dark:text-stone-200">
             {t("onboarding.hotkey.double")}
           </div>
-          <p className="mt-1 text-xs text-stone-500">
+          <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
             {t("onboarding.hotkey.doubleBody")}
           </p>
         </div>
@@ -220,10 +220,10 @@ function ModelStep() {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold text-stone-900">
+      <h2 className="text-xl font-semibold text-stone-900 dark:text-stone-100">
         {t("onboarding.model.title")}
       </h2>
-      <p className="mt-2 text-sm text-stone-500">
+      <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
         {t("onboarding.model.body")}
       </p>
 
@@ -232,13 +232,15 @@ function ModelStep() {
           ✓ {t("onboarding.model.ready")}
         </div>
       ) : (
-        <div className="mt-6 rounded-xl border border-stone-200 p-4">
+        <div className="mt-6 rounded-xl border border-stone-200 dark:border-stone-800 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium text-stone-800">
+              <div className="text-sm font-medium text-stone-800 dark:text-stone-200">
                 base · {t("settings.multilingual")}
               </div>
-              <div className="text-xs text-stone-500">~142 MB</div>
+              <div className="text-xs text-stone-500 dark:text-stone-400">
+                ~142 MB
+              </div>
             </div>
             <button
               type="button"
@@ -247,7 +249,7 @@ function ModelStep() {
                 setPct(0);
                 downloadModel("base").catch(() => setPct(null));
               }}
-              className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50"
+              className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200 disabled:opacity-50"
             >
               {pct === null
                 ? t("btn.download")
@@ -292,10 +294,10 @@ function PracticeStep({ hotkey }: { hotkey: string }) {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold text-stone-900">
+      <h2 className="text-xl font-semibold text-stone-900 dark:text-stone-100">
         {t("onboarding.practice.title")}
       </h2>
-      <p className="mt-2 text-sm text-stone-500">
+      <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
         {t("onboarding.practice.body", { hotkey })}
       </p>
 
@@ -312,8 +314,8 @@ function PracticeStep({ hotkey }: { hotkey: string }) {
             className={
               "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors " +
               (app === a.id
-                ? "border-stone-300 bg-stone-100 text-stone-900"
-                : "border-stone-200 text-stone-500 hover:bg-stone-50")
+                ? "border-stone-300 dark:border-stone-700 bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-100"
+                : "border-stone-200 dark:border-stone-800 text-stone-500 dark:text-stone-400 hover:bg-stone-50")
             }
           >
             <a.Mark className="h-4 w-4" />
@@ -323,8 +325,8 @@ function PracticeStep({ hotkey }: { hotkey: string }) {
       </div>
 
       {/* Mock app surface */}
-      <div className="mt-3 rounded-2xl border border-stone-200 bg-stone-50 p-4">
-        <div className="mb-2 flex items-center gap-2 text-xs font-medium text-stone-500">
+      <div className="mt-3 rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 p-4">
+        <div className="mb-2 flex items-center gap-2 text-xs font-medium text-stone-500 dark:text-stone-400">
           <active.Mark className="h-4 w-4" />
           {active.name}
         </div>
@@ -334,9 +336,9 @@ function PracticeStep({ hotkey }: { hotkey: string }) {
           onChange={(e) => setText(e.target.value)}
           placeholder={active.placeholder}
           rows={4}
-          className="w-full resize-none rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200"
+          className="w-full resize-none rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-sm text-stone-800 dark:text-stone-200 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200"
         />
-        <div className="mt-2 text-xs text-stone-400">
+        <div className="mt-2 text-xs text-stone-400 dark:text-stone-500">
           {t("onboarding.practice.suggest")}
         </div>
       </div>
@@ -346,7 +348,7 @@ function PracticeStep({ hotkey }: { hotkey: string }) {
           ✓ {t("onboarding.practice.success")}
         </div>
       ) : (
-        <p className="mt-4 text-xs text-stone-400">
+        <p className="mt-4 text-xs text-stone-400 dark:text-stone-500">
           {t("onboarding.practice.hint")}
         </p>
       )}
@@ -361,10 +363,10 @@ function Done() {
       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl text-emerald-600">
         ✓
       </div>
-      <h1 className="text-2xl font-semibold text-stone-900">
+      <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">
         {t("onboarding.done.title")}
       </h1>
-      <p className="mt-3 max-w-md text-sm text-stone-500">
+      <p className="mt-3 max-w-md text-sm text-stone-500 dark:text-stone-400">
         {t("onboarding.done.body")}
       </p>
     </div>

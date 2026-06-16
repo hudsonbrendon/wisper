@@ -27,18 +27,22 @@ export default function ConfirmModal({
       role="presentation"
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+        className="w-full max-w-sm rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl"
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-lg font-semibold text-stone-900">{opts.title}</h3>
-        <p className="mt-2 text-sm text-stone-600">{opts.message}</p>
+        <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-100">
+          {opts.title}
+        </h3>
+        <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">
+          {opts.message}
+        </p>
         <div className="mt-6 flex justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100"
+            className="rounded-lg border border-stone-300 dark:border-stone-700 px-4 py-2 text-sm font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800"
           >
             {t("btn.cancel")}
           </button>
