@@ -386,6 +386,39 @@ fn on_shortcut(app: &tauri::AppHandle, pressed: bool) {
     dispatch(app, action);
 }
 
+/// Reset the macOS Microphone TCC grant when the app binary has changed since
+/// last launch (a fresh install or update). Without a paid Apple Developer
+/// identity the signature isn't stable across builds, so the OS leaves a stale
+/// "granted" record that silently yields silence and never re-prompts. Resetting
+/// it forces the next capture to show the permission dialog again. Runs at most
+/// once per build (guarded by a marker file). macOS only.
+#[cfg(target_os = "macos")]
+fn heal_mic_permission_if_updated(data_dir: &std::path::Path) {
+    let marker = data_dir.join("mic_build_marker");
+    let current = std::env::current_exe()
+        .ok()
+        .and_then(|p| std::fs::metadata(p).ok())
+        .and_then(|m| m.modified().ok())
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_secs().to_string())
+        .unwrap_or_default();
+    if current.is_empty() {
+        return;
+    }
+    let previous = std::fs::read_to_string(&marker).unwrap_or_default();
+    if current == previous {
+        return; // same build — leave the existing grant alone
+    }
+    let _ = std::process::Command::new("tccutil")
+        .args(["reset", "Microphone", "com.hudsonbrendon.openwispr"])
+        .status();
+    let _ = std::fs::create_dir_all(data_dir);
+    let _ = std::fs::write(&marker, current);
+}
+
+#[cfg(not(target_os = "macos"))]
+fn heal_mic_permission_if_updated(_data_dir: &std::path::Path) {}
+
 /// Play the dictation start/stop chime (macOS only; best-effort).
 fn play_dictation_sound(start: bool) {
     #[cfg(target_os = "macos")]
@@ -559,15 +592,22 @@ pub fn run() {
             // TCC — recovering from a stale grant left behind by a prior build.
             inject::prompt_accessibility_on_startup();
 
-            // Trigger the Microphone permission prompt early (off the UI thread)
-            // so capture works on the first dictation instead of recording
-            // silence while the dialog is still up.
-            std::thread::spawn(audio::prompt_microphone_access);
-
             // Resolve OS dirs and load config.
             let config_dir = handle.path().app_config_dir().expect("config dir");
             let data_dir = handle.path().app_data_dir().expect("data dir");
             let cfg = config::load(&config_dir);
+
+            // After an app update the macOS Microphone TCC grant goes stale and
+            // silently returns silence (no paid Apple cert to keep a stable
+            // identity across builds). Detect a changed binary and reset the
+            // grant so the warmup below re-prompts — the user re-allows once per
+            // update instead of getting silent captures.
+            heal_mic_permission_if_updated(&data_dir);
+
+            // Trigger the Microphone permission prompt early (off the UI thread)
+            // so capture works on the first dictation instead of recording
+            // silence while the dialog is still up.
+            std::thread::spawn(audio::prompt_microphone_access);
 
             // Load the configured model if it is already downloaded.
             let transcriber = model_manager::find(&cfg.model_id)

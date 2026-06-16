@@ -54,11 +54,28 @@ function Field({
   label,
   hint,
   children,
+  align = "fill",
 }: {
   label: string;
   hint?: React.ReactNode;
   children: React.ReactNode;
+  /** "fill": control gets a wide column (selects). "right": label/hint take the
+   *  row, control sits compact on the right (toggles, buttons). */
+  align?: "fill" | "right";
 }) {
+  if (align === "right") {
+    return (
+      <div className="border-b border-stone-100 px-6 py-5 last:border-b-0">
+        <div className="flex items-center justify-between gap-6">
+          <div className="min-w-0">
+            <span className="text-sm font-medium text-stone-800">{label}</span>
+            {hint && <p className="mt-1 text-xs text-stone-500">{hint}</p>}
+          </div>
+          <div className="shrink-0">{children}</div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="border-b border-stone-100 px-6 py-5 last:border-b-0">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[200px_1fr] md:items-start">
@@ -394,7 +411,11 @@ export default function Settings() {
           </div>
         </Field>
 
-        <Field label={t("settings.history")} hint={t("settings.historyHint")}>
+        <Field
+          align="right"
+          label={t("settings.history")}
+          hint={t("settings.historyHint")}
+        >
           <button
             type="button"
             onClick={async () => {
@@ -416,24 +437,34 @@ export default function Settings() {
           </h2>
           <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
             <Field
+              align="right"
               label={t("settings.launchAtLogin")}
               hint={t("settings.launchAtLoginHint")}
             >
               <Toggle checked={launchLogin} onChange={onToggleLaunch} />
             </Field>
-            <Field label={t("settings.showInDock")} hint={t("settings.showInDockHint")}>
+            <Field
+              align="right"
+              label={t("settings.showInDock")}
+              hint={t("settings.showInDockHint")}
+            >
               <Toggle
                 checked={config.show_in_dock}
                 onChange={(v) => update({ show_in_dock: v })}
               />
             </Field>
-            <Field label={t("settings.showPill")} hint={t("settings.showPillHint")}>
+            <Field
+              align="right"
+              label={t("settings.showPill")}
+              hint={t("settings.showPillHint")}
+            >
               <Toggle
                 checked={config.show_pill}
                 onChange={(v) => update({ show_pill: v })}
               />
             </Field>
             <Field
+              align="right"
               label={t("settings.dictationSounds")}
               hint={t("settings.dictationSoundsHint")}
             >
@@ -442,13 +473,21 @@ export default function Settings() {
                 onChange={(v) => update({ dictation_sounds: v })}
               />
             </Field>
-            <Field label={t("settings.muteMusic")} hint={t("settings.muteMusicHint")}>
+            <Field
+              align="right"
+              label={t("settings.muteMusic")}
+              hint={t("settings.muteMusicHint")}
+            >
               <Toggle
                 checked={config.mute_music}
                 onChange={(v) => update({ mute_music: v })}
               />
             </Field>
-            <Field label={t("settings.resetApp")} hint={t("settings.resetAppHint")}>
+            <Field
+              align="right"
+              label={t("settings.resetApp")}
+              hint={t("settings.resetAppHint")}
+            >
               <button
                 type="button"
                 onClick={onReset}
