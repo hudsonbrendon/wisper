@@ -388,14 +388,17 @@ fn on_shortcut(app: &tauri::AppHandle, pressed: bool) {
     dispatch(app, action);
 }
 
-/// Reset the macOS Microphone TCC grant when the app binary has changed since
-/// last launch (a fresh install or update). Without a paid Apple Developer
-/// identity the signature isn't stable across builds, so the OS leaves a stale
-/// "granted" record that silently yields silence and never re-prompts. Resetting
-/// it forces the next capture to show the permission dialog again. Runs at most
-/// once per build (guarded by a marker file). macOS only.
+/// Reset the macOS Microphone AND Accessibility TCC grants when the app binary
+/// has changed since last launch (a fresh install or update). Without a paid
+/// Apple Developer identity the signature isn't stable across builds, so the OS
+/// keys each grant on the code hash and leaves a stale "granted" record for the
+/// previous build: microphone capture silently yields silence, and synthesized
+/// keystrokes (text injection) are silently dropped — so audio transcribes but
+/// the text never lands. Resetting both forces the startup prompts to
+/// re-register THIS binary and show the dialogs, so the user re-allows once per
+/// update. Runs at most once per build (guarded by a marker file). macOS only.
 #[cfg(target_os = "macos")]
-fn heal_mic_permission_if_updated(data_dir: &std::path::Path) {
+fn heal_permissions_if_updated(data_dir: &std::path::Path) {
     let marker = data_dir.join("mic_build_marker");
     let current = std::env::current_exe()
         .ok()
@@ -409,17 +412,19 @@ fn heal_mic_permission_if_updated(data_dir: &std::path::Path) {
     }
     let previous = std::fs::read_to_string(&marker).unwrap_or_default();
     if current == previous {
-        return; // same build — leave the existing grant alone
+        return; // same build — leave the existing grants alone
     }
-    let _ = std::process::Command::new("tccutil")
-        .args(["reset", "Microphone", "com.hudsonbrendon.openwispr"])
-        .status();
+    for service in ["Microphone", "Accessibility"] {
+        let _ = std::process::Command::new("tccutil")
+            .args(["reset", service, "com.hudsonbrendon.openwispr"])
+            .status();
+    }
     let _ = std::fs::create_dir_all(data_dir);
     let _ = std::fs::write(&marker, current);
 }
 
 #[cfg(not(target_os = "macos"))]
-fn heal_mic_permission_if_updated(_data_dir: &std::path::Path) {}
+fn heal_permissions_if_updated(_data_dir: &std::path::Path) {}
 
 /// Play the dictation start/stop chime (macOS only; best-effort).
 fn play_dictation_sound(start: bool) {
@@ -618,22 +623,23 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
 
-            // Ask for Accessibility trust up front. This pops the system dialog
-            // when ungranted and, crucially, re-registers the current binary in
-            // TCC — recovering from a stale grant left behind by a prior build.
-            inject::prompt_accessibility_on_startup();
-
             // Resolve OS dirs and load config.
             let config_dir = handle.path().app_config_dir().expect("config dir");
             let data_dir = handle.path().app_data_dir().expect("data dir");
             let cfg = config::load(&config_dir);
 
-            // After an app update the macOS Microphone TCC grant goes stale and
-            // silently returns silence (no paid Apple cert to keep a stable
-            // identity across builds). Detect a changed binary and reset the
-            // grant so the warmup below re-prompts — the user re-allows once per
-            // update instead of getting silent captures.
-            heal_mic_permission_if_updated(&data_dir);
+            // After an install/update the ad-hoc signature changes, so macOS
+            // leaves BOTH the Microphone and Accessibility TCC grants stale —
+            // capture returns silence and injected keystrokes are dropped (audio
+            // transcribes but no text lands). Reset them on a changed binary
+            // BEFORE re-prompting, so the prompts below register the new binary
+            // cleanly and the user re-allows once per update.
+            heal_permissions_if_updated(&data_dir);
+
+            // Ask for Accessibility trust up front. This pops the system dialog
+            // when ungranted and re-registers the current binary in TCC — so
+            // injected text actually lands instead of being silently dropped.
+            inject::prompt_accessibility_on_startup();
 
             // Trigger the Microphone permission prompt early (off the UI thread)
             // so capture works on the first dictation instead of recording
