@@ -114,6 +114,20 @@ const en: Dict = {
   "settings.resetAppHint": "Restore default settings and clear history, then restart.",
   "settings.resetAppAction": "Reset & restart",
   "settings.resetConfirm": "Reset all settings and clear history? The app will restart.",
+  "confirm.reset.title": "Reset app?",
+  "confirm.reset.message":
+    "This restores default settings, clears your history, and restarts OpenWispr.",
+  "confirm.clearHistory.title": "Clear history?",
+  "confirm.clearHistory.message":
+    "This permanently deletes all of your transcription history.",
+  "confirm.removeModel.title": "Remove model?",
+  "confirm.removeModel.message": "Delete the downloaded model {name} from disk?",
+  "confirm.downloadModel.title": "Download model?",
+  "confirm.downloadModel.message":
+    "Download {name}? This may take a while and use disk space.",
+  "confirm.cancelDownload.title": "Cancel download?",
+  "confirm.cancelDownload.message": "Stop downloading {name}?",
+  "confirm.cancelDownload.action": "Stop download",
   "overlay.listening": "Listening…",
   "overlay.transcribing": "Transcribing…",
   "overlay.inserting": "Inserting…",
@@ -210,6 +224,20 @@ const pt: Dict = {
   "settings.resetAppHint": "Restaura as configurações padrão, limpa o histórico e reinicia.",
   "settings.resetAppAction": "Resetar e reiniciar",
   "settings.resetConfirm": "Resetar todas as configurações e limpar o histórico? O app vai reiniciar.",
+  "confirm.reset.title": "Resetar o app?",
+  "confirm.reset.message":
+    "Isto restaura as configurações padrão, limpa o histórico e reinicia o OpenWispr.",
+  "confirm.clearHistory.title": "Limpar histórico?",
+  "confirm.clearHistory.message":
+    "Isto apaga permanentemente todo o seu histórico de transcrições.",
+  "confirm.removeModel.title": "Remover modelo?",
+  "confirm.removeModel.message": "Apagar o modelo {name} baixado do disco?",
+  "confirm.downloadModel.title": "Baixar modelo?",
+  "confirm.downloadModel.message":
+    "Baixar {name}? Pode demorar e usar espaço em disco.",
+  "confirm.cancelDownload.title": "Cancelar download?",
+  "confirm.cancelDownload.message": "Parar o download de {name}?",
+  "confirm.cancelDownload.action": "Parar download",
   "overlay.listening": "Ouvindo…",
   "overlay.transcribing": "Transcrevendo…",
   "overlay.inserting": "Inserindo…",

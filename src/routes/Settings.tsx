@@ -18,6 +18,7 @@ import {
 } from "../lib/api";
 import { useI18n, UI_LANGUAGES } from "../lib/i18n";
 import { LANGUAGES } from "../lib/languages";
+import ConfirmModal, { type ConfirmOpts } from "../components/ConfirmModal";
 
 /// Build a Tauri global-shortcut accelerator string from a keydown event.
 /// Returns null while only modifier keys are held (combo not complete yet).
@@ -132,6 +133,7 @@ export default function Settings() {
   const [hotkeyError, setHotkeyError] = useState("");
   const [historyCleared, setHistoryCleared] = useState(false);
   const [launchLogin, setLaunchLogin] = useState(false);
+  const [confirm, setConfirm] = useState<ConfirmOpts | null>(null);
   // Model ids with an in-flight download (button shows Cancel + "baixando").
   const [downloading, setDownloading] = useState<Set<string>>(new Set());
   const clearDownloading = (id: string) =>
@@ -236,11 +238,14 @@ export default function Settings() {
     setLaunchAtLogin(v).catch(() => setLaunchLogin(!v));
   };
 
-  const onReset = () => {
-    if (window.confirm(t("settings.resetConfirm"))) {
-      resetApp().catch(() => {});
-    }
-  };
+  const onReset = () =>
+    setConfirm({
+      title: t("confirm.reset.title"),
+      message: t("confirm.reset.message"),
+      confirmLabel: t("settings.resetAppAction"),
+      danger: true,
+      onConfirm: () => void resetApp().catch(() => {}),
+    });
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -378,29 +383,53 @@ export default function Settings() {
                   {downloading.has(m.id) ? (
                     <button
                       className="rounded-md bg-amber-400 px-3 py-1 text-sm font-medium text-stone-900 hover:bg-amber-300"
-                      onClick={() => cancelDownload(m.id)}
+                      onClick={() =>
+                        setConfirm({
+                          title: t("confirm.cancelDownload.title"),
+                          message: t("confirm.cancelDownload.message", { name: m.id }),
+                          confirmLabel: t("confirm.cancelDownload.action"),
+                          danger: true,
+                          onConfirm: () => cancelDownload(m.id),
+                        })
+                      }
                     >
                       {t("btn.cancel")}
                     </button>
                   ) : m.downloaded ? (
                     <button
                       className="rounded-md border border-stone-300 px-3 py-1 text-sm text-stone-700 hover:bg-stone-100"
-                      onClick={async () => {
-                        await removeModel(m.id);
-                        listModels().then(setModels);
-                      }}
+                      onClick={() =>
+                        setConfirm({
+                          title: t("confirm.removeModel.title"),
+                          message: t("confirm.removeModel.message", { name: m.id }),
+                          confirmLabel: t("btn.remove"),
+                          danger: true,
+                          onConfirm: () => {
+                            void removeModel(m.id).then(() =>
+                              listModels().then(setModels),
+                            );
+                          },
+                        })
+                      }
                     >
                       {t("btn.remove")}
                     </button>
                   ) : (
                     <button
                       className="rounded-md bg-stone-900 px-3 py-1 text-sm font-medium text-white hover:bg-stone-800"
-                      onClick={() => {
-                        update({ model_id: m.id });
-                        setDownloading((prev) => new Set(prev).add(m.id));
-                        setProgress((prev) => ({ ...prev, [m.id]: 0 }));
-                        downloadModel(m.id).catch(() => clearDownloading(m.id));
-                      }}
+                      onClick={() =>
+                        setConfirm({
+                          title: t("confirm.downloadModel.title"),
+                          message: t("confirm.downloadModel.message", { name: m.id }),
+                          confirmLabel: t("btn.download"),
+                          onConfirm: () => {
+                            update({ model_id: m.id });
+                            setDownloading((prev) => new Set(prev).add(m.id));
+                            setProgress((prev) => ({ ...prev, [m.id]: 0 }));
+                            downloadModel(m.id).catch(() => clearDownloading(m.id));
+                          },
+                        })
+                      }
                     >
                       {t("btn.download")}
                     </button>
@@ -418,11 +447,20 @@ export default function Settings() {
         >
           <button
             type="button"
-            onClick={async () => {
-              await clearHistory();
-              setHistoryCleared(true);
-              setTimeout(() => setHistoryCleared(false), 1500);
-            }}
+            onClick={() =>
+              setConfirm({
+                title: t("confirm.clearHistory.title"),
+                message: t("confirm.clearHistory.message"),
+                confirmLabel: t("settings.clearHistory"),
+                danger: true,
+                onConfirm: () => {
+                  void clearHistory().then(() => {
+                    setHistoryCleared(true);
+                    setTimeout(() => setHistoryCleared(false), 1500);
+                  });
+                },
+              })
+            }
             className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100"
           >
             {historyCleared ? t("settings.cleared") : t("settings.clearHistory")}
@@ -499,6 +537,8 @@ export default function Settings() {
           </div>
         </>
       )}
+
+      <ConfirmModal opts={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }
