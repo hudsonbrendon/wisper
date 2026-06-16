@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.png" alt="OpenWispr" width="640">
+  <img src="assets/logo.png" alt="OpenWispr" width="200">
 </p>
 
 <p align="center">
