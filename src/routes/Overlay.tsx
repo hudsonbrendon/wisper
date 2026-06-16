@@ -171,7 +171,7 @@ export default function Overlay() {
             >
               <MicIcon />
             </button>
-            <div className="relative">
+            <div>
               <button
                 type="button"
                 onClick={toggleMenu}
@@ -180,7 +180,7 @@ export default function Overlay() {
                 {langLabel(lang)} ▾
               </button>
               {menuOpen && (
-                <div className="absolute bottom-full left-0 mb-2 max-h-64 w-40 overflow-auto rounded-lg bg-zinc-800 p-1 text-sm shadow-xl">
+                <div className="absolute bottom-full left-1/2 mb-2 max-h-64 w-40 -translate-x-1/2 overflow-auto rounded-lg bg-zinc-800 p-1 text-sm shadow-xl">
                   {LANGUAGES.map((l) => (
                     <button
                       key={l.code}

@@ -15,8 +15,6 @@ import {
 } from "../lib/api";
 import { useI18n, UI_LANGUAGES } from "../lib/i18n";
 import { LANGUAGES } from "../lib/languages";
-import { getVersion } from "@tauri-apps/api/app";
-import { checkForUpdate, installUpdate } from "../lib/updater";
 
 /// Build a Tauri global-shortcut accelerator string from a keydown event.
 /// Returns null while only modifier keys are held (combo not complete yet).
@@ -87,12 +85,6 @@ export default function Settings() {
   const [historyCleared, setHistoryCleared] = useState(false);
   // Model ids with an in-flight download (button shows Cancel + "baixando").
   const [downloading, setDownloading] = useState<Set<string>>(new Set());
-  const [appVersion, setAppVersion] = useState("");
-  const [updateState, setUpdateState] = useState<
-    "idle" | "checking" | "uptodate" | "downloading" | "error"
-  >("idle");
-  const [updatePct, setUpdatePct] = useState(0);
-
   const clearDownloading = (id: string) =>
     setDownloading((prev) => {
       const next = new Set(prev);
@@ -104,7 +96,6 @@ export default function Settings() {
     getConfig().then(setConfig);
     listMicrophones().then(setMics);
     listModels().then(setModels);
-    getVersion().then(setAppVersion);
     const un = onEvent<DownloadProgressPayload>("download_progress", (p) => {
       const pct = p.total > 0 ? Math.round((p.received / p.total) * 100) : 0;
       setProgress((prev) => ({ ...prev, [p.id]: pct }));
@@ -188,23 +179,6 @@ export default function Settings() {
         setTimeout(() => setSaved(false), 1200);
       })
       .catch(() => {});
-  };
-
-  const onCheckUpdate = async () => {
-    setUpdateState("checking");
-    try {
-      const pendingUpdate = await checkForUpdate();
-      if (!pendingUpdate) {
-        setUpdateState("uptodate");
-        return;
-      }
-      setUpdateState("downloading");
-      await installUpdate(pendingUpdate, (d, total) =>
-        setUpdatePct(total > 0 ? Math.round((d / total) * 100) : 0),
-      );
-    } catch {
-      setUpdateState("error");
-    }
   };
 
   return (
@@ -388,32 +362,6 @@ export default function Settings() {
           >
             {historyCleared ? t("settings.cleared") : t("settings.clearHistory")}
           </button>
-        </Field>
-
-        <Field
-          label={t("settings.updates")}
-          hint={`${t("settings.currentVersion")}: v${appVersion}`}
-        >
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onCheckUpdate}
-              disabled={updateState === "checking" || updateState === "downloading"}
-              className="rounded-lg border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-100 disabled:opacity-50"
-            >
-              {updateState === "checking"
-                ? t("update.checking")
-                : updateState === "downloading"
-                  ? `${t("update.downloading")} ${updatePct}%`
-                  : t("update.check")}
-            </button>
-            {updateState === "uptodate" && (
-              <span className="text-sm text-stone-500">{t("update.upToDate")}</span>
-            )}
-            {updateState === "error" && (
-              <span className="text-sm text-rose-500">{t("update.failed")}</span>
-            )}
-          </div>
         </Field>
       </div>
     </div>

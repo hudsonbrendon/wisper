@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useI18n } from "../lib/i18n";
+import UpdateControl from "./UpdateControl";
 
 export type View = "home" | "insights" | "settings";
 
@@ -147,6 +148,7 @@ export default function Sidebar({
           <Icon name="help" />
           <span className="flex-1">{t("nav.help")}</span>
         </a>
+        <UpdateControl />
       </div>
     </aside>
   );
