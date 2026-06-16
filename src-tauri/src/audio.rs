@@ -56,7 +56,62 @@ pub fn rms_window(samples: &[f32], window: usize) -> f32 {
 }
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::{FromSample, Sample, SampleFormat, SizedSample, I24, U24};
 use std::sync::{Arc, Mutex};
+
+/// Build an input stream for one concrete sample type `T`, converting every
+/// sample to `f32` in the callback and appending it to `buffer`.
+fn build_input_stream_for<T>(
+    device: &cpal::Device,
+    config: &cpal::StreamConfig,
+    buffer: Arc<Mutex<Vec<f32>>>,
+) -> Result<cpal::Stream, String>
+where
+    T: SizedSample,
+    f32: FromSample<T>,
+{
+    device
+        .build_input_stream(
+            *config,
+            move |data: &[T], _: &cpal::InputCallbackInfo| {
+                if let Ok(mut b) = buffer.lock() {
+                    b.extend(data.iter().map(|&s| f32::from_sample(s)));
+                }
+            },
+            |e| eprintln!("audio stream error: {e}"),
+            None,
+        )
+        .map_err(|e| format!("build input stream: {e}"))
+}
+
+/// Open a capture stream for the device, picking the build closure that matches
+/// the device's *native* sample format. The previous code hard-coded `f32`,
+/// which silently failed on the many inputs (common on Windows, and some macOS
+/// devices) that report `i16` — the stream wouldn't build, so nothing was ever
+/// captured and it looked exactly like a missing mic permission. Converting
+/// from whatever the device delivers fixes capture across platforms.
+fn open_input_stream(
+    device: &cpal::Device,
+    supported: &cpal::SupportedStreamConfig,
+    buffer: Arc<Mutex<Vec<f32>>>,
+) -> Result<cpal::Stream, String> {
+    let config = supported.config();
+    match supported.sample_format() {
+        SampleFormat::I8 => build_input_stream_for::<i8>(device, &config, buffer),
+        SampleFormat::I16 => build_input_stream_for::<i16>(device, &config, buffer),
+        SampleFormat::I24 => build_input_stream_for::<I24>(device, &config, buffer),
+        SampleFormat::I32 => build_input_stream_for::<i32>(device, &config, buffer),
+        SampleFormat::I64 => build_input_stream_for::<i64>(device, &config, buffer),
+        SampleFormat::U8 => build_input_stream_for::<u8>(device, &config, buffer),
+        SampleFormat::U16 => build_input_stream_for::<u16>(device, &config, buffer),
+        SampleFormat::U24 => build_input_stream_for::<U24>(device, &config, buffer),
+        SampleFormat::U32 => build_input_stream_for::<u32>(device, &config, buffer),
+        SampleFormat::U64 => build_input_stream_for::<u64>(device, &config, buffer),
+        SampleFormat::F32 => build_input_stream_for::<f32>(device, &config, buffer),
+        SampleFormat::F64 => build_input_stream_for::<f64>(device, &config, buffer),
+        other => Err(format!("unsupported sample format: {other:?}")),
+    }
+}
 
 /// Proactively open (and immediately close) the default input stream at startup
 /// to trigger the macOS Microphone permission prompt early. Without this, the
@@ -73,12 +128,8 @@ pub fn prompt_microphone_access() {
     };
     // Building + playing the stream is what makes CoreAudio hit the TCC gate and
     // surface the system dialog. We don't keep the audio — drop it right away.
-    if let Ok(stream) = device.build_input_stream(
-        cfg.config(),
-        |_data: &[f32], _: &cpal::InputCallbackInfo| {},
-        |e| eprintln!("mic warmup stream error: {e}"),
-        None,
-    ) {
+    let throwaway = Arc::new(Mutex::new(Vec::new()));
+    if let Ok(stream) = open_input_stream(&device, &cfg, throwaway) {
         let _ = stream.play();
         std::thread::sleep(std::time::Duration::from_millis(200));
         drop(stream);
@@ -135,21 +186,10 @@ impl Recorder {
         let sample_rate = cfg.sample_rate();
         let channels = cfg.channels();
         let buffer = Arc::new(Mutex::new(Vec::<f32>::new()));
-        let buf_for_cb = buffer.clone();
-        let err_fn = |e| eprintln!("audio stream error: {e}");
 
-        let stream = device
-            .build_input_stream(
-                cfg.config(),
-                move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                    if let Ok(mut b) = buf_for_cb.lock() {
-                        b.extend_from_slice(data);
-                    }
-                },
-                err_fn,
-                None,
-            )
-            .map_err(|e| format!("build input stream: {e}"))?;
+        // Open with the device's native sample format (converted to f32 in the
+        // callback), not a hard-coded f32 stream that fails on i16 inputs.
+        let stream = open_input_stream(&device, &cfg, buffer.clone())?;
         stream.play().map_err(|e| format!("play stream: {e}"))?;
 
         Ok(Recorder {

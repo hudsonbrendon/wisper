@@ -150,12 +150,13 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
         // real cause instead of inserting garbage.
         if rms < 0.0008 {
             eprintln!("near-silent capture (rms={rms:.5}) — likely no mic permission");
-            let _ = app.emit(
-                "error",
-                serde_json::json!({
-                    "message": "No audio detected — check OpenWispr's Microphone permission in System Settings → Privacy & Security → Microphone."
-                }),
-            );
+            #[cfg(target_os = "macos")]
+            let hint = "No audio detected — grant OpenWispr's Microphone permission in System Settings → Privacy & Security → Microphone, then try again.";
+            #[cfg(target_os = "windows")]
+            let hint = "No audio detected — allow microphone access in Settings → Privacy & security → Microphone (turn on \"Let desktop apps access your microphone\"), then try again.";
+            #[cfg(target_os = "linux")]
+            let hint = "No audio detected — check that your microphone is connected and not muted, then try again.";
+            let _ = app.emit("error", serde_json::json!({ "message": hint }));
             transition(&app, SmEvent::Error); // -> Idle
             return;
         }

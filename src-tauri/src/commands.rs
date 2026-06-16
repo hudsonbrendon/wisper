@@ -126,7 +126,7 @@ pub fn reset_microphone() {
     }
 }
 
-/// Open the relevant macOS Privacy settings pane ("microphone" | "accessibility").
+/// Open the OS privacy settings pane for "microphone" | "accessibility".
 #[tauri::command]
 pub fn open_privacy_settings(which: String) {
     #[cfg(target_os = "macos")]
@@ -139,7 +139,20 @@ pub fn open_privacy_settings(which: String) {
         let url = format!("x-apple.systempreferences:com.apple.preference.security?{anchor}");
         let _ = std::process::Command::new("open").arg(url).spawn();
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
+    {
+        // Windows gates desktop-app mic access behind a privacy toggle; deep-link
+        // straight to it so the user can flip it on.
+        let uri = if which == "accessibility" {
+            "ms-settings:privacy-accessibility"
+        } else {
+            "ms-settings:privacy-microphone"
+        };
+        let _ = std::process::Command::new("cmd")
+            .args(["/C", "start", "", uri])
+            .spawn();
+    }
+    #[cfg(target_os = "linux")]
     let _ = which;
 }
 
