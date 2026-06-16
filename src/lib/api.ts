@@ -62,6 +62,15 @@ export const setLaunchAtLogin = (enabled: boolean) =>
 export const getLaunchAtLogin = () => invoke<boolean>("get_launch_at_login");
 export const resetApp = () => invoke<void>("reset_app");
 
+export interface Permissions {
+  accessibility: boolean;
+}
+export const getPermissions = () => invoke<Permissions>("get_permissions");
+export const promptAccessibility = () => invoke<void>("prompt_accessibility");
+export const resetMicrophone = () => invoke<void>("reset_microphone");
+export const openPrivacySettings = (which: "microphone" | "accessibility") =>
+  invoke<void>("open_privacy_settings", { which });
+
 export type StatePayload = { state: string };
 export type LevelPayload = { level: number };
 export type TranscriptPayload = { text: string };

@@ -91,6 +91,58 @@ pub fn reset_app(app: AppHandle, state: tauri::State<AppState>) -> Result<(), St
     app.restart();
 }
 
+/// Current macOS permission state shown in the Settings health panel.
+#[derive(serde::Serialize)]
+pub struct Permissions {
+    pub accessibility: bool,
+}
+
+#[tauri::command]
+pub fn get_permissions() -> Permissions {
+    #[cfg(target_os = "macos")]
+    let accessibility = crate::inject::accessibility::is_trusted();
+    #[cfg(not(target_os = "macos"))]
+    let accessibility = true;
+    Permissions { accessibility }
+}
+
+/// Re-run the Accessibility trust prompt (also re-registers the current binary
+/// in TCC, recovering a stale grant left by an earlier build).
+#[tauri::command]
+pub fn prompt_accessibility() {
+    crate::inject::prompt_accessibility_on_startup();
+}
+
+/// Reset the Microphone TCC grant and re-trigger the system prompt — the fix
+/// when dictation captures silence after an update.
+#[tauri::command]
+pub fn reset_microphone() {
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("tccutil")
+            .args(["reset", "Microphone", "com.hudsonbrendon.openwispr"])
+            .status();
+        std::thread::spawn(crate::audio::prompt_microphone_access);
+    }
+}
+
+/// Open the relevant macOS Privacy settings pane ("microphone" | "accessibility").
+#[tauri::command]
+pub fn open_privacy_settings(which: String) {
+    #[cfg(target_os = "macos")]
+    {
+        let anchor = if which == "accessibility" {
+            "Privacy_Accessibility"
+        } else {
+            "Privacy_Microphone"
+        };
+        let url = format!("x-apple.systempreferences:com.apple.preference.security?{anchor}");
+        let _ = std::process::Command::new("open").arg(url).spawn();
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = which;
+}
+
 #[tauri::command]
 pub fn list_microphones() -> Vec<String> {
     crate::audio::list_input_devices()

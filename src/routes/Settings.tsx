@@ -11,10 +11,15 @@ import {
   getLaunchAtLogin,
   setLaunchAtLogin,
   resetApp,
+  getPermissions,
+  promptAccessibility,
+  resetMicrophone,
+  openPrivacySettings,
   onEvent,
   type Config,
   type ModelMeta,
   type DownloadProgressPayload,
+  type Permissions,
 } from "../lib/api";
 import { useI18n, UI_LANGUAGES } from "../lib/i18n";
 import { LANGUAGES } from "../lib/languages";
@@ -109,6 +114,7 @@ export default function Settings() {
   const [newWord, setNewWord] = useState("");
   const [newFrom, setNewFrom] = useState("");
   const [newTo, setNewTo] = useState("");
+  const [perms, setPerms] = useState<Permissions | null>(null);
   // Model ids with an in-flight download (button shows Cancel + "baixando").
   const [downloading, setDownloading] = useState<Set<string>>(new Set());
   const clearDownloading = (id: string) =>
@@ -123,6 +129,7 @@ export default function Settings() {
     listMicrophones().then(setMics);
     listModels().then(setModels);
     getLaunchAtLogin().then(setLaunchLogin);
+    getPermissions().then(setPerms);
     const un = onEvent<DownloadProgressPayload>("download_progress", (p) => {
       const pct = p.total > 0 ? Math.round((p.received / p.total) * 100) : 0;
       setProgress((prev) => ({ ...prev, [p.id]: pct }));
@@ -672,6 +679,78 @@ export default function Settings() {
               >
                 {t("settings.resetAppAction")}
               </button>
+            </Field>
+          </div>
+
+          <h2 className="mb-3 mt-8 text-lg font-semibold text-stone-900">
+            {t("settings.permissions")}
+          </h2>
+          <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
+            <Field
+              align="right"
+              label={t("settings.permMic")}
+              hint={t("settings.permMicHint")}
+            >
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => void resetMicrophone()}
+                  className="rounded-lg bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-800"
+                >
+                  {t("settings.permMicReset")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void openPrivacySettings("microphone")}
+                  className="rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-700 hover:bg-stone-100"
+                >
+                  {t("settings.permOpen")}
+                </button>
+              </div>
+            </Field>
+            <Field
+              align="right"
+              label={t("settings.permAccessibility")}
+              hint={
+                perms
+                  ? perms.accessibility
+                    ? t("settings.permGranted")
+                    : t("settings.permNotGranted")
+                  : t("settings.permAccessibilityHint")
+              }
+            >
+              <div className="flex items-center gap-2">
+                {perms && (
+                  <span
+                    className={
+                      "inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium " +
+                      (perms.accessibility
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-rose-100 text-rose-700")
+                    }
+                  >
+                    {perms.accessibility ? "✓" : "✗"}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    void promptAccessibility().then(() =>
+                      getPermissions().then(setPerms),
+                    )
+                  }
+                  className="rounded-lg bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-800"
+                >
+                  {t("settings.permPrompt")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void openPrivacySettings("accessibility")}
+                  className="rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-700 hover:bg-stone-100"
+                >
+                  {t("settings.permOpen")}
+                </button>
+              </div>
             </Field>
           </div>
         </>

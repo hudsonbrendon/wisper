@@ -754,6 +754,10 @@ pub fn run() {
             commands::set_launch_at_login,
             commands::get_launch_at_login,
             commands::reset_app,
+            commands::get_permissions,
+            commands::prompt_accessibility,
+            commands::reset_microphone,
+            commands::open_privacy_settings,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

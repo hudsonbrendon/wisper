@@ -44,6 +44,10 @@ vi.mock("../lib/api", () => ({
   clearHistory: vi.fn(),
   setLaunchAtLogin: vi.fn(),
   resetApp: vi.fn(),
+  getPermissions: vi.fn().mockResolvedValue({ accessibility: true }),
+  promptAccessibility: vi.fn().mockResolvedValue(undefined),
+  resetMicrophone: vi.fn().mockResolvedValue(undefined),
+  openPrivacySettings: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("../lib/updater", () => ({
