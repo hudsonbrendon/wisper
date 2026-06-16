@@ -105,6 +105,16 @@ const en: Dict = {
   "overlay.clickToRecord": "Click to record",
   "overlay.cancel": "Cancel",
   "overlay.stop": "Stop & insert",
+  "update.available": "Update available",
+  "update.install": "Update & restart",
+  "update.downloading": "Downloading…",
+  "update.dismiss": "Not now",
+  "update.failed": "Update failed",
+  "settings.updates": "Updates",
+  "settings.currentVersion": "Current version",
+  "update.check": "Check for updates",
+  "update.checking": "Checking…",
+  "update.upToDate": "You're up to date",
 };
 
 const pt: Dict = {
@@ -176,6 +186,16 @@ const pt: Dict = {
   "overlay.clickToRecord": "Clique para gravar",
   "overlay.cancel": "Cancelar",
   "overlay.stop": "Parar e inserir",
+  "update.available": "Atualização disponível",
+  "update.install": "Atualizar e reiniciar",
+  "update.downloading": "Baixando…",
+  "update.dismiss": "Agora não",
+  "update.failed": "Falha na atualização",
+  "settings.updates": "Atualizações",
+  "settings.currentVersion": "Versão atual",
+  "update.check": "Verificar atualizações",
+  "update.checking": "Verificando…",
+  "update.upToDate": "Você está atualizado",
 };
 
 const es: Dict = {
@@ -247,6 +267,16 @@ const es: Dict = {
   "overlay.clickToRecord": "Haz clic para grabar",
   "overlay.cancel": "Cancelar",
   "overlay.stop": "Detener e insertar",
+  "update.available": "Actualización disponible",
+  "update.install": "Actualizar y reiniciar",
+  "update.downloading": "Descargando…",
+  "update.dismiss": "Ahora no",
+  "update.failed": "Error en la actualización",
+  "settings.updates": "Actualizaciones",
+  "settings.currentVersion": "Versión actual",
+  "update.check": "Buscar actualizaciones",
+  "update.checking": "Verificando…",
+  "update.upToDate": "Estás actualizado",
 };
 
 const fr: Dict = {
@@ -318,6 +348,16 @@ const fr: Dict = {
   "overlay.clickToRecord": "Cliquez pour enregistrer",
   "overlay.cancel": "Annuler",
   "overlay.stop": "Arrêter et insérer",
+  "update.available": "Mise à jour disponible",
+  "update.install": "Mettre à jour et redémarrer",
+  "update.downloading": "Téléchargement…",
+  "update.dismiss": "Pas maintenant",
+  "update.failed": "Échec de la mise à jour",
+  "settings.updates": "Mises à jour",
+  "settings.currentVersion": "Version actuelle",
+  "update.check": "Rechercher des mises à jour",
+  "update.checking": "Vérification…",
+  "update.upToDate": "Vous êtes à jour",
 };
 
 const de: Dict = {
@@ -389,6 +429,16 @@ const de: Dict = {
   "overlay.clickToRecord": "Klicken zum Aufnehmen",
   "overlay.cancel": "Abbrechen",
   "overlay.stop": "Stoppen & einfügen",
+  "update.available": "Update verfügbar",
+  "update.install": "Aktualisieren & neu starten",
+  "update.downloading": "Herunterladen…",
+  "update.dismiss": "Nicht jetzt",
+  "update.failed": "Update fehlgeschlagen",
+  "settings.updates": "Aktualisierungen",
+  "settings.currentVersion": "Aktuelle Version",
+  "update.check": "Nach Updates suchen",
+  "update.checking": "Prüfen…",
+  "update.upToDate": "Du bist auf dem neuesten Stand",
 };
 
 const it: Dict = {
@@ -460,6 +510,16 @@ const it: Dict = {
   "overlay.clickToRecord": "Clicca per registrare",
   "overlay.cancel": "Annulla",
   "overlay.stop": "Ferma e inserisci",
+  "update.available": "Aggiornamento disponibile",
+  "update.install": "Aggiorna e riavvia",
+  "update.downloading": "Download…",
+  "update.dismiss": "Non ora",
+  "update.failed": "Aggiornamento fallito",
+  "settings.updates": "Aggiornamenti",
+  "settings.currentVersion": "Versione attuale",
+  "update.check": "Verifica aggiornamenti",
+  "update.checking": "Verifica…",
+  "update.upToDate": "Sei aggiornato",
 };
 
 const nl: Dict = {
@@ -531,6 +591,16 @@ const nl: Dict = {
   "overlay.clickToRecord": "Klik om op te nemen",
   "overlay.cancel": "Annuleren",
   "overlay.stop": "Stoppen en invoegen",
+  "update.available": "Update beschikbaar",
+  "update.install": "Bijwerken en herstarten",
+  "update.downloading": "Downloaden…",
+  "update.dismiss": "Niet nu",
+  "update.failed": "Update mislukt",
+  "settings.updates": "Updates",
+  "settings.currentVersion": "Huidige versie",
+  "update.check": "Controleren op updates",
+  "update.checking": "Controleren…",
+  "update.upToDate": "Je bent up-to-date",
 };
 
 const ru: Dict = {
@@ -602,6 +672,16 @@ const ru: Dict = {
   "overlay.clickToRecord": "Нажмите для записи",
   "overlay.cancel": "Отмена",
   "overlay.stop": "Стоп и вставить",
+  "update.available": "Доступно обновление",
+  "update.install": "Обновить и перезапустить",
+  "update.downloading": "Загрузка…",
+  "update.dismiss": "Не сейчас",
+  "update.failed": "Ошибка обновления",
+  "settings.updates": "Обновления",
+  "settings.currentVersion": "Текущая версия",
+  "update.check": "Проверить обновления",
+  "update.checking": "Проверка…",
+  "update.upToDate": "У вас актуальная версия",
 };
 
 const pl: Dict = {
@@ -673,6 +753,16 @@ const pl: Dict = {
   "overlay.clickToRecord": "Kliknij, aby nagrać",
   "overlay.cancel": "Anuluj",
   "overlay.stop": "Zatrzymaj i wstaw",
+  "update.available": "Dostępna aktualizacja",
+  "update.install": "Aktualizuj i uruchom ponownie",
+  "update.downloading": "Pobieranie…",
+  "update.dismiss": "Nie teraz",
+  "update.failed": "Błąd aktualizacji",
+  "settings.updates": "Aktualizacje",
+  "settings.currentVersion": "Bieżąca wersja",
+  "update.check": "Sprawdź aktualizacje",
+  "update.checking": "Sprawdzanie…",
+  "update.upToDate": "Masz aktualną wersję",
 };
 
 const tr: Dict = {
@@ -744,6 +834,16 @@ const tr: Dict = {
   "overlay.clickToRecord": "Kaydetmek için tıkla",
   "overlay.cancel": "İptal",
   "overlay.stop": "Durdur ve ekle",
+  "update.available": "Güncelleme mevcut",
+  "update.install": "Güncelle ve yeniden başlat",
+  "update.downloading": "İndiriliyor…",
+  "update.dismiss": "Şimdi değil",
+  "update.failed": "Güncelleme başarısız",
+  "settings.updates": "Güncellemeler",
+  "settings.currentVersion": "Mevcut sürüm",
+  "update.check": "Güncellemeleri kontrol et",
+  "update.checking": "Kontrol ediliyor…",
+  "update.upToDate": "Güncel sürümdesiniz",
 };
 
 const ja: Dict = {
@@ -815,6 +915,16 @@ const ja: Dict = {
   "overlay.clickToRecord": "クリックして録音",
   "overlay.cancel": "キャンセル",
   "overlay.stop": "停止して挿入",
+  "update.available": "アップデートが利用可能",
+  "update.install": "更新して再起動",
+  "update.downloading": "ダウンロード中…",
+  "update.dismiss": "後で",
+  "update.failed": "更新に失敗しました",
+  "settings.updates": "アップデート",
+  "settings.currentVersion": "現在のバージョン",
+  "update.check": "アップデートを確認",
+  "update.checking": "確認中…",
+  "update.upToDate": "最新バージョンです",
 };
 
 const ko: Dict = {
@@ -885,6 +995,16 @@ const ko: Dict = {
   "overlay.clickToRecord": "클릭하여 녹음",
   "overlay.cancel": "취소",
   "overlay.stop": "중지 및 삽입",
+  "update.available": "업데이트 사용 가능",
+  "update.install": "업데이트 및 재시작",
+  "update.downloading": "다운로드 중…",
+  "update.dismiss": "나중에",
+  "update.failed": "업데이트 실패",
+  "settings.updates": "업데이트",
+  "settings.currentVersion": "현재 버전",
+  "update.check": "업데이트 확인",
+  "update.checking": "확인 중…",
+  "update.upToDate": "최신 버전입니다",
 };
 
 const zh: Dict = {
@@ -954,6 +1074,16 @@ const zh: Dict = {
   "overlay.clickToRecord": "点击录音",
   "overlay.cancel": "取消",
   "overlay.stop": "停止并插入",
+  "update.available": "有可用更新",
+  "update.install": "更新并重启",
+  "update.downloading": "下载中…",
+  "update.dismiss": "稍后",
+  "update.failed": "更新失败",
+  "settings.updates": "更新",
+  "settings.currentVersion": "当前版本",
+  "update.check": "检查更新",
+  "update.checking": "检查中…",
+  "update.upToDate": "已是最新版本",
 };
 
 const ar: Dict = {
@@ -1024,6 +1154,16 @@ const ar: Dict = {
   "overlay.clickToRecord": "انقر للتسجيل",
   "overlay.cancel": "إلغاء",
   "overlay.stop": "إيقاف وإدراج",
+  "update.available": "يتوفر تحديث",
+  "update.install": "تحديث وإعادة التشغيل",
+  "update.downloading": "جارٍ التنزيل…",
+  "update.dismiss": "ليس الآن",
+  "update.failed": "فشل التحديث",
+  "settings.updates": "التحديثات",
+  "settings.currentVersion": "الإصدار الحالي",
+  "update.check": "التحقق من التحديثات",
+  "update.checking": "جارٍ التحقق…",
+  "update.upToDate": "أنت على أحدث إصدار",
 };
 
 const hi: Dict = {
@@ -1094,6 +1234,16 @@ const hi: Dict = {
   "overlay.clickToRecord": "रिकॉर्ड करने के लिए क्लिक करें",
   "overlay.cancel": "रद्द करें",
   "overlay.stop": "रोकें और डालें",
+  "update.available": "अपडेट उपलब्ध है",
+  "update.install": "अपडेट करें और पुनः आरंभ करें",
+  "update.downloading": "डाउनलोड हो रहा है…",
+  "update.dismiss": "अभी नहीं",
+  "update.failed": "अपडेट विफल",
+  "settings.updates": "अपडेट",
+  "settings.currentVersion": "वर्तमान संस्करण",
+  "update.check": "अपडेट जाँचें",
+  "update.checking": "जाँच हो रही है…",
+  "update.upToDate": "आप अप-टू-डेट हैं",
 };
 
 const DICTS: Record<string, Dict> = {
