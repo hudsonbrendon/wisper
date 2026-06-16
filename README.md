@@ -11,6 +11,10 @@
 </p>
 
 <p align="center">
+  <strong><a href="https://hudsonbrendon.github.io/openwispr/">🌐 Website &amp; downloads</a></strong>
+</p>
+
+<p align="center">
   <a href="https://github.com/hudsonbrendon/openwispr/releases/latest">Download</a> ·
   <a href="#build-from-source">Build from source</a> ·
   <a href="CONTRIBUTING.md">Contributing</a> ·
