@@ -112,6 +112,7 @@
       });
       activeDict = applyLang(code);
       refreshDownloadLabels();
+      if (window.__restartDemo) window.__restartDemo();
       flash();
     });
   });
@@ -254,6 +255,50 @@
           (t(activeDict, "hero_meta3") || "Latest release") + ": " + tag;
     })
     .catch(function () {});
+
+  /* ---------- hero demo: cycle apps + type the dictated text ---------- */
+  (function demo() {
+    var input = document.getElementById("demo-input");
+    var tabs = Array.prototype.slice.call(
+      document.querySelectorAll(".tabs .tab"),
+    );
+    if (!input || !tabs.length) return;
+    var timer = null;
+    var ai = 1; // first pass lands on ChatGPT (the tab marked active in markup)
+    function setActive(i) {
+      tabs.forEach(function (tab, k) {
+        tab.classList.toggle("active", k === i);
+      });
+    }
+    function loop() {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      var text = t(activeDict, "demo_text") || "";
+      if (reduceMotion) {
+        input.textContent = text;
+        return;
+      }
+      setActive(ai % tabs.length);
+      input.textContent = "";
+      var n = 0;
+      (function type() {
+        if (n <= text.length) {
+          input.textContent = text.slice(0, n);
+          n++;
+          timer = setTimeout(type, 45);
+        } else {
+          timer = setTimeout(function () {
+            ai = (ai + 1) % tabs.length;
+            loop();
+          }, 2000);
+        }
+      })();
+    }
+    window.__restartDemo = loop;
+    loop();
+  })();
 
   /* ---------- scroll reveals (progressive enhancement) ---------- */
   var ioTargets = document.querySelectorAll("[data-io]");

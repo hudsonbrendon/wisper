@@ -453,86 +453,156 @@ a {
   color: var(--paper);
 }
 
-/* ---------- hero device mockup: an app window + the listening pill ---------- */
+/* ---------- hero device mockup: an open MacBook running OpenWispr ----------
+   The lid shows a browser with Claude / ChatGPT / Gmail tabs; the OpenWispr
+   pill floats over it (exact app styling: zinc shell, emerald level meter,
+   red stop) while dictated text types itself into the active app's composer. */
 .device {
   position: relative;
   justify-self: center;
-  width: min(420px, 96%);
-  aspect-ratio: 420 / 330;
-  background: linear-gradient(160deg, #2a2536, #16121f);
-  border-radius: 20px;
-  padding: 12px;
-  box-shadow:
-    0 2px 0 rgba(255, 255, 255, 0.05) inset,
-    18px 26px 0 -6px rgba(26, 26, 26, 0.12),
-    32px 46px 70px -30px rgba(26, 26, 26, 0.55);
-  transform: rotate(1.6deg);
-  transition: transform 0.5s var(--ease);
+  width: min(470px, 100%);
 }
-.device:hover {
+.macbook {
+  position: relative;
+  transform: rotate(0.6deg);
+  transition: transform 0.5s var(--ease);
+  filter: drop-shadow(16px 24px 26px rgba(26, 26, 26, 0.26));
+}
+.device:hover .macbook {
   transform: rotate(0deg) translateY(-4px);
 }
-.screen {
+/* lid */
+.mb-screen {
   position: relative;
-  height: 100%;
+  background: #0b0b0e;
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  border-radius: 16px 16px 5px 5px;
+  padding: 11px 11px 13px;
+}
+.mb-screen::before {
+  /* camera dot */
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #2a2a2e;
+}
+/* base / keyboard deck */
+.mb-base {
+  position: relative;
+  height: 13px;
+  width: 116%;
+  margin-left: -8%;
+  background: linear-gradient(#dadae0, #b3b3bd);
+  border-radius: 1px 1px 11px 11px;
+  box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.55);
+}
+.mb-base::before {
+  /* hinge notch */
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 15%;
+  height: 6px;
+  background: linear-gradient(#9a9aa4, #c2c2ca);
+  border-radius: 0 0 7px 7px;
+}
+[data-theme="dark"] .mb-base {
+  background: linear-gradient(#3a3a42, #24242b);
+}
+[data-theme="dark"] .mb-base::before {
+  background: linear-gradient(#1c1c22, #2c2c34);
+}
+
+/* the on-screen browser */
+.browser {
+  position: relative;
   background: var(--panel);
-  border-radius: 11px;
-  padding: 14px 16px;
+  border-radius: 6px;
   overflow: hidden;
+  aspect-ratio: 16 / 10.2;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
 }
-/* window title bar */
-.win-bar {
+.tabs {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding-bottom: 10px;
+  gap: 2px;
+  padding: 6px 6px 0;
+  background: color-mix(in srgb, var(--ink) 7%, var(--panel));
   border-bottom: 1px solid var(--line);
 }
-.win-bar i {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--line-strong);
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--ink-faint);
+  border-radius: 7px 7px 0 0;
+  white-space: nowrap;
+  transition:
+    background 0.25s var(--ease),
+    color 0.25s var(--ease);
+}
+.tab svg {
+  width: 12px;
+  height: 12px;
   display: block;
 }
-.win-bar i:nth-child(1) {
-  background: #e0726b;
+.tab.active {
+  background: var(--panel);
+  color: var(--ink);
 }
-.win-bar i:nth-child(2) {
-  background: #e6c15f;
-}
-.win-bar i:nth-child(3) {
-  background: #7fc08a;
-}
-.win-bar .win-title {
-  margin-left: auto;
-  font-family: var(--mono);
-  font-size: 0.56rem;
-  letter-spacing: 0.12em;
-  color: var(--ink-faint);
-  text-transform: uppercase;
-}
-/* transcribed text area */
-.win-body {
+/* chat pane: a context bubble + the composer the text types into */
+.chatpane {
   flex: 1 1 auto;
-  padding: 12px 2px;
-  font-family: var(--display);
-  font-size: 0.92rem;
-  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 13px 13px 40px;
+}
+.bubble {
+  align-self: flex-start;
+  max-width: 78%;
+  background: color-mix(in srgb, var(--ink) 6%, var(--panel));
+  border: 1px solid var(--line);
+  border-radius: 11px 11px 11px 3px;
+  padding: 7px 10px;
+  font-size: 0.64rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+.composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 11px;
+  padding: 8px 11px;
+  background: var(--panel);
+}
+.composer-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.66rem;
+  line-height: 1.4;
   color: var(--ink);
 }
-.win-body .typed {
-  color: var(--ink);
-}
-.win-body .caret {
+.composer .caret {
   display: inline-block;
-  width: 2px;
-  height: 1.05em;
+  width: 1.5px;
+  height: 0.95em;
   margin-left: 1px;
-  vertical-align: -2px;
+  vertical-align: -1px;
   background: var(--accent);
   animation: caret 1s steps(1, end) infinite;
 }
@@ -541,80 +611,73 @@ a {
     opacity: 0;
   }
 }
-/* the floating "listening" pill — its waveform echoes the logo mark */
+.composer .send {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+}
+.composer .send svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* the OpenWispr pill — floats above the dock, exact app styling */
 .pill {
-  align-self: center;
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  padding: 7px 14px;
-  margin-top: 6px;
+  padding: 6px 12px;
   border-radius: 999px;
-  background: #14111c;
-  box-shadow: 0 6px 18px -6px rgba(0, 0, 0, 0.6);
+  background: rgba(24, 24, 27, 0.92); /* zinc-900/90 */
+  color: #f4f4f5; /* zinc-100 */
+  box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
 }
-.pill .dotrec {
-  width: 7px;
+.pill .cap {
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #d4d4d8; /* zinc-300 */
+}
+.pill .meter {
+  width: 64px;
   height: 7px;
-  border-radius: 50%;
-  background: #e0726b;
-  animation: rec 1.4s ease-in-out infinite;
+  border-radius: 999px;
+  background: #3f3f46; /* zinc-700 */
+  overflow: hidden;
 }
-@keyframes rec {
-  50% {
-    opacity: 0.3;
-  }
+.pill .meter i {
+  display: block;
+  height: 100%;
+  width: 40%;
+  border-radius: 999px;
+  background: #34d399; /* emerald-400 */
+  animation: meter 1.15s ease-in-out infinite;
 }
-.wave {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  height: 22px;
-}
-.wave i {
-  width: 3px;
-  border-radius: 2px;
-  background: var(--accent-deep);
-  background: #2fc4b0;
-  height: 30%;
-  animation: wave 1s ease-in-out infinite;
-}
-.wave i:nth-child(1) {
-  animation-delay: 0s;
-}
-.wave i:nth-child(2) {
-  animation-delay: 0.12s;
-}
-.wave i:nth-child(3) {
-  animation-delay: 0.24s;
-}
-.wave i:nth-child(4) {
-  animation-delay: 0.36s;
-}
-.wave i:nth-child(5) {
-  animation-delay: 0.48s;
-}
-.wave i:nth-child(6) {
-  animation-delay: 0.6s;
-}
-.wave i:nth-child(7) {
-  animation-delay: 0.72s;
-}
-@keyframes wave {
+@keyframes meter {
   0%,
   100% {
-    height: 25%;
+    width: 16%;
   }
-  50% {
-    height: 100%;
+  45% {
+    width: 92%;
+  }
+  70% {
+    width: 54%;
   }
 }
-.pill .pill-label {
-  font-family: var(--mono);
-  font-size: 0.56rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(236, 230, 245, 0.7);
+.pill .stop {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ef4444; /* red-500 */
 }
 
 /* ---------- section scaffolding ---------- */

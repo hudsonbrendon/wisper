@@ -81,19 +81,40 @@
         </div>
 
         <div class="device reveal" aria-hidden="true">
-          <div class="screen">
-            <div class="win-bar">
-              <i></i><i></i><i></i>
-              <span class="win-title">Messages</span>
+          <div class="macbook">
+            <div class="mb-screen">
+              <div class="browser">
+                <div class="tabs">
+                  <span class="tab" data-app="0">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#d97757" d="M12 1.8l1.7 6.1 5.2-3.6-3.6 5.2 6.1 1.7-6.1 1.7 3.6 5.2-5.2-3.6L12 22.2l-1.7-6.1-5.2 3.6 3.6-5.2L2.6 12.8l6.1-1.7-3.6-5.2 5.2 3.6z"/></svg>
+                    Claude
+                  </span>
+                  <span class="tab active" data-app="1">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#10a37f" d="M22.28 9.82a5.98 5.98 0 0 0-.52-4.91 6.05 6.05 0 0 0-6.51-2.9A6.07 6.07 0 0 0 4.98 4.18a5.98 5.98 0 0 0-4 2.9 6.05 6.05 0 0 0 .75 7.1 5.98 5.98 0 0 0 .51 4.91 6.05 6.05 0 0 0 6.51 2.9A5.98 5.98 0 0 0 13.26 24a6.06 6.06 0 0 0 5.77-4.21 5.99 5.99 0 0 0 4-2.9 6.06 6.06 0 0 0-.75-7.07zm-9.02 12.61a4.48 4.48 0 0 1-2.88-1.04l.14-.08 4.78-2.76a.79.79 0 0 0 .4-.68v-6.74l2.02 1.17a.07.07 0 0 1 .04.05v5.58a4.5 4.5 0 0 1-4.5 4.5zM3.6 18.3a4.47 4.47 0 0 1-.53-3.01l.14.08 4.78 2.76a.77.77 0 0 0 .78 0l5.84-3.37v2.33a.08.08 0 0 1-.03.06L9.74 19.95A4.5 4.5 0 0 1 3.6 18.3zM2.34 7.9a4.49 4.49 0 0 1 2.37-1.98v5.68a.77.77 0 0 0 .39.68l5.81 3.35-2.02 1.17a.08.08 0 0 1-.07 0L3.99 14a4.5 4.5 0 0 1-1.65-6.11zm16.6 3.86l-5.84-3.4 2.02-1.16a.08.08 0 0 1 .07 0l4.83 2.79a4.49 4.49 0 0 1-.68 8.1v-5.67a.79.79 0 0 0-.4-.67zm2.01-3.02l-.14-.09-4.77-2.78a.78.78 0 0 0-.79 0L9.41 9.23V6.9a.07.07 0 0 1 .03-.06l4.83-2.79a4.5 4.5 0 0 1 6.68 4.66zM8.31 12.86l-2.02-1.16a.08.08 0 0 1-.04-.06V6.07a4.5 4.5 0 0 1 7.38-3.45l-.14.08-4.78 2.76a.79.79 0 0 0-.4.68zm1.1-2.37l2.6-1.5 2.61 1.5v3l-2.6 1.5-2.61-1.5z"/></svg>
+                    ChatGPT
+                  </span>
+                  <span class="tab" data-app="2">
+                    <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#4caf50" d="M45 16.2l-5 2.75-5 4.75L35 40h7a3 3 0 0 0 3-3z"/><path fill="#1e88e5" d="M3 16.2l3.61 1.71L13 23.7V40H6a3 3 0 0 1-3-3z"/><polygon fill="#e53935" points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17"/><path fill="#c62828" d="M3 12.3v3.9l10 7.5V11.2L9.88 8.86A4.3 4.3 0 0 0 3 12.3z"/><path fill="#fbc02d" d="M45 12.3v3.9l-10 7.5V11.2l3.12-2.34A4.3 4.3 0 0 1 45 12.3z"/></svg>
+                    Gmail
+                  </span>
+                </div>
+                <div class="chatpane">
+                  <div class="bubble" data-i18n="demo_prompt">How should I phrase the invite?</div>
+                  <div class="composer">
+                    <span class="composer-text"><span id="demo-input"></span><span class="caret"></span></span>
+                    <span class="send" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>
+                    </span>
+                  </div>
+                </div>
+                <div class="pill">
+                  <span class="cap" data-i18n="demo_pill">Capturing</span>
+                  <span class="meter"><i></i></span>
+                  <span class="stop"></span>
+                </div>
+              </div>
             </div>
-            <div class="win-body">
-              <span class="typed" data-i18n="demo_text">Let's grab coffee on Thursday and walk through the launch plan</span><span class="caret"></span>
-            </div>
-            <div class="pill">
-              <span class="dotrec"></span>
-              <span class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
-              <span class="pill-label" data-i18n="demo_pill">Listening</span>
-            </div>
+            <div class="mb-base"></div>
           </div>
         </div>
       </section>

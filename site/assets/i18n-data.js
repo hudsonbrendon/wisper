@@ -22,9 +22,10 @@ window.OPENWISPR_I18N = {
     hero_meta1: "100% on-device",
     hero_meta2: "15+ languages",
     hero_meta3: "Latest release",
+    demo_prompt: "How should I phrase the invite?",
     demo_text:
       "Let's grab coffee on Thursday and walk through the launch plan",
-    demo_pill: "Listening",
+    demo_pill: "Capturing",
 
     sec_why: "WHY",
     feat_head: "Built for fast, private dictation.",
@@ -101,9 +102,10 @@ window.OPENWISPR_I18N = {
     hero_meta1: "100% no dispositivo",
     hero_meta2: "15+ idiomas",
     hero_meta3: "Última versão",
+    demo_prompt: "Como devo escrever o convite?",
     demo_text:
       "Vamos tomar um café na quinta e revisar o plano de lançamento",
-    demo_pill: "Ouvindo",
+    demo_pill: "Captando",
 
     sec_why: "POR QUÊ",
     feat_head: "Feito para ditado rápido e privado.",
