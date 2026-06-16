@@ -4,6 +4,15 @@
    We toggle `.dark` on <html> in src/lib/theme.ts. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Scrollable but with no visible scrollbar (used by the pill language menu).
+   Wheel and arrow-key scrolling still work; only the track is hidden. */
+@utility no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  &::-webkit-scrollbar {
+    display: none; /* WebKit (the macOS WKWebView) */
+  }
+}
+
 html,
 body,
 #root {
