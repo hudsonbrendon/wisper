@@ -40,6 +40,11 @@ type Dict = Record<string, string>;
 const en: Dict = {
   "nav.home": "Home",
   "nav.insights": "Insights",
+  "nav.dictionary": "Dictionary",
+  "nav.snippets": "Snippets",
+  "dictionary.empty": "No words yet. Add names or jargon Whisper should know.",
+  "snippets.empty":
+    "No snippets yet. Add a spoken trigger and its replacement.",
   "nav.settings": "Settings",
   "nav.help": "Help",
   "home.welcome": "Welcome back",
@@ -215,6 +220,12 @@ const en: Dict = {
 const pt: Dict = {
   "nav.home": "Início",
   "nav.insights": "Insights",
+  "nav.dictionary": "Dicionário",
+  "nav.snippets": "Snippets",
+  "dictionary.empty":
+    "Nenhuma palavra ainda. Adicione nomes ou jargões que o Whisper deve conhecer.",
+  "snippets.empty":
+    "Nenhum snippet ainda. Adicione um gatilho falado e sua substituição.",
   "nav.settings": "Configurações",
   "nav.help": "Ajuda",
   "home.welcome": "Bem-vindo de volta",

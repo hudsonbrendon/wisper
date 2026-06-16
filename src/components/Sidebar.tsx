@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useI18n } from "../lib/i18n";
 import UpdateControl from "./UpdateControl";
 
-export type View = "home" | "insights" | "settings";
+export type View = "home" | "insights" | "dictionary" | "snippets" | "settings";
 
 /// Inline SVGs keep the bundle dependency-free. Each takes the current text
 /// color via `stroke="currentColor"`, so active/inactive styling is just text
@@ -21,6 +21,17 @@ const icons: Record<string, ReactNode> = {
       <line x1="5" y1="20" x2="5" y2="12" />
       <line x1="12" y1="20" x2="12" y2="4" />
       <line x1="19" y1="20" x2="19" y2="9" />
+    </>
+  ),
+  dictionary: (
+    <>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </>
+  ),
+  snippets: (
+    <>
+      <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" />
     </>
   ),
   settings: (
@@ -128,6 +139,18 @@ export default function Sidebar({
           label={t("nav.insights")}
           active={view === "insights"}
           onClick={() => onNavigate("insights")}
+        />
+        <NavButton
+          icon="dictionary"
+          label={t("nav.dictionary")}
+          active={view === "dictionary"}
+          onClick={() => onNavigate("dictionary")}
+        />
+        <NavButton
+          icon="snippets"
+          label={t("nav.snippets")}
+          active={view === "snippets"}
+          onClick={() => onNavigate("snippets")}
         />
       </nav>
 

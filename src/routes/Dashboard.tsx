@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import Sidebar, { type View } from "../components/Sidebar";
 import Home from "./Home";
 import Insights from "./Insights";
+import Dictionary from "./Dictionary";
+import Snippets from "./Snippets";
 import Settings from "./Settings";
 import Onboarding from "./Onboarding";
 import UpdateBanner from "../components/UpdateBanner";
@@ -39,6 +41,8 @@ export default function Dashboard() {
           </div>
           {view === "home" && <Home />}
           {view === "insights" && <Insights />}
+          {view === "dictionary" && <Dictionary />}
+          {view === "snippets" && <Snippets />}
           {view === "settings" && <Settings />}
         </div>
       </main>

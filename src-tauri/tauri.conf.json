@@ -14,8 +14,10 @@
       {
         "label": "main",
         "title": "OpenWispr",
-        "width": 520,
-        "height": 640,
+        "width": 1080,
+        "height": 760,
+        "minWidth": 760,
+        "minHeight": 560,
         "resizable": true,
         "visible": true
       },
