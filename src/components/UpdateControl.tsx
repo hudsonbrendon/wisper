@@ -61,11 +61,11 @@ export default function UpdateControl() {
         type="button"
         onClick={onCheck}
         disabled={state === "checking" || state === "downloading"}
-        className="text-left text-xs text-stone-500 transition-colors hover:text-stone-900 disabled:opacity-50"
+        className="text-left text-xs text-stone-500 dark:text-stone-400 transition-colors hover:text-stone-900 disabled:opacity-50"
       >
         {buttonLabel}
       </button>
-      <span className="text-[11px] text-stone-400">
+      <span className="text-[11px] text-stone-400 dark:text-stone-500">
         {state === "uptodate"
           ? t("update.upToDate")
           : state === "error"

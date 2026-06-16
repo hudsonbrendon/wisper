@@ -13,7 +13,11 @@ export default function Dictionary() {
   }, []);
 
   if (!config)
-    return <div className="text-stone-500">{t("settings.loading")}</div>;
+    return (
+      <div className="text-stone-500 dark:text-stone-400">
+        {t("settings.loading")}
+      </div>
+    );
 
   const save = (dictionary: string[]) => {
     const next = { ...config, dictionary };
@@ -29,15 +33,15 @@ export default function Dictionary() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-semibold tracking-tight text-stone-900">
+      <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">
         {t("nav.dictionary")}
       </h1>
-      <p className="mt-1 text-sm text-stone-500">
+      <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
         {t("settings.dictionaryHint")}
       </p>
 
-      <div className="mt-6 overflow-hidden rounded-2xl border border-stone-200 bg-white">
-        <div className="flex gap-2 border-b border-stone-100 p-4">
+      <div className="mt-6 overflow-hidden rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900">
+        <div className="flex gap-2 border-b border-stone-100 dark:border-stone-800 p-4">
           <input
             value={word}
             onChange={(e) => setWord(e.target.value)}
@@ -45,13 +49,13 @@ export default function Dictionary() {
               if (e.key === "Enter") add();
             }}
             placeholder={t("settings.dictionaryPlaceholder")}
-            className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200"
+            className="w-full rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-sm text-stone-800 dark:text-stone-200 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200"
           />
           <button
             type="button"
             disabled={!word.trim()}
             onClick={add}
-            className="shrink-0 rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-40"
+            className="shrink-0 rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200 disabled:opacity-40"
           >
             {t("settings.add")}
           </button>
@@ -62,7 +66,7 @@ export default function Dictionary() {
             {config.dictionary.map((w, i) => (
               <span
                 key={`${w}-${i}`}
-                className="inline-flex items-center gap-1 rounded-full bg-stone-100 py-1 pl-3 pr-1 text-sm text-stone-700"
+                className="inline-flex items-center gap-1 rounded-full bg-stone-100 dark:bg-stone-950 py-1 pl-3 pr-1 text-sm text-stone-700 dark:text-stone-300"
               >
                 {w}
                 <button
@@ -71,7 +75,7 @@ export default function Dictionary() {
                   onClick={() =>
                     save(config.dictionary.filter((_, j) => j !== i))
                   }
-                  className="flex h-5 w-5 items-center justify-center rounded-full text-stone-400 hover:bg-stone-200 hover:text-stone-700"
+                  className="flex h-5 w-5 items-center justify-center rounded-full text-stone-400 dark:text-stone-500 hover:bg-stone-200 dark:hover:bg-stone-700 hover:text-stone-700"
                 >
                   ×
                 </button>
@@ -79,7 +83,7 @@ export default function Dictionary() {
             ))}
           </div>
         ) : (
-          <div className="p-6 text-center text-sm text-stone-400">
+          <div className="p-6 text-center text-sm text-stone-400 dark:text-stone-500">
             {t("dictionary.empty")}
           </div>
         )}

@@ -43,11 +43,17 @@ function Field({
 }) {
   if (align === "right") {
     return (
-      <div className="border-b border-stone-100 px-6 py-5 last:border-b-0">
+      <div className="border-b border-stone-100 dark:border-stone-800 px-6 py-5 last:border-b-0">
         <div className="flex items-center justify-between gap-6">
           <div className="min-w-0">
-            <span className="text-sm font-medium text-stone-800">{label}</span>
-            {hint && <p className="mt-1 text-xs text-stone-500">{hint}</p>}
+            <span className="text-sm font-medium text-stone-800 dark:text-stone-200">
+              {label}
+            </span>
+            {hint && (
+              <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+                {hint}
+              </p>
+            )}
           </div>
           <div className="shrink-0">{children}</div>
         </div>
@@ -55,11 +61,17 @@ function Field({
     );
   }
   return (
-    <div className="border-b border-stone-100 px-6 py-5 last:border-b-0">
+    <div className="border-b border-stone-100 dark:border-stone-800 px-6 py-5 last:border-b-0">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[200px_1fr] md:items-start">
         <div>
-          <span className="text-sm font-medium text-stone-800">{label}</span>
-          {hint && <p className="mt-1 text-xs text-stone-500">{hint}</p>}
+          <span className="text-sm font-medium text-stone-800 dark:text-stone-200">
+            {label}
+          </span>
+          {hint && (
+            <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+              {hint}
+            </p>
+          )}
         </div>
         <div>{children}</div>
       </div>
@@ -68,7 +80,7 @@ function Field({
 }
 
 const selectClass =
-  "w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200";
+  "w-full rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-sm text-stone-800 dark:text-stone-200 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200";
 
 function Toggle({
   checked,
@@ -85,12 +97,12 @@ function Toggle({
       onClick={() => onChange(!checked)}
       className={
         "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors " +
-        (checked ? "bg-teal-600" : "bg-stone-300")
+        (checked ? "bg-teal-600" : "bg-stone-300 dark:bg-stone-700")
       }
     >
       <span
         className={
-          "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform " +
+          "inline-block h-5 w-5 transform rounded-full bg-white dark:bg-stone-900 shadow transition-transform " +
           (checked ? "translate-x-5" : "translate-x-0.5")
         }
       />
@@ -199,7 +211,11 @@ export default function Settings() {
   }, [capturing]);
 
   if (!config)
-    return <div className="text-stone-500">{t("settings.loading")}</div>;
+    return (
+      <div className="text-stone-500 dark:text-stone-400">
+        {t("settings.loading")}
+      </div>
+    );
 
   const update = (patch: Partial<Config>) => {
     const next = { ...config, ...patch };
@@ -230,7 +246,7 @@ export default function Settings() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight text-stone-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">
           {t("settings.title")}
         </h1>
         {saved && (
@@ -240,7 +256,7 @@ export default function Settings() {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
+      <div className="overflow-hidden rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900">
         <Field
           label={t("settings.uiLanguage")}
           hint={t("settings.uiLanguageHint")}
@@ -269,7 +285,7 @@ export default function Settings() {
               "w-full rounded-lg px-3 py-2 text-left font-mono text-sm transition-colors " +
               (capturing
                 ? "bg-teal-600 text-white ring-2 ring-teal-300"
-                : "border border-stone-300 bg-white text-stone-800 hover:bg-stone-50")
+                : "border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 hover:bg-stone-50")
             }
           >
             {capturing
@@ -332,10 +348,10 @@ export default function Settings() {
             {models.map((m) => (
               <div
                 key={m.id}
-                className="flex items-center justify-between rounded-lg border border-stone-200 bg-stone-50 px-3 py-2"
+                className="flex items-center justify-between rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 px-3 py-2"
               >
                 <div className="min-w-0">
-                  <span className="text-sm font-medium text-stone-800">
+                  <span className="text-sm font-medium text-stone-800 dark:text-stone-200">
                     {m.id}
                   </span>
                   {config.model_id === m.id && (
@@ -348,14 +364,14 @@ export default function Settings() {
                       "ml-2 rounded-full px-2 py-0.5 text-xs font-medium " +
                       (m.id.endsWith(".en")
                         ? "bg-amber-100 text-amber-700"
-                        : "bg-stone-200 text-stone-600")
+                        : "bg-stone-200 text-stone-600 dark:text-stone-400")
                     }
                   >
                     {m.id.endsWith(".en")
                       ? t("settings.englishOnly")
                       : t("settings.multilingual")}
                   </span>
-                  <span className="ml-2 text-xs text-stone-500">
+                  <span className="ml-2 text-xs text-stone-500 dark:text-stone-400">
                     {downloading.has(m.id)
                       ? t("settings.downloading", { pct: progress[m.id] ?? 0 })
                       : m.downloaded
@@ -366,7 +382,7 @@ export default function Settings() {
                 <div className="flex items-center gap-2">
                   {downloading.has(m.id) ? (
                     <button
-                      className="rounded-md bg-amber-400 px-3 py-1 text-sm font-medium text-stone-900 hover:bg-amber-300"
+                      className="rounded-md bg-amber-400 px-3 py-1 text-sm font-medium text-stone-900 dark:text-stone-100 hover:bg-amber-300"
                       onClick={() =>
                         setConfirm({
                           title: t("confirm.cancelDownload.title"),
@@ -383,7 +399,7 @@ export default function Settings() {
                     </button>
                   ) : m.downloaded ? (
                     <button
-                      className="rounded-md border border-stone-300 px-3 py-1 text-sm text-stone-700 hover:bg-stone-100"
+                      className="rounded-md border border-stone-300 dark:border-stone-700 px-3 py-1 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800"
                       onClick={() =>
                         setConfirm({
                           title: t("confirm.removeModel.title"),
@@ -404,7 +420,7 @@ export default function Settings() {
                     </button>
                   ) : (
                     <button
-                      className="rounded-md bg-stone-900 px-3 py-1 text-sm font-medium text-white hover:bg-stone-800"
+                      className="rounded-md bg-stone-900 px-3 py-1 text-sm font-medium text-white hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
                       onClick={() =>
                         setConfirm({
                           title: t("confirm.downloadModel.title"),
@@ -453,7 +469,7 @@ export default function Settings() {
                 },
               })
             }
-            className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100"
+            className="rounded-lg border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 px-3 py-2 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40"
           >
             {historyCleared
               ? t("settings.cleared")
@@ -464,10 +480,10 @@ export default function Settings() {
 
       {config && (
         <>
-          <h2 className="mb-3 mt-8 text-lg font-semibold text-stone-900">
+          <h2 className="mb-3 mt-8 text-lg font-semibold text-stone-900 dark:text-stone-100">
             {t("settings.system")}
           </h2>
-          <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
+          <div className="overflow-hidden rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900">
             <Field
               align="right"
               label={t("settings.launchAtLogin")}
@@ -525,7 +541,7 @@ export default function Settings() {
                 onClick={() =>
                   window.dispatchEvent(new CustomEvent("replay-tutorial"))
                 }
-                className="rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100"
+                className="rounded-lg border border-stone-300 dark:border-stone-700 px-3 py-2 text-sm font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800"
               >
                 {t("settings.tutorialReplay")}
               </button>
@@ -538,17 +554,17 @@ export default function Settings() {
               <button
                 type="button"
                 onClick={onReset}
-                className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100"
+                className="rounded-lg border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 px-3 py-2 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40"
               >
                 {t("settings.resetAppAction")}
               </button>
             </Field>
           </div>
 
-          <h2 className="mb-3 mt-8 text-lg font-semibold text-stone-900">
+          <h2 className="mb-3 mt-8 text-lg font-semibold text-stone-900 dark:text-stone-100">
             {t("settings.permissions")}
           </h2>
-          <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
+          <div className="overflow-hidden rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900">
             <Field
               align="right"
               label={t("settings.permMic")}
@@ -558,14 +574,14 @@ export default function Settings() {
                 <button
                   type="button"
                   onClick={() => void resetMicrophone()}
-                  className="rounded-lg bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-800"
+                  className="rounded-lg bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
                 >
                   {t("settings.permMicReset")}
                 </button>
                 <button
                   type="button"
                   onClick={() => void openPrivacySettings("microphone")}
-                  className="rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-700 hover:bg-stone-100"
+                  className="rounded-lg border border-stone-300 dark:border-stone-700 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800"
                 >
                   {t("settings.permOpen")}
                 </button>
@@ -602,14 +618,14 @@ export default function Settings() {
                       getPermissions().then(setPerms),
                     )
                   }
-                  className="rounded-lg bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-800"
+                  className="rounded-lg bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
                 >
                   {t("settings.permPrompt")}
                 </button>
                 <button
                   type="button"
                   onClick={() => void openPrivacySettings("accessibility")}
-                  className="rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-700 hover:bg-stone-100"
+                  className="rounded-lg border border-stone-300 dark:border-stone-700 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800"
                 >
                   {t("settings.permOpen")}
                 </button>

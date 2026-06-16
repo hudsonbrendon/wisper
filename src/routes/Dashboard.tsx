@@ -32,10 +32,10 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="flex h-full bg-stone-100 text-stone-900">
+    <div className="flex h-full bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
       <Sidebar view={view} onNavigate={setView} />
       <main className="min-w-0 flex-1 py-3 pr-3">
-        <div className="h-full overflow-y-auto rounded-2xl border border-stone-200 bg-stone-50 px-8 py-7">
+        <div className="h-full overflow-y-auto rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 px-8 py-7">
           <div className="mb-4 empty:mb-0">
             <UpdateBanner />
           </div>

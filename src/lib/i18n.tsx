@@ -46,6 +46,8 @@ const en: Dict = {
   "snippets.empty":
     "No snippets yet. Add a spoken trigger and its replacement.",
   "nav.settings": "Settings",
+  "nav.darkMode": "Dark mode",
+  "nav.lightMode": "Light mode",
   "nav.help": "Help",
   "home.welcome": "Welcome back",
   "date.today": "Today",
@@ -227,6 +229,8 @@ const pt: Dict = {
   "snippets.empty":
     "Nenhum snippet ainda. Adicione um gatilho falado e sua substituição.",
   "nav.settings": "Configurações",
+  "nav.darkMode": "Modo escuro",
+  "nav.lightMode": "Modo claro",
   "nav.help": "Ajuda",
   "home.welcome": "Bem-vindo de volta",
   "date.today": "Hoje",

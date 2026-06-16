@@ -30,7 +30,7 @@ export default function Insights() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight text-stone-900">
+      <h1 className="mb-6 text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">
         {t("insights.title")}
       </h1>
 
@@ -43,14 +43,14 @@ export default function Insights() {
         <Card>
           <BigNumber value={stats.totalWords.toLocaleString(lang)} />
           <Caption>{t("insights.totalWords")}</Caption>
-          <p className="mt-3 text-sm text-stone-500">
+          <p className="mt-3 text-sm text-stone-500 dark:text-stone-400">
             {wordsContext(stats.totalWords, t)}
           </p>
         </Card>
         <Card>
           <BigNumber value={String(stats.totalEntries)} />
           <Caption>{t("insights.transcriptions")}</Caption>
-          <p className="mt-3 flex items-center gap-2 text-sm text-stone-500">
+          <p className="mt-3 flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400">
             <span className="inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700">
               {t("insights.streakBadge", { n: stats.streak })}
             </span>
@@ -61,10 +61,10 @@ export default function Insights() {
       {/* Charts */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card>
-          <h2 className="text-lg font-semibold text-stone-900">
+          <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100">
             {t("insights.dailyActivity")}
           </h2>
-          <p className="mb-6 text-xs uppercase tracking-wider text-stone-400">
+          <p className="mb-6 text-xs uppercase tracking-wider text-stone-400 dark:text-stone-500">
             {t("insights.dailySub")}
           </p>
           <div className="flex h-40 items-end gap-1.5">
@@ -86,7 +86,7 @@ export default function Insights() {
               </div>
             ))}
           </div>
-          <div className="mt-2 flex justify-between text-xs text-stone-400">
+          <div className="mt-2 flex justify-between text-xs text-stone-400 dark:text-stone-500">
             <span>
               {daily[0]?.date.toLocaleDateString(lang, {
                 month: "short",
@@ -99,10 +99,10 @@ export default function Insights() {
 
         <Card>
           <div className="mb-1 flex items-baseline justify-between">
-            <h2 className="text-lg font-semibold text-stone-900">
+            <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100">
               {t("insights.streakBadge", { n: stats.streak })}
             </h2>
-            <span className="text-xs uppercase tracking-wider text-stone-400">
+            <span className="text-xs uppercase tracking-wider text-stone-400 dark:text-stone-500">
               {t("insights.last20w")}
             </span>
           </div>
@@ -115,7 +115,7 @@ export default function Insights() {
 }
 
 const HEAT_CLASSES: Record<HeatCell["level"], string> = {
-  0: "bg-stone-100",
+  0: "bg-stone-100 dark:bg-stone-950",
   1: "bg-teal-200",
   2: "bg-teal-400",
   3: "bg-teal-600",
@@ -152,7 +152,7 @@ function Heatmap({ grid, locale }: { grid: HeatCell[][]; locale: string }) {
 
 function Legend({ t }: { t: (k: string) => string }) {
   return (
-    <div className="mt-3 flex items-center justify-end gap-1.5 text-xs text-stone-400">
+    <div className="mt-3 flex items-center justify-end gap-1.5 text-xs text-stone-400 dark:text-stone-500">
       <span>{t("insights.less")}</span>
       {([0, 1, 2, 3, 4] as const).map((l) => (
         <span
@@ -179,7 +179,7 @@ function wordsContext(
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-6">
+    <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-6">
       {children}
     </div>
   );
@@ -187,7 +187,7 @@ function Card({ children }: { children: React.ReactNode }) {
 
 function BigNumber({ value }: { value: string }) {
   return (
-    <div className="text-4xl font-semibold tracking-tight text-stone-900">
+    <div className="text-4xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">
       {value}
     </div>
   );
@@ -195,7 +195,7 @@ function BigNumber({ value }: { value: string }) {
 
 function Caption({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-1 text-xs font-medium uppercase tracking-wider text-stone-400">
+    <div className="mt-1 text-xs font-medium uppercase tracking-wider text-stone-400 dark:text-stone-500">
       {children}
     </div>
   );
