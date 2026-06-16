@@ -8,6 +8,9 @@ import {
   cancelDownload,
   removeModel,
   clearHistory,
+  getLaunchAtLogin,
+  setLaunchAtLogin,
+  resetApp,
   onEvent,
   type Config,
   type ModelMeta,
@@ -72,6 +75,34 @@ function Field({
 const selectClass =
   "w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200";
 
+function Toggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={
+        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors " +
+        (checked ? "bg-teal-600" : "bg-stone-300")
+      }
+    >
+      <span
+        className={
+          "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform " +
+          (checked ? "translate-x-5" : "translate-x-0.5")
+        }
+      />
+    </button>
+  );
+}
+
 export default function Settings() {
   const { t, lang, setLang } = useI18n();
   const [config, setConfig] = useState<Config | null>(null);
@@ -83,6 +114,7 @@ export default function Settings() {
   const [captureHint, setCaptureHint] = useState("");
   const [hotkeyError, setHotkeyError] = useState("");
   const [historyCleared, setHistoryCleared] = useState(false);
+  const [launchLogin, setLaunchLogin] = useState(false);
   // Model ids with an in-flight download (button shows Cancel + "baixando").
   const [downloading, setDownloading] = useState<Set<string>>(new Set());
   const clearDownloading = (id: string) =>
@@ -96,6 +128,7 @@ export default function Settings() {
     getConfig().then(setConfig);
     listMicrophones().then(setMics);
     listModels().then(setModels);
+    getLaunchAtLogin().then(setLaunchLogin);
     const un = onEvent<DownloadProgressPayload>("download_progress", (p) => {
       const pct = p.total > 0 ? Math.round((p.received / p.total) * 100) : 0;
       setProgress((prev) => ({ ...prev, [p.id]: pct }));
@@ -179,6 +212,17 @@ export default function Settings() {
         setTimeout(() => setSaved(false), 1200);
       })
       .catch(() => {});
+  };
+
+  const onToggleLaunch = (v: boolean) => {
+    setLaunchLogin(v);
+    setLaunchAtLogin(v).catch(() => setLaunchLogin(!v));
+  };
+
+  const onReset = () => {
+    if (window.confirm(t("settings.resetConfirm"))) {
+      resetApp().catch(() => {});
+    }
   };
 
   return (
@@ -364,6 +408,58 @@ export default function Settings() {
           </button>
         </Field>
       </div>
+
+      {config && (
+        <>
+          <h2 className="mb-3 mt-8 text-lg font-semibold text-stone-900">
+            {t("settings.system")}
+          </h2>
+          <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
+            <Field
+              label={t("settings.launchAtLogin")}
+              hint={t("settings.launchAtLoginHint")}
+            >
+              <Toggle checked={launchLogin} onChange={onToggleLaunch} />
+            </Field>
+            <Field label={t("settings.showInDock")} hint={t("settings.showInDockHint")}>
+              <Toggle
+                checked={config.show_in_dock}
+                onChange={(v) => update({ show_in_dock: v })}
+              />
+            </Field>
+            <Field label={t("settings.showPill")} hint={t("settings.showPillHint")}>
+              <Toggle
+                checked={config.show_pill}
+                onChange={(v) => update({ show_pill: v })}
+              />
+            </Field>
+            <Field
+              label={t("settings.dictationSounds")}
+              hint={t("settings.dictationSoundsHint")}
+            >
+              <Toggle
+                checked={config.dictation_sounds}
+                onChange={(v) => update({ dictation_sounds: v })}
+              />
+            </Field>
+            <Field label={t("settings.muteMusic")} hint={t("settings.muteMusicHint")}>
+              <Toggle
+                checked={config.mute_music}
+                onChange={(v) => update({ mute_music: v })}
+              />
+            </Field>
+            <Field label={t("settings.resetApp")} hint={t("settings.resetAppHint")}>
+              <button
+                type="button"
+                onClick={onReset}
+                className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100"
+              >
+                {t("settings.resetAppAction")}
+              </button>
+            </Field>
+          </div>
+        </>
+      )}
     </div>
   );
 }

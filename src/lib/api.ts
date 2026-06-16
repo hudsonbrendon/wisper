@@ -9,6 +9,10 @@ export interface Config {
   mic_device: string | null;
   language: string;
   inject_method: InjectMethod;
+  show_in_dock: boolean;
+  show_pill: boolean;
+  dictation_sounds: boolean;
+  mute_music: boolean;
 }
 
 export interface ModelMeta {
@@ -46,6 +50,10 @@ export const setLanguage = (lang: string) =>
   invoke<void>("set_language", { lang });
 export const setPillExpanded = (expanded: boolean) =>
   invoke<void>("set_pill_expanded", { expanded });
+export const setLaunchAtLogin = (enabled: boolean) =>
+  invoke<void>("set_launch_at_login", { enabled });
+export const getLaunchAtLogin = () => invoke<boolean>("get_launch_at_login");
+export const resetApp = () => invoke<void>("reset_app");
 
 export type StatePayload = { state: string };
 export type LevelPayload = { level: number };

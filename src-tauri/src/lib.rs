@@ -22,11 +22,22 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 /// Advance the state machine and emit the new state to the overlay.
 fn transition(app: &tauri::AppHandle, ev: SmEvent) -> State {
     let app_state = app.state::<AppState>();
-    let mut machine = app_state.machine.lock().unwrap();
-    *machine = state::next(*machine, ev);
-    let label = state::label(*machine);
-    let _ = app.emit("state", serde_json::json!({ "state": label }));
-    *machine
+    let new = {
+        let mut machine = app_state.machine.lock().unwrap();
+        *machine = state::next(*machine, ev);
+        *machine
+    };
+    let _ = app.emit("state", serde_json::json!({ "state": state::label(new) }));
+    // When the pill isn't pinned, it only shows while busy (recording/etc.).
+    let show_pill = app_state.config.lock().unwrap().show_pill;
+    if let Some(w) = app.get_webview_window("overlay") {
+        if show_pill || new != State::Idle {
+            let _ = w.show();
+        } else {
+            let _ = w.hide();
+        }
+    }
+    new
 }
 
 /// Start recording and show the overlay. Returns `true` if recording actually
@@ -38,10 +49,19 @@ pub(crate) fn start_recording(app: &tauri::AppHandle) -> bool {
         return false; // stray press while busy
     }
     let app_state = app.state::<AppState>();
-    let device = app_state.config.lock().unwrap().mic_device.clone();
+    let (device, sounds, mute) = {
+        let c = app_state.config.lock().unwrap();
+        (c.mic_device.clone(), c.dictation_sounds, c.mute_music)
+    };
     match audio::Recorder::start(device.as_deref()) {
         Ok(rec) => {
             *app_state.recorder.lock().unwrap() = Some(rec);
+            if sounds {
+                play_dictation_sound(true);
+            }
+            if mute {
+                set_media_paused(true);
+            }
             // Spawn a ticker that emits the live mic level while recording.
             let app2 = app.clone();
             std::thread::spawn(move || loop {
@@ -81,6 +101,16 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
         Some(rec) => rec.stop(),
         None => Vec::new(),
     };
+    let (sounds, mute) = {
+        let c = app_state.config.lock().unwrap();
+        (c.dictation_sounds, c.mute_music)
+    };
+    if sounds {
+        play_dictation_sound(false);
+    }
+    if mute {
+        set_media_paused(false);
+    }
     transition(app, SmEvent::HotkeyReleased); // -> Transcribing
 
     let app = app.clone();
@@ -197,6 +227,9 @@ pub(crate) fn cancel_recording(app: &tauri::AppHandle) {
     }
     // Dropping the recorder stops the stream; the level ticker sees `None` and exits.
     let _ = app.state::<AppState>().recorder.lock().unwrap().take();
+    if app.state::<AppState>().config.lock().unwrap().mute_music {
+        set_media_paused(false); // resume whatever we paused on record start
+    }
     transition(app, SmEvent::Cancel); // -> Idle
 }
 
@@ -240,7 +273,13 @@ fn place_and_show_overlay(app: &tauri::AppHandle) {
             );
             let _ = overlay.set_position(tauri::PhysicalPosition::new(x, y));
         }
-        let _ = overlay.show();
+        // Only pin it on screen if the user wants the pill always visible;
+        // otherwise it stays hidden until dictation starts (see `transition`).
+        if app.state::<AppState>().config.lock().unwrap().show_pill {
+            let _ = overlay.show();
+        } else {
+            let _ = overlay.hide();
+        }
     }
 }
 
@@ -347,6 +386,71 @@ fn on_shortcut(app: &tauri::AppHandle, pressed: bool) {
     dispatch(app, action);
 }
 
+/// Play the dictation start/stop chime (macOS only; best-effort).
+fn play_dictation_sound(start: bool) {
+    #[cfg(target_os = "macos")]
+    {
+        let sound = if start { "Tink" } else { "Pop" };
+        let _ = std::process::Command::new("afplay")
+            .arg(format!("/System/Library/Sounds/{sound}.aiff"))
+            .spawn();
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = start;
+}
+
+/// Pause or resume Spotify / Apple Music while dictating (macOS only,
+/// best-effort — a no-op if the app isn't running).
+fn set_media_paused(paused: bool) {
+    #[cfg(target_os = "macos")]
+    {
+        let action = if paused { "pause" } else { "play" };
+        for media_app in ["Spotify", "Music"] {
+            let script = format!(
+                "tell application \"System Events\" to if exists (processes whose name is \"{media_app}\") then tell application \"{media_app}\" to {action}"
+            );
+            let _ = std::process::Command::new("osascript")
+                .arg("-e")
+                .arg(script)
+                .spawn();
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = paused;
+}
+
+/// Re-apply the pill's visibility from config + current state. Called after a
+/// settings change so toggling "show pill" takes effect immediately.
+pub(crate) fn refresh_overlay_visibility(app: &tauri::AppHandle) {
+    let st = app.state::<AppState>();
+    let show_pill = st.config.lock().unwrap().show_pill;
+    let busy = *st.machine.lock().unwrap() != State::Idle;
+    if let Some(w) = app.get_webview_window("overlay") {
+        if show_pill || busy {
+            let _ = w.show();
+        } else {
+            let _ = w.hide();
+        }
+    }
+}
+
+/// Show or hide the Dock icon (macOS activation policy). No-op elsewhere.
+pub(crate) fn apply_dock_visibility(app: &tauri::AppHandle, show: bool) {
+    #[cfg(target_os = "macos")]
+    {
+        let policy = if show {
+            tauri::ActivationPolicy::Regular
+        } else {
+            tauri::ActivationPolicy::Accessory
+        };
+        let _ = app.set_activation_policy(policy);
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (app, show);
+    }
+}
+
 /// Build the tray menu: Home, Check for Updates, Paste Last Transcription, a
 /// Microphone submenu (one checkable entry per input device, the active one
 /// checked), and Quit. Rebuilt whenever the mic selection changes so the check
@@ -434,7 +538,11 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init());
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ));
 
     // macOS only: convert the overlay into a non-activating NSPanel so clicking
     // the pill never steals focus from the target app. Other platforms (which
@@ -547,6 +655,10 @@ pub fn run() {
             convert_overlay_to_panel(&handle);
             place_and_show_overlay(&handle);
 
+            // Hide the Dock icon if the user chose menu-bar-only.
+            let show_in_dock = handle.state::<AppState>().config.lock().unwrap().show_in_dock;
+            apply_dock_visibility(&handle, show_in_dock);
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -565,6 +677,9 @@ pub fn run() {
             commands::ui_cancel_recording,
             commands::set_language,
             commands::set_pill_expanded,
+            commands::set_launch_at_login,
+            commands::get_launch_at_login,
+            commands::reset_app,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

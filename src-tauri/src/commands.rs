@@ -59,8 +59,37 @@ pub fn save_config(
         })?;
     }
     config::save(&state.config_dir, &new_config).map_err(|e| format!("save config: {e}"))?;
+    let show_in_dock = new_config.show_in_dock;
     *state.config.lock().unwrap() = new_config;
+    // Apply the system-toggle side effects immediately (idempotent + cheap).
+    crate::apply_dock_visibility(&app, show_in_dock);
+    crate::refresh_overlay_visibility(&app);
     Ok(())
+}
+
+/// Enable/disable launching OpenWispr at login (managed by the autostart plugin,
+/// not stored in our config).
+#[tauri::command]
+pub fn set_launch_at_login(app: AppHandle, enabled: bool) -> Result<(), String> {
+    use tauri_plugin_autostart::ManagerExt;
+    let mgr = app.autolaunch();
+    if enabled { mgr.enable() } else { mgr.disable() }.map_err(|e| e.to_string())
+}
+
+/// Whether OpenWispr is set to launch at login.
+#[tauri::command]
+pub fn get_launch_at_login(app: AppHandle) -> bool {
+    use tauri_plugin_autostart::ManagerExt;
+    app.autolaunch().is_enabled().unwrap_or(false)
+}
+
+/// Reset settings to defaults and wipe transcription history, then relaunch.
+#[tauri::command]
+pub fn reset_app(app: AppHandle, state: tauri::State<AppState>) -> Result<(), String> {
+    config::save(&state.config_dir, &Config::default())
+        .map_err(|e| format!("save config: {e}"))?;
+    let _ = crate::history::clear(&state.data_dir);
+    app.restart();
 }
 
 #[tauri::command]

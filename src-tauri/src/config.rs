@@ -19,6 +19,24 @@ pub struct Config {
     pub language: String,
     /// How transcribed text is inserted into the focused app.
     pub inject_method: InjectMethod,
+    /// Show the app's Dock icon (macOS). When false, runs as a menu-bar app.
+    #[serde(default = "default_true")]
+    pub show_in_dock: bool,
+    /// Keep the floating pill visible at all times. When false, it only appears
+    /// while dictating.
+    #[serde(default = "default_true")]
+    pub show_pill: bool,
+    /// Play a short sound when dictation starts and stops.
+    #[serde(default = "default_true")]
+    pub dictation_sounds: bool,
+    /// Pause playing media (Spotify / Apple Music) while dictating.
+    #[serde(default)]
+    pub mute_music: bool,
+}
+
+/// serde default for the boolean fields that default to `true`.
+fn default_true() -> bool {
+    true
 }
 
 impl Default for Config {
@@ -33,6 +51,10 @@ impl Default for Config {
             mic_device: None,
             language: "auto".to_string(),
             inject_method: InjectMethod::Type,
+            show_in_dock: true,
+            show_pill: true,
+            dictation_sounds: true,
+            mute_music: false,
         }
     }
 }
@@ -87,6 +109,10 @@ mod tests {
             mic_device: Some("MacBook Pro Microphone".to_string()),
             language: "pt".to_string(),
             inject_method: InjectMethod::Paste,
+            show_in_dock: false,
+            show_pill: false,
+            dictation_sounds: false,
+            mute_music: true,
         };
         let text = cfg.to_toml().expect("serialize");
         let parsed = Config::from_toml(&text);
