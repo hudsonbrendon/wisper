@@ -73,6 +73,9 @@ const DEFAULT_CONFIG = {
   show_pill: true,
   dictation_sounds: true,
   mute_music: false,
+  onboarded: true,
+  dictionary: [],
+  replacements: [],
 };
 
 const DEFAULT_MODELS = [

@@ -7,6 +7,14 @@ pub enum InjectMethod {
     Paste,
 }
 
+/// A text replacement applied to every transcript: `from` (case-insensitive) is
+/// swapped for `to`. Powers snippets ("my email" -> the address) and fixups.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Replacement {
+    pub from: String,
+    pub to: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     /// Global hotkey accelerator string, e.g. "Alt+Space".
@@ -35,6 +43,13 @@ pub struct Config {
     /// Whether the first-run onboarding tutorial has been completed.
     #[serde(default)]
     pub onboarded: bool,
+    /// Vocabulary hints (names, jargon) fed to Whisper as a prompt to bias
+    /// recognition toward these words.
+    #[serde(default)]
+    pub dictionary: Vec<String>,
+    /// Snippets / fixups applied to every transcript after recognition.
+    #[serde(default)]
+    pub replacements: Vec<Replacement>,
 }
 
 /// serde default for the boolean fields that default to `true`.
@@ -59,6 +74,8 @@ impl Default for Config {
             dictation_sounds: true,
             mute_music: false,
             onboarded: false,
+            dictionary: Vec::new(),
+            replacements: Vec::new(),
         }
     }
 }
@@ -118,6 +135,11 @@ mod tests {
             dictation_sounds: false,
             mute_music: true,
             onboarded: true,
+            dictionary: vec!["OpenWispr".to_string()],
+            replacements: vec![Replacement {
+                from: "my email".to_string(),
+                to: "me@example.com".to_string(),
+            }],
         };
         let text = cfg.to_toml().expect("serialize");
         let parsed = Config::from_toml(&text);

@@ -106,6 +106,9 @@ export default function Settings() {
   const [historyCleared, setHistoryCleared] = useState(false);
   const [launchLogin, setLaunchLogin] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmOpts | null>(null);
+  const [newWord, setNewWord] = useState("");
+  const [newFrom, setNewFrom] = useState("");
+  const [newTo, setNewTo] = useState("");
   // Model ids with an in-flight download (button shows Cancel + "baixando").
   const [downloading, setDownloading] = useState<Set<string>>(new Set());
   const clearDownloading = (id: string) =>
@@ -457,6 +460,140 @@ export default function Settings() {
 
       {config && (
         <>
+          <h2 className="mb-3 mt-8 text-lg font-semibold text-stone-900">
+            {t("settings.vocabulary")}
+          </h2>
+          <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
+            <Field
+              label={t("settings.dictionary")}
+              hint={t("settings.dictionaryHint")}
+            >
+              <div className="flex gap-2">
+                <input
+                  value={newWord}
+                  onChange={(e) => setNewWord(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newWord.trim()) {
+                      update({
+                        dictionary: [...config.dictionary, newWord.trim()],
+                      });
+                      setNewWord("");
+                    }
+                  }}
+                  placeholder={t("settings.dictionaryPlaceholder")}
+                  className={selectClass}
+                />
+                <button
+                  type="button"
+                  disabled={!newWord.trim()}
+                  onClick={() => {
+                    update({
+                      dictionary: [...config.dictionary, newWord.trim()],
+                    });
+                    setNewWord("");
+                  }}
+                  className="shrink-0 rounded-lg bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-40"
+                >
+                  {t("settings.add")}
+                </button>
+              </div>
+              {config.dictionary.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {config.dictionary.map((w, i) => (
+                    <span
+                      key={`${w}-${i}`}
+                      className="inline-flex items-center gap-1 rounded-full bg-stone-100 py-1 pl-3 pr-1 text-sm text-stone-700"
+                    >
+                      {w}
+                      <button
+                        type="button"
+                        aria-label={t("btn.remove")}
+                        onClick={() =>
+                          update({
+                            dictionary: config.dictionary.filter(
+                              (_, j) => j !== i,
+                            ),
+                          })
+                        }
+                        className="flex h-5 w-5 items-center justify-center rounded-full text-stone-400 hover:bg-stone-200 hover:text-stone-700"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </Field>
+
+            <Field
+              label={t("settings.replacements")}
+              hint={t("settings.replacementsHint")}
+            >
+              <div className="flex flex-wrap gap-2">
+                <input
+                  value={newFrom}
+                  onChange={(e) => setNewFrom(e.target.value)}
+                  placeholder={t("settings.replacementsFrom")}
+                  className={selectClass + " min-w-0 flex-1"}
+                />
+                <span className="self-center text-stone-400">→</span>
+                <input
+                  value={newTo}
+                  onChange={(e) => setNewTo(e.target.value)}
+                  placeholder={t("settings.replacementsTo")}
+                  className={selectClass + " min-w-0 flex-1"}
+                />
+                <button
+                  type="button"
+                  disabled={!newFrom.trim()}
+                  onClick={() => {
+                    update({
+                      replacements: [
+                        ...config.replacements,
+                        { from: newFrom.trim(), to: newTo },
+                      ],
+                    });
+                    setNewFrom("");
+                    setNewTo("");
+                  }}
+                  className="shrink-0 rounded-lg bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-40"
+                >
+                  {t("settings.add")}
+                </button>
+              </div>
+              {config.replacements.length > 0 && (
+                <div className="mt-3 space-y-1.5">
+                  {config.replacements.map((rp, i) => (
+                    <div
+                      key={`${rp.from}-${i}`}
+                      className="flex items-center gap-2 text-sm text-stone-700"
+                    >
+                      <span className="rounded bg-stone-100 px-2 py-0.5 font-mono">
+                        {rp.from}
+                      </span>
+                      <span className="text-stone-400">→</span>
+                      <span className="flex-1 truncate">{rp.to}</span>
+                      <button
+                        type="button"
+                        aria-label={t("btn.remove")}
+                        onClick={() =>
+                          update({
+                            replacements: config.replacements.filter(
+                              (_, j) => j !== i,
+                            ),
+                          })
+                        }
+                        className="flex h-5 w-5 items-center justify-center rounded-full text-stone-400 hover:bg-stone-200 hover:text-stone-700"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Field>
+          </div>
+
           <h2 className="mb-3 mt-8 text-lg font-semibold text-stone-900">
             {t("settings.system")}
           </h2>

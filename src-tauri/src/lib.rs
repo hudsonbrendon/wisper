@@ -8,6 +8,7 @@ mod model_manager;
 mod overlay;
 mod state;
 pub mod stt;
+mod text;
 
 use commands::AppState;
 use hotkey::Action as HkAction;
@@ -116,14 +117,16 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
     let app = app.clone();
     // Whisper is CPU-heavy and blocking; run off the UI thread.
     std::thread::spawn(move || {
-        let language = app
-            .state::<AppState>()
-            .config
-            .lock()
-            .unwrap()
-            .language
-            .clone();
-        let method = app.state::<AppState>().config.lock().unwrap().inject_method;
+        let (language, method, prompt, replacements) = {
+            let st = app.state::<AppState>();
+            let c = st.config.lock().unwrap();
+            (
+                c.language.clone(),
+                c.inject_method,
+                text::dictionary_prompt(&c.dictionary),
+                c.replacements.clone(),
+            )
+        };
 
         let rms = audio::rms_level(&samples);
 
@@ -161,13 +164,15 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
             let app_state = app.state::<AppState>();
             let guard = app_state.transcriber.lock().unwrap();
             match guard.as_ref() {
-                Some(t) => t.transcribe(&samples, &language),
+                Some(t) => t.transcribe(&samples, &language, &prompt),
                 None => Err("no model loaded; download one in Settings".to_string()),
             }
         };
 
         match text {
             Ok(text) => {
+                // Snippets / fixups before anything sees the transcript.
+                let text = text::apply_replacements(&text, &replacements);
                 let _ = app.emit("transcript", serde_json::json!({ "text": text }));
 
                 // Record the dictation locally so Home/Insights have data to

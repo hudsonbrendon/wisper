@@ -74,6 +74,8 @@ describe("saveConfig", () => {
       dictation_sounds: true,
       mute_music: false,
       onboarded: true,
+      dictionary: [],
+      replacements: [],
     };
     mockInvoke.mockResolvedValueOnce(undefined);
     saveConfig(cfg);

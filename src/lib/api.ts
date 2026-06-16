@@ -14,6 +14,13 @@ export interface Config {
   dictation_sounds: boolean;
   mute_music: boolean;
   onboarded: boolean;
+  dictionary: string[];
+  replacements: Replacement[];
+}
+
+export interface Replacement {
+  from: string;
+  to: string;
 }
 
 export interface ModelMeta {

@@ -21,7 +21,9 @@ fn transcribes_jfk_sample() {
         .collect();
 
     let transcriber = Transcriber::load(model).expect("load model");
-    let text = transcriber.transcribe(&samples, "en").expect("transcribe");
+    let text = transcriber
+        .transcribe(&samples, "en", "")
+        .expect("transcribe");
     let lower = text.to_lowercase();
     assert!(
         lower.contains("country"),
