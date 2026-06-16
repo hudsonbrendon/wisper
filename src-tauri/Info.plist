@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- macOS shows this string when prompting for microphone access. Without
+         the key, the OS silently denies capture and recordings are empty. -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>OpenWispr uses the microphone to transcribe your speech on-device. Audio never leaves your computer.</string>
+</dict>
+</plist>

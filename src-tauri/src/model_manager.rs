@@ -70,7 +70,8 @@ pub fn catalog() -> &'static [ModelInfo] {
         ModelInfo {
             id: "large-v3-turbo", // ~1.6 GB, multilingual, near-large accuracy & fast
             filename: "ggml-large-v3-turbo.bin",
-            url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin",
+            url:
+                "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin",
             sha256: "1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69",
         },
     ]
@@ -210,5 +211,76 @@ mod tests {
     fn catalog_ids_are_findable() {
         assert!(find("base.en").is_some());
         assert!(find("does-not-exist").is_none());
+    }
+
+    #[test]
+    fn catalog_entries_are_unique_and_well_formed() {
+        let models = catalog();
+        assert!(models.len() >= 8);
+        let mut ids: Vec<&str> = models.iter().map(|m| m.id).collect();
+        ids.sort_unstable();
+        ids.dedup();
+        assert_eq!(ids.len(), models.len(), "duplicate model ids");
+        for m in models {
+            assert!(m.url.starts_with("https://"), "{} url", m.id);
+            assert!(m.filename.ends_with(".bin"), "{} filename", m.id);
+            assert_eq!(m.sha256.len(), 64, "{} sha length", m.id);
+        }
+    }
+
+    fn fresh_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("openwispr_model_test_{name}"));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    // "hello" -> this digest; lets us exercise the file-hash path without a model.
+    const HELLO_SHA: &str = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824";
+    fn fake_model() -> ModelInfo {
+        ModelInfo {
+            id: "fake",
+            filename: "fake.bin",
+            url: "https://example.com/fake.bin",
+            sha256: HELLO_SHA,
+        }
+    }
+
+    #[test]
+    fn model_path_is_under_models_dir() {
+        let dir = fresh_dir("path");
+        let p = model_path(&dir, &fake_model());
+        assert_eq!(p, dir.join("models").join("fake.bin"));
+    }
+
+    #[test]
+    fn is_downloaded_true_only_when_hash_matches() {
+        let dir = fresh_dir("isdl");
+        let info = fake_model();
+        assert!(!is_downloaded(&dir, &info), "missing file");
+
+        let path = model_path(&dir, &info);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, b"hello").unwrap();
+        assert!(is_downloaded(&dir, &info), "matching bytes");
+
+        std::fs::write(&path, b"tampered").unwrap();
+        assert!(!is_downloaded(&dir, &info), "wrong bytes");
+    }
+
+    #[test]
+    fn remove_deletes_model_and_part_and_is_idempotent() {
+        let dir = fresh_dir("remove");
+        let info = fake_model();
+        let path = model_path(&dir, &info);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, b"hello").unwrap();
+        std::fs::write(path.with_extension("bin.part"), b"partial").unwrap();
+
+        remove(&dir, &info).unwrap();
+        assert!(!path.exists());
+        assert!(!path.with_extension("bin.part").exists());
+        // Removing again (already gone) is a no-op success.
+        remove(&dir, &info).unwrap();
     }
 }

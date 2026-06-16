@@ -23,6 +23,8 @@ pub struct AppState {
     /// Model ids with a pending cancel request. The download loop checks this
     /// each chunk and aborts when its id is present.
     pub cancels: Mutex<std::collections::HashSet<String>>,
+    /// Hotkey gesture detector (hold vs double-tap).
+    pub hotkey: Mutex<crate::hotkey::Controller>,
 }
 
 /// Metadata sent to the frontend for each catalog model.
@@ -39,10 +41,106 @@ pub fn get_config(state: tauri::State<AppState>) -> Config {
 }
 
 #[tauri::command]
-pub fn save_config(state: tauri::State<AppState>, new_config: Config) -> Result<(), String> {
+pub fn save_config(
+    app: AppHandle,
+    state: tauri::State<AppState>,
+    new_config: Config,
+) -> Result<(), String> {
+    let old_hotkey = state.config.lock().unwrap().hotkey.clone();
+    let hotkey_changed = old_hotkey != new_config.hotkey;
+    // Register the new shortcut FIRST. If the accelerator is invalid or
+    // unsupported (e.g. modifiers with no key), bail out before persisting so a
+    // broken hotkey is never saved and the old one keeps working.
+    if hotkey_changed {
+        crate::register_hotkey(&app, &new_config.hotkey).map_err(|e| {
+            // Restore the previous, known-good binding.
+            let _ = crate::register_hotkey(&app, &old_hotkey);
+            format!("'{}' is not a valid shortcut: {e}", new_config.hotkey)
+        })?;
+    }
     config::save(&state.config_dir, &new_config).map_err(|e| format!("save config: {e}"))?;
+    let show_in_dock = new_config.show_in_dock;
     *state.config.lock().unwrap() = new_config;
+    // Apply the system-toggle side effects immediately (idempotent + cheap).
+    crate::apply_dock_visibility(&app, show_in_dock);
+    crate::refresh_overlay_visibility(&app);
     Ok(())
+}
+
+/// Enable/disable launching OpenWispr at login (managed by the autostart plugin,
+/// not stored in our config).
+#[tauri::command]
+pub fn set_launch_at_login(app: AppHandle, enabled: bool) -> Result<(), String> {
+    use tauri_plugin_autostart::ManagerExt;
+    let mgr = app.autolaunch();
+    if enabled { mgr.enable() } else { mgr.disable() }.map_err(|e| e.to_string())
+}
+
+/// Whether OpenWispr is set to launch at login.
+#[tauri::command]
+pub fn get_launch_at_login(app: AppHandle) -> bool {
+    use tauri_plugin_autostart::ManagerExt;
+    app.autolaunch().is_enabled().unwrap_or(false)
+}
+
+/// Reset settings to defaults and wipe transcription history, then relaunch.
+#[tauri::command]
+pub fn reset_app(app: AppHandle, state: tauri::State<AppState>) -> Result<(), String> {
+    config::save(&state.config_dir, &Config::default()).map_err(|e| format!("save config: {e}"))?;
+    let _ = crate::history::clear(&state.data_dir);
+    app.restart();
+}
+
+/// Current macOS permission state shown in the Settings health panel.
+#[derive(serde::Serialize)]
+pub struct Permissions {
+    pub accessibility: bool,
+}
+
+#[tauri::command]
+pub fn get_permissions() -> Permissions {
+    #[cfg(target_os = "macos")]
+    let accessibility = crate::inject::accessibility::is_trusted();
+    #[cfg(not(target_os = "macos"))]
+    let accessibility = true;
+    Permissions { accessibility }
+}
+
+/// Re-run the Accessibility trust prompt (also re-registers the current binary
+/// in TCC, recovering a stale grant left by an earlier build).
+#[tauri::command]
+pub fn prompt_accessibility() {
+    crate::inject::prompt_accessibility_on_startup();
+}
+
+/// Reset the Microphone TCC grant and re-trigger the system prompt — the fix
+/// when dictation captures silence after an update.
+#[tauri::command]
+pub fn reset_microphone() {
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("tccutil")
+            .args(["reset", "Microphone", "com.hudsonbrendon.openwispr"])
+            .status();
+        std::thread::spawn(crate::audio::prompt_microphone_access);
+    }
+}
+
+/// Open the relevant macOS Privacy settings pane ("microphone" | "accessibility").
+#[tauri::command]
+pub fn open_privacy_settings(which: String) {
+    #[cfg(target_os = "macos")]
+    {
+        let anchor = if which == "accessibility" {
+            "Privacy_Accessibility"
+        } else {
+            "Privacy_Microphone"
+        };
+        let url = format!("x-apple.systempreferences:com.apple.preference.security?{anchor}");
+        let _ = std::process::Command::new("open").arg(url).spawn();
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = which;
 }
 
 #[tauri::command]
@@ -134,4 +232,60 @@ pub fn remove_model(app: AppHandle, id: String) -> Result<(), String> {
 #[tauri::command]
 pub fn get_state(state: tauri::State<AppState>) -> String {
     crate::state::label(*state.machine.lock().unwrap()).to_string()
+}
+
+/// All recorded dictations, newest first. Powers the Home history list and the
+/// Insights charts (which derive every stat from these entries on the frontend).
+#[tauri::command]
+pub fn get_history(state: tauri::State<AppState>) -> Vec<crate::history::Entry> {
+    crate::history::read_all(&state.data_dir)
+}
+
+/// Wipe the local transcription history.
+#[tauri::command]
+pub fn clear_history(app: AppHandle, state: tauri::State<AppState>) -> Result<(), String> {
+    crate::history::clear(&state.data_dir).map_err(|e| format!("clear history: {e}"))?;
+    let _ = app.emit("history_changed", serde_json::json!({}));
+    Ok(())
+}
+
+/// Start recording from the pill (same pipeline as the hotkey).
+#[tauri::command]
+pub fn ui_start_recording(app: AppHandle) {
+    crate::start_recording(&app);
+}
+
+/// Stop recording from the pill, transcribe and insert.
+#[tauri::command]
+pub fn ui_stop_and_insert(app: AppHandle) {
+    crate::stop_and_insert(&app);
+}
+
+/// Discard the in-progress take from the pill.
+#[tauri::command]
+pub fn ui_cancel_recording(app: AppHandle) {
+    crate::cancel_recording(&app);
+}
+
+/// Set and persist the transcription language, then notify the pill.
+#[tauri::command]
+pub fn set_language(
+    app: AppHandle,
+    state: tauri::State<AppState>,
+    lang: String,
+) -> Result<(), String> {
+    let saved = {
+        let mut cfg = state.config.lock().unwrap();
+        cfg.language = lang;
+        config::save(&state.config_dir, &cfg).map_err(|e| format!("save config: {e}"))?;
+        cfg.language.clone()
+    };
+    let _ = app.emit("config_changed", serde_json::json!({ "language": saved }));
+    Ok(())
+}
+
+/// Expand the pill window (so the language dropdown can render) or collapse it.
+#[tauri::command]
+pub fn set_pill_expanded(app: AppHandle, expanded: bool) {
+    crate::set_overlay_expanded(&app, expanded);
 }

@@ -7,63 +7,99 @@ import {
   downloadModel,
   cancelDownload,
   removeModel,
+  clearHistory,
+  getLaunchAtLogin,
+  setLaunchAtLogin,
+  resetApp,
+  getPermissions,
+  promptAccessibility,
+  resetMicrophone,
+  openPrivacySettings,
   onEvent,
   type Config,
   type ModelMeta,
   type DownloadProgressPayload,
+  type Permissions,
 } from "../lib/api";
+import { useI18n, UI_LANGUAGES } from "../lib/i18n";
+import { LANGUAGES } from "../lib/languages";
+import { eventToAccelerator } from "../lib/hotkey";
+import ConfirmModal, { type ConfirmOpts } from "../components/ConfirmModal";
 
-/// Whisper language options. "auto" lets Whisper detect the spoken language.
-/// Codes are Whisper's ISO 639-1 language codes.
-const LANGUAGES: { code: string; name: string }[] = [
-  { code: "auto", name: "Detect automatically" },
-  { code: "pt", name: "Português" },
-  { code: "en", name: "English" },
-  { code: "es", name: "Español" },
-  { code: "fr", name: "Français" },
-  { code: "de", name: "Deutsch" },
-  { code: "it", name: "Italiano" },
-  { code: "nl", name: "Nederlands" },
-  { code: "ru", name: "Русский" },
-  { code: "pl", name: "Polski" },
-  { code: "tr", name: "Türkçe" },
-  { code: "ja", name: "日本語" },
-  { code: "ko", name: "한국어" },
-  { code: "zh", name: "中文" },
-  { code: "ar", name: "العربية" },
-  { code: "hi", name: "हिन्दी" },
-];
+/// One labelled settings block. Stacked vertically so the page shows *all*
+/// current settings at a glance, rather than hiding them behind sub-tabs.
+function Field({
+  label,
+  hint,
+  children,
+  align = "fill",
+}: {
+  label: string;
+  hint?: React.ReactNode;
+  children: React.ReactNode;
+  /** "fill": control gets a wide column (selects). "right": label/hint take the
+   *  row, control sits compact on the right (toggles, buttons). */
+  align?: "fill" | "right";
+}) {
+  if (align === "right") {
+    return (
+      <div className="border-b border-stone-100 px-6 py-5 last:border-b-0">
+        <div className="flex items-center justify-between gap-6">
+          <div className="min-w-0">
+            <span className="text-sm font-medium text-stone-800">{label}</span>
+            {hint && <p className="mt-1 text-xs text-stone-500">{hint}</p>}
+          </div>
+          <div className="shrink-0">{children}</div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="border-b border-stone-100 px-6 py-5 last:border-b-0">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[200px_1fr] md:items-start">
+        <div>
+          <span className="text-sm font-medium text-stone-800">{label}</span>
+          {hint && <p className="mt-1 text-xs text-stone-500">{hint}</p>}
+        </div>
+        <div>{children}</div>
+      </div>
+    </div>
+  );
+}
 
-/// Build a Tauri global-shortcut accelerator string from a keydown event.
-/// Returns null while only modifier keys are held (combo not complete yet).
-function eventToAccelerator(e: KeyboardEvent): string | null {
-  const mods: string[] = [];
-  if (e.ctrlKey) mods.push("Control");
-  if (e.altKey) mods.push("Alt");
-  if (e.shiftKey) mods.push("Shift");
-  if (e.metaKey) mods.push("Super");
+const selectClass =
+  "w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200";
 
-  const code = e.code;
-  let key: string | null = null;
-  if (/^Key[A-Z]$/.test(code)) key = code.slice(3);
-  else if (/^Digit[0-9]$/.test(code)) key = code.slice(5);
-  else if (/^Numpad[0-9]$/.test(code)) key = code.slice(6);
-  else if (/^F\d{1,2}$/.test(code)) key = code;
-  else if (code === "Space") key = "Space";
-  else if (code === "Enter" || code === "NumpadEnter") key = "Enter";
-  else if (code === "Tab") key = "Tab";
-  else if (code === "ArrowUp") key = "Up";
-  else if (code === "ArrowDown") key = "Down";
-  else if (code === "ArrowLeft") key = "Left";
-  else if (code === "ArrowRight") key = "Right";
-  // Fallback for other layouts (e.g. ABNT): use the printable character.
-  else if (e.key.length === 1 && e.key !== " ") key = e.key.toUpperCase();
-
-  if (!key) return null; // only modifiers down so far
-  return [...mods, key].join("+");
+function Toggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={
+        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors " +
+        (checked ? "bg-teal-600" : "bg-stone-300")
+      }
+    >
+      <span
+        className={
+          "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform " +
+          (checked ? "translate-x-5" : "translate-x-0.5")
+        }
+      />
+    </button>
+  );
 }
 
 export default function Settings() {
+  const { t, lang, setLang } = useI18n();
   const [config, setConfig] = useState<Config | null>(null);
   const [mics, setMics] = useState<string[]>([]);
   const [models, setModels] = useState<ModelMeta[]>([]);
@@ -71,9 +107,13 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [captureHint, setCaptureHint] = useState("");
+  const [hotkeyError, setHotkeyError] = useState("");
+  const [historyCleared, setHistoryCleared] = useState(false);
+  const [launchLogin, setLaunchLogin] = useState(false);
+  const [confirm, setConfirm] = useState<ConfirmOpts | null>(null);
+  const [perms, setPerms] = useState<Permissions | null>(null);
   // Model ids with an in-flight download (button shows Cancel + "baixando").
   const [downloading, setDownloading] = useState<Set<string>>(new Set());
-
   const clearDownloading = (id: string) =>
     setDownloading((prev) => {
       const next = new Set(prev);
@@ -85,6 +125,8 @@ export default function Settings() {
     getConfig().then(setConfig);
     listMicrophones().then(setMics);
     listModels().then(setModels);
+    getLaunchAtLogin().then(setLaunchLogin);
+    getPermissions().then(setPerms);
     const un = onEvent<DownloadProgressPayload>("download_progress", (p) => {
       const pct = p.total > 0 ? Math.round((p.received / p.total) * 100) : 0;
       setProgress((prev) => ({ ...prev, [p.id]: pct }));
@@ -124,160 +166,460 @@ export default function Settings() {
       }
       const accel = eventToAccelerator(e);
       if (accel) {
-        setConfig((prev) => (prev ? { ...prev, hotkey: accel } : prev));
         setCapturing(false);
         setCaptureHint("");
+        setHotkeyError("");
+        setConfig((prev) => {
+          if (!prev) return prev;
+          const next = { ...prev, hotkey: accel };
+          saveConfig(next)
+            .then(() => {
+              setSaved(true);
+              setTimeout(() => setSaved(false), 1500);
+            })
+            .catch((err) => {
+              setHotkeyError(String(err));
+              setConfig((p) => (p ? { ...p, hotkey: prev.hotkey } : p));
+            });
+          return next;
+        });
       } else {
-        // Only modifiers held so far — show them building live.
         const mods: string[] = [];
         if (e.ctrlKey) mods.push("Control");
         if (e.altKey) mods.push("Alt");
         if (e.shiftKey) mods.push("Shift");
         if (e.metaKey) mods.push("Super");
-        setCaptureHint(mods.length ? mods.join("+") + "+…" : "Press a key…");
+        setCaptureHint(
+          mods.length ? mods.join("+") + "+ (add a key)" : "Press a key…",
+        );
       }
     };
     window.addEventListener("keydown", handler, true);
     return () => window.removeEventListener("keydown", handler, true);
   }, [capturing]);
 
-  if (!config) return <div className="p-6 text-zinc-100">Loading…</div>;
+  if (!config)
+    return <div className="text-stone-500">{t("settings.loading")}</div>;
 
-  const update = (patch: Partial<Config>) =>
-    setConfig({ ...config, ...patch });
-
-  const onSave = async () => {
-    await saveConfig(config);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
+  const update = (patch: Partial<Config>) => {
+    const next = { ...config, ...patch };
+    setConfig(next);
+    // Persist immediately so the page always reflects the current settings.
+    saveConfig(next)
+      .then(() => {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 1200);
+      })
+      .catch(() => {});
   };
 
+  const onToggleLaunch = (v: boolean) => {
+    setLaunchLogin(v);
+    setLaunchAtLogin(v).catch(() => setLaunchLogin(!v));
+  };
+
+  const onReset = () =>
+    setConfirm({
+      title: t("confirm.reset.title"),
+      message: t("confirm.reset.message"),
+      confirmLabel: t("settings.resetAppAction"),
+      danger: true,
+      onConfirm: () => void resetApp().catch(() => {}),
+    });
+
   return (
-    <div className="min-h-full bg-zinc-900 p-8 text-zinc-100">
-      <h1 className="mb-6 text-2xl font-semibold">OpenWispr</h1>
-
-      <div className="mb-4 block">
-        <span className="mb-1 block text-sm text-zinc-400">Hotkey (hold to talk)</span>
-        <button
-          type="button"
-          onClick={() => {
-            setCaptureHint("Press a key combo… (Esc to cancel)");
-            setCapturing((c) => !c);
-          }}
-          className={
-            "w-full rounded px-3 py-2 text-left font-mono " +
-            (capturing
-              ? "bg-indigo-700 ring-2 ring-indigo-400"
-              : "bg-zinc-800 hover:bg-zinc-700")
-          }
-        >
-          {capturing ? captureHint || "Press a key combo… (Esc to cancel)" : config.hotkey}
-        </button>
-        <span className="mt-1 block text-xs text-zinc-500">
-          Click, then hold your modifiers and press a key. Takes effect after
-          restarting the app.
-        </span>
+    <div className="mx-auto max-w-3xl">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold tracking-tight text-stone-900">
+          {t("settings.title")}
+        </h1>
+        {saved && (
+          <span className="text-sm font-medium text-teal-600">
+            {t("settings.saved")}
+          </span>
+        )}
       </div>
 
-      <label className="mb-4 block">
-        <span className="mb-1 block text-sm text-zinc-400">Microphone</span>
-        <select
-          className="w-full rounded bg-zinc-800 px-3 py-2"
-          value={config.mic_device ?? ""}
-          onChange={(e) => update({ mic_device: e.target.value || null })}
+      <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
+        <Field
+          label={t("settings.uiLanguage")}
+          hint={t("settings.uiLanguageHint")}
         >
-          <option value="">System default</option>
-          {mics.map((m) => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
-      </label>
+          <select
+            className={selectClass}
+            value={lang}
+            onChange={(e) => setLang(e.target.value)}
+          >
+            {UI_LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        </Field>
 
-      <label className="mb-4 block">
-        <span className="mb-1 block text-sm text-zinc-400">Language</span>
-        <select
-          className="w-full rounded bg-zinc-800 px-3 py-2"
-          value={config.language}
-          onChange={(e) => update({ language: e.target.value })}
-        >
-          {LANGUAGES.map((l) => (
-            <option key={l.code} value={l.code}>
-              {l.name} ({l.code})
-            </option>
-          ))}
-        </select>
-      </label>
+        <Field label={t("settings.hotkey")} hint={t("settings.hotkeyHint")}>
+          <button
+            type="button"
+            onClick={() => {
+              setCaptureHint(t("settings.hotkeyPress"));
+              setCapturing((c) => !c);
+            }}
+            className={
+              "w-full rounded-lg px-3 py-2 text-left font-mono text-sm transition-colors " +
+              (capturing
+                ? "bg-teal-600 text-white ring-2 ring-teal-300"
+                : "border border-stone-300 bg-white text-stone-800 hover:bg-stone-50")
+            }
+          >
+            {capturing
+              ? captureHint || t("settings.hotkeyPress")
+              : config.hotkey}
+          </button>
+          {hotkeyError && (
+            <span className="mt-1 block text-xs text-rose-500">
+              {hotkeyError}
+            </span>
+          )}
+        </Field>
 
-      <label className="mb-4 block">
-        <span className="mb-1 block text-sm text-zinc-400">Insert method</span>
-        <select
-          className="w-full rounded bg-zinc-800 px-3 py-2"
-          value={config.inject_method}
-          onChange={(e) =>
-            update({ inject_method: e.target.value as Config["inject_method"] })
-          }
-        >
-          <option value="type">Type (synthetic keystrokes)</option>
-          <option value="paste">Paste (clipboard + Cmd/Ctrl+V)</option>
-        </select>
-      </label>
+        <Field label={t("settings.microphone")}>
+          <select
+            className={selectClass}
+            value={config.mic_device ?? ""}
+            onChange={(e) => update({ mic_device: e.target.value || null })}
+          >
+            <option value="">{t("settings.systemDefault")}</option>
+            {mics.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </Field>
 
-      <div className="mb-6">
-        <span className="mb-2 block text-sm text-zinc-400">Models</span>
-        {models.map((m) => (
-          <div key={m.id} className="mb-2 flex items-center justify-between rounded bg-zinc-800 px-3 py-2">
-            <div>
-              <span className="font-medium">{m.id}</span>
-              <span className="ml-2 text-xs text-zinc-500">
-                {downloading.has(m.id)
-                  ? `baixando… ${progress[m.id] ?? 0}%`
-                  : m.downloaded
-                    ? "downloaded"
-                    : "not downloaded"}
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              {downloading.has(m.id) ? (
-                <button
-                  className="rounded bg-amber-600 px-3 py-1 text-sm hover:bg-amber-500"
-                  onClick={() => cancelDownload(m.id)}
-                >
-                  Cancel
-                </button>
-              ) : m.downloaded ? (
-                <button
-                  className="rounded bg-rose-700 px-3 py-1 text-sm hover:bg-rose-600"
-                  onClick={async () => {
-                    await removeModel(m.id);
-                    listModels().then(setModels);
-                  }}
-                >
-                  Remove
-                </button>
-              ) : (
-                <button
-                  className="rounded bg-indigo-600 px-3 py-1 text-sm hover:bg-indigo-500"
-                  onClick={() => {
-                    update({ model_id: m.id });
-                    setDownloading((prev) => new Set(prev).add(m.id));
-                    setProgress((prev) => ({ ...prev, [m.id]: 0 }));
-                    downloadModel(m.id).catch(() => clearDownloading(m.id));
-                  }}
-                >
-                  Download
-                </button>
-              )}
-            </div>
+        <Field label={t("settings.language")} hint={t("settings.languageHint")}>
+          <select
+            className={selectClass}
+            value={config.language}
+            onChange={(e) => update({ language: e.target.value })}
+          >
+            {LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.code === "auto" ? t("lang.auto") : `${l.name} (${l.code})`}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label={t("settings.insert")} hint={t("settings.insertHint")}>
+          <select
+            className={selectClass}
+            value={config.inject_method}
+            onChange={(e) =>
+              update({
+                inject_method: e.target.value as Config["inject_method"],
+              })
+            }
+          >
+            <option value="type">{t("settings.insertType")}</option>
+            <option value="paste">{t("settings.insertPaste")}</option>
+          </select>
+        </Field>
+
+        <Field label={t("settings.models")} hint={t("settings.modelsHint")}>
+          <div className="space-y-2">
+            {models.map((m) => (
+              <div
+                key={m.id}
+                className="flex items-center justify-between rounded-lg border border-stone-200 bg-stone-50 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <span className="text-sm font-medium text-stone-800">
+                    {m.id}
+                  </span>
+                  {config.model_id === m.id && (
+                    <span className="ml-2 rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700">
+                      {t("settings.active")}
+                    </span>
+                  )}
+                  <span
+                    className={
+                      "ml-2 rounded-full px-2 py-0.5 text-xs font-medium " +
+                      (m.id.endsWith(".en")
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-stone-200 text-stone-600")
+                    }
+                  >
+                    {m.id.endsWith(".en")
+                      ? t("settings.englishOnly")
+                      : t("settings.multilingual")}
+                  </span>
+                  <span className="ml-2 text-xs text-stone-500">
+                    {downloading.has(m.id)
+                      ? t("settings.downloading", { pct: progress[m.id] ?? 0 })
+                      : m.downloaded
+                        ? t("settings.downloaded")
+                        : t("settings.notDownloaded")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {downloading.has(m.id) ? (
+                    <button
+                      className="rounded-md bg-amber-400 px-3 py-1 text-sm font-medium text-stone-900 hover:bg-amber-300"
+                      onClick={() =>
+                        setConfirm({
+                          title: t("confirm.cancelDownload.title"),
+                          message: t("confirm.cancelDownload.message", {
+                            name: m.id,
+                          }),
+                          confirmLabel: t("confirm.cancelDownload.action"),
+                          danger: true,
+                          onConfirm: () => cancelDownload(m.id),
+                        })
+                      }
+                    >
+                      {t("btn.cancel")}
+                    </button>
+                  ) : m.downloaded ? (
+                    <button
+                      className="rounded-md border border-stone-300 px-3 py-1 text-sm text-stone-700 hover:bg-stone-100"
+                      onClick={() =>
+                        setConfirm({
+                          title: t("confirm.removeModel.title"),
+                          message: t("confirm.removeModel.message", {
+                            name: m.id,
+                          }),
+                          confirmLabel: t("btn.remove"),
+                          danger: true,
+                          onConfirm: () => {
+                            void removeModel(m.id).then(() =>
+                              listModels().then(setModels),
+                            );
+                          },
+                        })
+                      }
+                    >
+                      {t("btn.remove")}
+                    </button>
+                  ) : (
+                    <button
+                      className="rounded-md bg-stone-900 px-3 py-1 text-sm font-medium text-white hover:bg-stone-800"
+                      onClick={() =>
+                        setConfirm({
+                          title: t("confirm.downloadModel.title"),
+                          message: t("confirm.downloadModel.message", {
+                            name: m.id,
+                          }),
+                          confirmLabel: t("btn.download"),
+                          onConfirm: () => {
+                            update({ model_id: m.id });
+                            setDownloading((prev) => new Set(prev).add(m.id));
+                            setProgress((prev) => ({ ...prev, [m.id]: 0 }));
+                            downloadModel(m.id).catch(() =>
+                              clearDownloading(m.id),
+                            );
+                          },
+                        })
+                      }
+                    >
+                      {t("btn.download")}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        </Field>
+
+        <Field
+          align="right"
+          label={t("settings.history")}
+          hint={t("settings.historyHint")}
+        >
+          <button
+            type="button"
+            onClick={() =>
+              setConfirm({
+                title: t("confirm.clearHistory.title"),
+                message: t("confirm.clearHistory.message"),
+                confirmLabel: t("settings.clearHistory"),
+                danger: true,
+                onConfirm: () => {
+                  void clearHistory().then(() => {
+                    setHistoryCleared(true);
+                    setTimeout(() => setHistoryCleared(false), 1500);
+                  });
+                },
+              })
+            }
+            className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100"
+          >
+            {historyCleared
+              ? t("settings.cleared")
+              : t("settings.clearHistory")}
+          </button>
+        </Field>
       </div>
 
-      <button
-        className="rounded bg-emerald-600 px-4 py-2 font-medium hover:bg-emerald-500"
-        onClick={onSave}
-      >
-        {saved ? "Saved ✓" : "Save settings"}
-      </button>
+      {config && (
+        <>
+          <h2 className="mb-3 mt-8 text-lg font-semibold text-stone-900">
+            {t("settings.system")}
+          </h2>
+          <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
+            <Field
+              align="right"
+              label={t("settings.launchAtLogin")}
+              hint={t("settings.launchAtLoginHint")}
+            >
+              <Toggle checked={launchLogin} onChange={onToggleLaunch} />
+            </Field>
+            <Field
+              align="right"
+              label={t("settings.showInDock")}
+              hint={t("settings.showInDockHint")}
+            >
+              <Toggle
+                checked={config.show_in_dock}
+                onChange={(v) => update({ show_in_dock: v })}
+              />
+            </Field>
+            <Field
+              align="right"
+              label={t("settings.showPill")}
+              hint={t("settings.showPillHint")}
+            >
+              <Toggle
+                checked={config.show_pill}
+                onChange={(v) => update({ show_pill: v })}
+              />
+            </Field>
+            <Field
+              align="right"
+              label={t("settings.dictationSounds")}
+              hint={t("settings.dictationSoundsHint")}
+            >
+              <Toggle
+                checked={config.dictation_sounds}
+                onChange={(v) => update({ dictation_sounds: v })}
+              />
+            </Field>
+            <Field
+              align="right"
+              label={t("settings.muteMusic")}
+              hint={t("settings.muteMusicHint")}
+            >
+              <Toggle
+                checked={config.mute_music}
+                onChange={(v) => update({ mute_music: v })}
+              />
+            </Field>
+            <Field
+              align="right"
+              label={t("settings.tutorial")}
+              hint={t("settings.tutorialHint")}
+            >
+              <button
+                type="button"
+                onClick={() =>
+                  window.dispatchEvent(new CustomEvent("replay-tutorial"))
+                }
+                className="rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100"
+              >
+                {t("settings.tutorialReplay")}
+              </button>
+            </Field>
+            <Field
+              align="right"
+              label={t("settings.resetApp")}
+              hint={t("settings.resetAppHint")}
+            >
+              <button
+                type="button"
+                onClick={onReset}
+                className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100"
+              >
+                {t("settings.resetAppAction")}
+              </button>
+            </Field>
+          </div>
+
+          <h2 className="mb-3 mt-8 text-lg font-semibold text-stone-900">
+            {t("settings.permissions")}
+          </h2>
+          <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
+            <Field
+              align="right"
+              label={t("settings.permMic")}
+              hint={t("settings.permMicHint")}
+            >
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => void resetMicrophone()}
+                  className="rounded-lg bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-800"
+                >
+                  {t("settings.permMicReset")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void openPrivacySettings("microphone")}
+                  className="rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-700 hover:bg-stone-100"
+                >
+                  {t("settings.permOpen")}
+                </button>
+              </div>
+            </Field>
+            <Field
+              align="right"
+              label={t("settings.permAccessibility")}
+              hint={
+                perms
+                  ? perms.accessibility
+                    ? t("settings.permGranted")
+                    : t("settings.permNotGranted")
+                  : t("settings.permAccessibilityHint")
+              }
+            >
+              <div className="flex items-center gap-2">
+                {perms && (
+                  <span
+                    className={
+                      "inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium " +
+                      (perms.accessibility
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-rose-100 text-rose-700")
+                    }
+                  >
+                    {perms.accessibility ? "✓" : "✗"}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    void promptAccessibility().then(() =>
+                      getPermissions().then(setPerms),
+                    )
+                  }
+                  className="rounded-lg bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-800"
+                >
+                  {t("settings.permPrompt")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void openPrivacySettings("accessibility")}
+                  className="rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-700 hover:bg-stone-100"
+                >
+                  {t("settings.permOpen")}
+                </button>
+              </div>
+            </Field>
+          </div>
+        </>
+      )}
+
+      <ConfirmModal opts={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }

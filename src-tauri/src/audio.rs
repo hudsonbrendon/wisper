@@ -43,8 +43,47 @@ pub fn rms_level(samples: &[f32]) -> f32 {
     (sum_sq / samples.len() as f32).sqrt()
 }
 
+/// RMS of only the trailing `window` samples. The live meter must track the
+/// *current* voice amplitude, so it reads recent audio — not the RMS of the
+/// whole take, which averages over everything captured so far and barely moves
+/// once the buffer is large (making the meter look frozen).
+pub fn rms_window(samples: &[f32], window: usize) -> f32 {
+    if window == 0 || samples.is_empty() {
+        return 0.0;
+    }
+    let start = samples.len().saturating_sub(window);
+    rms_level(&samples[start..])
+}
+
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::sync::{Arc, Mutex};
+
+/// Proactively open (and immediately close) the default input stream at startup
+/// to trigger the macOS Microphone permission prompt early. Without this, the
+/// prompt only appears on the first recording attempt — which then captures
+/// silence while the user is still reading the dialog, so the meter never moves
+/// and nothing transcribes. Best-effort: any error is ignored (e.g. no device).
+pub fn prompt_microphone_access() {
+    let host = cpal::default_host();
+    let Some(device) = host.default_input_device() else {
+        return;
+    };
+    let Ok(cfg) = device.default_input_config() else {
+        return;
+    };
+    // Building + playing the stream is what makes CoreAudio hit the TCC gate and
+    // surface the system dialog. We don't keep the audio — drop it right away.
+    if let Ok(stream) = device.build_input_stream(
+        cfg.config(),
+        |_data: &[f32], _: &cpal::InputCallbackInfo| {},
+        |e| eprintln!("mic warmup stream error: {e}"),
+        None,
+    ) {
+        let _ = stream.play();
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        drop(stream);
+    }
+}
 
 /// List input device names available on the system.
 pub fn list_input_devices() -> Vec<String> {
@@ -68,15 +107,27 @@ impl Recorder {
     /// Start capturing from `device_name` (None = system default input).
     pub fn start(device_name: Option<&str>) -> Result<Recorder, String> {
         let host = cpal::default_host();
+        let default_device = || {
+            host.default_input_device()
+                .ok_or_else(|| "no default input device".to_string())
+        };
         let device = match device_name {
-            Some(name) => host
-                .input_devices()
-                .map_err(|e| format!("enumerate devices: {e}"))?
-                .find(|d| d.to_string() == name)
-                .ok_or_else(|| format!("input device not found: {name}"))?,
-            None => host
-                .default_input_device()
-                .ok_or_else(|| "no default input device".to_string())?,
+            Some(name) => {
+                let found = host
+                    .input_devices()
+                    .map_err(|e| format!("enumerate devices: {e}"))?
+                    .find(|d| d.to_string() == name);
+                match found {
+                    Some(d) => d,
+                    None => {
+                        // The saved device is gone (e.g. AirPods disconnected) —
+                        // fall back to the system default so dictation still works.
+                        eprintln!("input device '{name}' not found; using system default");
+                        default_device()?
+                    }
+                }
+            }
+            None => default_device()?,
         };
         let cfg = device
             .default_input_config()
@@ -109,9 +160,16 @@ impl Recorder {
         })
     }
 
-    /// Current RMS level of captured-so-far audio, for the live meter.
+    /// Current RMS level of the most recent ~100 ms of audio, for the live
+    /// meter. Windowed (not whole-buffer) so it tracks live voice amplitude
+    /// instead of the slowly-moving average of the entire take.
     pub fn level(&self) -> f32 {
-        self.buffer.lock().map(|b| rms_level(&b)).unwrap_or(0.0)
+        // ~100 ms of interleaved native samples.
+        let window = (self.sample_rate as usize) * (self.channels.max(1) as usize) / 10;
+        self.buffer
+            .lock()
+            .map(|b| rms_window(&b, window))
+            .unwrap_or(0.0)
     }
 
     /// Stop capture and return 16 kHz mono samples ready for Whisper.
@@ -156,5 +214,25 @@ mod tests {
     fn rms_of_silence_is_zero() {
         assert_eq!(rms_level(&[0.0, 0.0, 0.0]), 0.0);
         assert_eq!(rms_level(&[]), 0.0);
+    }
+
+    #[test]
+    fn rms_window_tracks_recent_audio_not_whole_buffer() {
+        // Loud at the start, silent at the end: the live meter must read ~0,
+        // even though the whole-buffer RMS is high. This is the bug that froze
+        // the meter — it averaged the entire take.
+        let mut loud_then_quiet = vec![1.0_f32; 100];
+        loud_then_quiet.extend(std::iter::repeat_n(0.0, 100));
+        assert_eq!(rms_window(&loud_then_quiet, 100), 0.0);
+
+        // Silent then loud: meter must light up.
+        let mut quiet_then_loud = vec![0.0_f32; 100];
+        quiet_then_loud.extend(std::iter::repeat_n(1.0, 100));
+        assert_eq!(rms_window(&quiet_then_loud, 100), 1.0);
+
+        // Window larger than the buffer falls back to the full buffer.
+        assert_eq!(rms_window(&[0.0, 0.0], 100), 0.0);
+        assert_eq!(rms_window(&[], 100), 0.0);
+        assert_eq!(rms_window(&[1.0], 0), 0.0);
     }
 }

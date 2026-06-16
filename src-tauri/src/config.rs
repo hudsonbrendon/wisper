@@ -7,6 +7,14 @@ pub enum InjectMethod {
     Paste,
 }
 
+/// A text replacement applied to every transcript: `from` (case-insensitive) is
+/// swapped for `to`. Powers snippets ("my email" -> the address) and fixups.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Replacement {
+    pub from: String,
+    pub to: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     /// Global hotkey accelerator string, e.g. "Alt+Space".
@@ -19,16 +27,55 @@ pub struct Config {
     pub language: String,
     /// How transcribed text is inserted into the focused app.
     pub inject_method: InjectMethod,
+    /// Show the app's Dock icon (macOS). When false, runs as a menu-bar app.
+    #[serde(default = "default_true")]
+    pub show_in_dock: bool,
+    /// Keep the floating pill visible at all times. When false, it only appears
+    /// while dictating.
+    #[serde(default = "default_true")]
+    pub show_pill: bool,
+    /// Play a short sound when dictation starts and stops.
+    #[serde(default = "default_true")]
+    pub dictation_sounds: bool,
+    /// Pause playing media (Spotify / Apple Music) while dictating.
+    #[serde(default)]
+    pub mute_music: bool,
+    /// Whether the first-run onboarding tutorial has been completed.
+    #[serde(default)]
+    pub onboarded: bool,
+    /// Vocabulary hints (names, jargon) fed to Whisper as a prompt to bias
+    /// recognition toward these words.
+    #[serde(default)]
+    pub dictionary: Vec<String>,
+    /// Snippets / fixups applied to every transcript after recognition.
+    #[serde(default)]
+    pub replacements: Vec<Replacement>,
+}
+
+/// serde default for the boolean fields that default to `true`.
+fn default_true() -> bool {
+    true
 }
 
 impl Default for Config {
     fn default() -> Self {
         Config {
             hotkey: "Alt+Space".to_string(),
-            model_id: "base.en".to_string(),
+            // Multilingual model + auto language detection by default. The `.en`
+            // models are English-only: feeding them e.g. Portuguese produces
+            // garbage (Whisper emits a stray "you"), so they are never the
+            // default — users opt into them explicitly for English-only speed.
+            model_id: "base".to_string(),
             mic_device: None,
-            language: "en".to_string(),
+            language: "auto".to_string(),
             inject_method: InjectMethod::Type,
+            show_in_dock: true,
+            show_pill: true,
+            dictation_sounds: true,
+            mute_music: false,
+            onboarded: false,
+            dictionary: Vec::new(),
+            replacements: Vec::new(),
         }
     }
 }
@@ -83,6 +130,16 @@ mod tests {
             mic_device: Some("MacBook Pro Microphone".to_string()),
             language: "pt".to_string(),
             inject_method: InjectMethod::Paste,
+            show_in_dock: false,
+            show_pill: false,
+            dictation_sounds: false,
+            mute_music: true,
+            onboarded: true,
+            dictionary: vec!["OpenWispr".to_string()],
+            replacements: vec![Replacement {
+                from: "my email".to_string(),
+                to: "me@example.com".to_string(),
+            }],
         };
         let text = cfg.to_toml().expect("serialize");
         let parsed = Config::from_toml(&text);

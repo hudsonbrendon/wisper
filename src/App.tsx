@@ -1,15 +1,17 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useEffect, useState } from "react";
-import Settings from "./routes/Settings";
+import { useState } from "react";
+import Dashboard from "./routes/Dashboard";
 import Overlay from "./routes/Overlay";
+import { I18nProvider } from "./lib/i18n";
 
 export default function App() {
-  const [label, setLabel] = useState<string | null>(null);
+  // The window label is available synchronously in the webview, so read it once
+  // at init instead of in an effect.
+  const [label] = useState(() => getCurrentWindow().label);
 
-  useEffect(() => {
-    setLabel(getCurrentWindow().label);
-  }, []);
-
-  if (label === null) return null;
-  return label === "overlay" ? <Overlay /> : <Settings />;
+  return (
+    <I18nProvider>
+      {label === "overlay" ? <Overlay /> : <Dashboard />}
+    </I18nProvider>
+  );
 }

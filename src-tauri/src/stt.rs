@@ -21,7 +21,12 @@ impl Transcriber {
     /// - `full_get_segment_text(i)` does not exist; replaced with `get_segment(i)`
     ///   which returns `Option<WhisperSegment<'_>>`, and `.to_str()` on the segment
     ///   (returns `Result<&str, WhisperError>`) to obtain the UTF-8 text.
-    pub fn transcribe(&self, samples: &[f32], language: &str) -> Result<String, String> {
+    pub fn transcribe(
+        &self,
+        samples: &[f32],
+        language: &str,
+        prompt: &str,
+    ) -> Result<String, String> {
         let mut state = self
             .ctx
             .create_state()
@@ -30,6 +35,10 @@ impl Transcriber {
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
         if language != "auto" {
             params.set_language(Some(language));
+        }
+        // Vocabulary hints bias recognition toward the user's dictionary words.
+        if !prompt.is_empty() {
+            params.set_initial_prompt(prompt);
         }
         params.set_print_progress(false);
         params.set_print_realtime(false);
