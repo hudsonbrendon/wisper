@@ -308,14 +308,10 @@ pub(crate) fn set_overlay_expanded(app: &tauri::AppHandle, expanded: bool) {
         if let Some(mon) = monitor {
             // bottom_center works in physical px; convert the logical size.
             let sf = overlay.scale_factor().unwrap_or(1.0);
-            let win = (
-                (PILL_WIDTH * sf).round() as u32,
-                (h * sf).round() as u32,
-            );
+            let win = ((PILL_WIDTH * sf).round() as u32, (h * sf).round() as u32);
             let pos = mon.position();
             let size = mon.size();
-            let (x, y) =
-                overlay::bottom_center((pos.x, pos.y), (size.width, size.height), win, 90);
+            let (x, y) = overlay::bottom_center((pos.x, pos.y), (size.width, size.height), win, 90);
             let _ = overlay.set_position(tauri::PhysicalPosition::new(x, y));
         }
     }
@@ -490,15 +486,37 @@ pub(crate) fn apply_dock_visibility(app: &tauri::AppHandle, show: bool) {
 /// marks stay accurate.
 fn build_tray_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let home = MenuItem::with_id(app, "home", "Home", true, None::<&str>)?;
-    let updates =
-        MenuItem::with_id(app, "check_updates", "Check for Updates", true, None::<&str>)?;
-    let paste =
-        MenuItem::with_id(app, "paste_last", "Paste Last Transcription", true, None::<&str>)?;
+    let updates = MenuItem::with_id(
+        app,
+        "check_updates",
+        "Check for Updates",
+        true,
+        None::<&str>,
+    )?;
+    let paste = MenuItem::with_id(
+        app,
+        "paste_last",
+        "Paste Last Transcription",
+        true,
+        None::<&str>,
+    )?;
 
     // Microphone submenu. Id "mic:" is the system default; "mic:<name>" a device.
-    let current = app.state::<AppState>().config.lock().unwrap().mic_device.clone();
-    let default_item =
-        CheckMenuItem::with_id(app, "mic:", "System Default", true, current.is_none(), None::<&str>)?;
+    let current = app
+        .state::<AppState>()
+        .config
+        .lock()
+        .unwrap()
+        .mic_device
+        .clone();
+    let default_item = CheckMenuItem::with_id(
+        app,
+        "mic:",
+        "System Default",
+        true,
+        current.is_none(),
+        None::<&str>,
+    )?;
     let device_items: Vec<CheckMenuItem<tauri::Wry>> = audio::list_input_devices()
         .into_iter()
         .map(|dev| {
@@ -507,7 +525,11 @@ fn build_tray_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         })
         .collect::<tauri::Result<_>>()?;
     let mut mic_refs: Vec<&dyn IsMenuItem<tauri::Wry>> = vec![&default_item];
-    mic_refs.extend(device_items.iter().map(|i| i as &dyn IsMenuItem<tauri::Wry>));
+    mic_refs.extend(
+        device_items
+            .iter()
+            .map(|i| i as &dyn IsMenuItem<tauri::Wry>),
+    );
     let microphone = Submenu::with_items(app, "Microphone", true, &mic_refs)?;
 
     let sep = PredefinedMenuItem::separator(app)?;
@@ -525,7 +547,10 @@ fn paste_last_transcription(app: &tauri::AppHandle) {
         (st.data_dir.clone(), method)
     };
     let Some(entry) = history::read_all(&data_dir).into_iter().next() else {
-        let _ = app.emit("error", serde_json::json!({ "message": "No transcription yet." }));
+        let _ = app.emit(
+            "error",
+            serde_json::json!({ "message": "No transcription yet." }),
+        );
         return;
     };
     let app2 = app.clone();
@@ -635,8 +660,7 @@ pub fn run() {
             // Monochrome speech-bubble tray glyph. `icon_as_template` makes macOS
             // tint it to match the menu bar (light/dark) and size it to the bar,
             // so it shows as the bubble silhouette — not a square app icon.
-            let tray_icon =
-                tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png"))?;
+            let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png"))?;
             // `with_id("main")` lets us fetch the tray later (app.tray_by_id) to
             // swap the menu when the mic selection changes. build() registers a
             // clone in the App's resource table, so the icon persists for the
@@ -696,7 +720,12 @@ pub fn run() {
             place_and_show_overlay(&handle);
 
             // Hide the Dock icon if the user chose menu-bar-only.
-            let show_in_dock = handle.state::<AppState>().config.lock().unwrap().show_in_dock;
+            let show_in_dock = handle
+                .state::<AppState>()
+                .config
+                .lock()
+                .unwrap()
+                .show_in_dock;
             apply_dock_visibility(&handle, show_in_dock);
 
             Ok(())

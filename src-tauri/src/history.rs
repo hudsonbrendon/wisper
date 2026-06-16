@@ -57,7 +57,7 @@ pub fn read_all(data_dir: &Path) -> Vec<Entry> {
         .filter(|l| !l.trim().is_empty())
         .filter_map(|l| serde_json::from_str(l).ok())
         .collect();
-    entries.sort_by(|a, b| b.ts_ms.cmp(&a.ts_ms));
+    entries.sort_by_key(|e| std::cmp::Reverse(e.ts_ms));
     entries
 }
 

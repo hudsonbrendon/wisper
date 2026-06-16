@@ -96,7 +96,10 @@ mod tests {
     #[test]
     fn cancel_is_noop_outside_recording() {
         assert_eq!(next(State::Idle, Event::Cancel), State::Idle);
-        assert_eq!(next(State::Transcribing, Event::Cancel), State::Transcribing);
+        assert_eq!(
+            next(State::Transcribing, Event::Cancel),
+            State::Transcribing
+        );
         assert_eq!(next(State::Injecting, Event::Cancel), State::Injecting);
     }
 }

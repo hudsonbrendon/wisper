@@ -219,7 +219,8 @@ export default function Settings() {
     return () => window.removeEventListener("keydown", handler, true);
   }, [capturing]);
 
-  if (!config) return <div className="text-stone-500">{t("settings.loading")}</div>;
+  if (!config)
+    return <div className="text-stone-500">{t("settings.loading")}</div>;
 
   const update = (patch: Partial<Config>) => {
     const next = { ...config, ...patch };
@@ -261,7 +262,10 @@ export default function Settings() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-        <Field label={t("settings.uiLanguage")} hint={t("settings.uiLanguageHint")}>
+        <Field
+          label={t("settings.uiLanguage")}
+          hint={t("settings.uiLanguageHint")}
+        >
           <select
             className={selectClass}
             value={lang}
@@ -289,10 +293,14 @@ export default function Settings() {
                 : "border border-stone-300 bg-white text-stone-800 hover:bg-stone-50")
             }
           >
-            {capturing ? captureHint || t("settings.hotkeyPress") : config.hotkey}
+            {capturing
+              ? captureHint || t("settings.hotkeyPress")
+              : config.hotkey}
           </button>
           {hotkeyError && (
-            <span className="mt-1 block text-xs text-rose-500">{hotkeyError}</span>
+            <span className="mt-1 block text-xs text-rose-500">
+              {hotkeyError}
+            </span>
           )}
         </Field>
 
@@ -325,10 +333,7 @@ export default function Settings() {
           </select>
         </Field>
 
-        <Field
-          label={t("settings.insert")}
-          hint={t("settings.insertHint")}
-        >
+        <Field label={t("settings.insert")} hint={t("settings.insertHint")}>
           <select
             className={selectClass}
             value={config.inject_method}
@@ -386,7 +391,9 @@ export default function Settings() {
                       onClick={() =>
                         setConfirm({
                           title: t("confirm.cancelDownload.title"),
-                          message: t("confirm.cancelDownload.message", { name: m.id }),
+                          message: t("confirm.cancelDownload.message", {
+                            name: m.id,
+                          }),
                           confirmLabel: t("confirm.cancelDownload.action"),
                           danger: true,
                           onConfirm: () => cancelDownload(m.id),
@@ -401,7 +408,9 @@ export default function Settings() {
                       onClick={() =>
                         setConfirm({
                           title: t("confirm.removeModel.title"),
-                          message: t("confirm.removeModel.message", { name: m.id }),
+                          message: t("confirm.removeModel.message", {
+                            name: m.id,
+                          }),
                           confirmLabel: t("btn.remove"),
                           danger: true,
                           onConfirm: () => {
@@ -420,13 +429,17 @@ export default function Settings() {
                       onClick={() =>
                         setConfirm({
                           title: t("confirm.downloadModel.title"),
-                          message: t("confirm.downloadModel.message", { name: m.id }),
+                          message: t("confirm.downloadModel.message", {
+                            name: m.id,
+                          }),
                           confirmLabel: t("btn.download"),
                           onConfirm: () => {
                             update({ model_id: m.id });
                             setDownloading((prev) => new Set(prev).add(m.id));
                             setProgress((prev) => ({ ...prev, [m.id]: 0 }));
-                            downloadModel(m.id).catch(() => clearDownloading(m.id));
+                            downloadModel(m.id).catch(() =>
+                              clearDownloading(m.id),
+                            );
                           },
                         })
                       }
@@ -463,7 +476,9 @@ export default function Settings() {
             }
             className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100"
           >
-            {historyCleared ? t("settings.cleared") : t("settings.clearHistory")}
+            {historyCleared
+              ? t("settings.cleared")
+              : t("settings.clearHistory")}
           </button>
         </Field>
       </div>

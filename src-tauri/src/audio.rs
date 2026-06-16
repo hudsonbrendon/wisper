@@ -222,12 +222,12 @@ mod tests {
         // even though the whole-buffer RMS is high. This is the bug that froze
         // the meter — it averaged the entire take.
         let mut loud_then_quiet = vec![1.0_f32; 100];
-        loud_then_quiet.extend(std::iter::repeat(0.0).take(100));
+        loud_then_quiet.extend(std::iter::repeat_n(0.0, 100));
         assert_eq!(rms_window(&loud_then_quiet, 100), 0.0);
 
         // Silent then loud: meter must light up.
         let mut quiet_then_loud = vec![0.0_f32; 100];
-        quiet_then_loud.extend(std::iter::repeat(1.0).take(100));
+        quiet_then_loud.extend(std::iter::repeat_n(1.0, 100));
         assert_eq!(rms_window(&quiet_then_loud, 100), 1.0);
 
         // Window larger than the buffer falls back to the full buffer.

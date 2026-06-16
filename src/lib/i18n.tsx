@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useCallback,
@@ -103,17 +104,22 @@ const en: Dict = {
   "settings.launchAtLogin": "Launch at login",
   "settings.launchAtLoginHint": "Open OpenWispr automatically when you log in.",
   "settings.showInDock": "Show in Dock",
-  "settings.showInDockHint": "Show the app icon in the Dock. Off = menu bar only.",
+  "settings.showInDockHint":
+    "Show the app icon in the Dock. Off = menu bar only.",
   "settings.showPill": "Show pill at all times",
-  "settings.showPillHint": "Keep the floating bar visible. Off = only while dictating.",
+  "settings.showPillHint":
+    "Keep the floating bar visible. Off = only while dictating.",
   "settings.dictationSounds": "Dictation sounds",
-  "settings.dictationSoundsHint": "Play a sound when dictation starts and stops.",
+  "settings.dictationSoundsHint":
+    "Play a sound when dictation starts and stops.",
   "settings.muteMusic": "Mute music while dictating",
   "settings.muteMusicHint": "Pause Spotify / Apple Music while you dictate.",
   "settings.resetApp": "Reset app",
-  "settings.resetAppHint": "Restore default settings and clear history, then restart.",
+  "settings.resetAppHint":
+    "Restore default settings and clear history, then restart.",
   "settings.resetAppAction": "Reset & restart",
-  "settings.resetConfirm": "Reset all settings and clear history? The app will restart.",
+  "settings.resetConfirm":
+    "Reset all settings and clear history? The app will restart.",
   "confirm.reset.title": "Reset app?",
   "confirm.reset.message":
     "This restores default settings, clears your history, and restarts OpenWispr.",
@@ -121,7 +127,8 @@ const en: Dict = {
   "confirm.clearHistory.message":
     "This permanently deletes all of your transcription history.",
   "confirm.removeModel.title": "Remove model?",
-  "confirm.removeModel.message": "Delete the downloaded model {name} from disk?",
+  "confirm.removeModel.message":
+    "Delete the downloaded model {name} from disk?",
   "confirm.downloadModel.title": "Download model?",
   "confirm.downloadModel.message":
     "Download {name}? This may take a while and use disk space.",
@@ -211,19 +218,24 @@ const pt: Dict = {
   "settings.cleared": "Limpo ✓",
   "settings.system": "Sistema",
   "settings.launchAtLogin": "Iniciar no login",
-  "settings.launchAtLoginHint": "Abre o OpenWispr automaticamente ao ligar o computador.",
+  "settings.launchAtLoginHint":
+    "Abre o OpenWispr automaticamente ao ligar o computador.",
   "settings.showInDock": "Mostrar no Dock",
-  "settings.showInDockHint": "Mostra o ícone do app no Dock. Desligado = só na barra de menus.",
+  "settings.showInDockHint":
+    "Mostra o ícone do app no Dock. Desligado = só na barra de menus.",
   "settings.showPill": "Mostrar o pill sempre",
-  "settings.showPillHint": "Mantém a barra flutuante visível. Desligado = só ao ditar.",
+  "settings.showPillHint":
+    "Mantém a barra flutuante visível. Desligado = só ao ditar.",
   "settings.dictationSounds": "Sons de ditação",
   "settings.dictationSoundsHint": "Toca um som ao começar e parar de ditar.",
   "settings.muteMusic": "Silenciar música ao ditar",
   "settings.muteMusicHint": "Pausa o Spotify / Apple Music enquanto você dita.",
   "settings.resetApp": "Resetar app",
-  "settings.resetAppHint": "Restaura as configurações padrão, limpa o histórico e reinicia.",
+  "settings.resetAppHint":
+    "Restaura as configurações padrão, limpa o histórico e reinicia.",
   "settings.resetAppAction": "Resetar e reiniciar",
-  "settings.resetConfirm": "Resetar todas as configurações e limpar o histórico? O app vai reiniciar.",
+  "settings.resetConfirm":
+    "Resetar todas as configurações e limpar o histórico? O app vai reiniciar.",
   "confirm.reset.title": "Resetar o app?",
   "confirm.reset.message":
     "Isto restaura as configurações padrão, limpa o histórico e reinicia o OpenWispr.",
@@ -462,7 +474,8 @@ const de: Dict = {
   "settings.uiLanguageHint": "Sprache der App-Oberfläche.",
   "lang.auto": "Automatisch erkennen",
   "settings.insert": "Einfügemethode",
-  "settings.insertHint": "Wie der transkribierte Text in die aktive App gelangt.",
+  "settings.insertHint":
+    "Wie der transkribierte Text in die aktive App gelangt.",
   "settings.insertType": "Tippen (synthetische Tastenanschläge)",
   "settings.insertPaste": "Einfügen (Zwischenablage + Cmd/Ctrl+V)",
   "settings.models": "Modelle",
@@ -624,7 +637,8 @@ const nl: Dict = {
   "settings.uiLanguageHint": "Taal van de app-interface.",
   "lang.auto": "Automatisch detecteren",
   "settings.insert": "Invoegmethode",
-  "settings.insertHint": "Hoe de getranscribeerde tekst de actieve app bereikt.",
+  "settings.insertHint":
+    "Hoe de getranscribeerde tekst de actieve app bereikt.",
   "settings.insertType": "Typen (synthetische toetsaanslagen)",
   "settings.insertPaste": "Plakken (klembord + Cmd/Ctrl+V)",
   "settings.models": "Modellen",
@@ -705,7 +719,8 @@ const ru: Dict = {
   "settings.uiLanguageHint": "Язык интерфейса приложения.",
   "lang.auto": "Определять автоматически",
   "settings.insert": "Способ вставки",
-  "settings.insertHint": "Как расшифрованный текст попадает в активное приложение.",
+  "settings.insertHint":
+    "Как расшифрованный текст попадает в активное приложение.",
   "settings.insertType": "Печать (синтетические нажатия)",
   "settings.insertPaste": "Вставка (буфер + Cmd/Ctrl+V)",
   "settings.models": "Модели",
@@ -786,7 +801,8 @@ const pl: Dict = {
   "settings.uiLanguageHint": "Język interfejsu aplikacji.",
   "lang.auto": "Wykryj automatycznie",
   "settings.insert": "Metoda wstawiania",
-  "settings.insertHint": "Jak transkrybowany tekst trafia do aktywnej aplikacji.",
+  "settings.insertHint":
+    "Jak transkrybowany tekst trafia do aktywnej aplikacji.",
   "settings.insertType": "Pisanie (syntetyczne naciśnięcia)",
   "settings.insertPaste": "Wklejanie (schowek + Cmd/Ctrl+V)",
   "settings.models": "Modele",
@@ -1203,7 +1219,8 @@ const ar: Dict = {
   "btn.remove": "إزالة",
   "btn.download": "تنزيل",
   "settings.history": "السجل",
-  "settings.historyHint": "تُحفظ عمليات النسخ محليًا لتغذية الرئيسية والإحصاءات.",
+  "settings.historyHint":
+    "تُحفظ عمليات النسخ محليًا لتغذية الرئيسية والإحصاءات.",
   "settings.clearHistory": "مسح السجل",
   "settings.cleared": "تم المسح ✓",
   "overlay.listening": "يستمع…",
@@ -1268,7 +1285,8 @@ const hi: Dict = {
   "settings.uiLanguageHint": "ऐप इंटरफ़ेस की भाषा।",
   "lang.auto": "स्वतः पहचानें",
   "settings.insert": "सम्मिलन विधि",
-  "settings.insertHint": "ट्रांसक्राइब किया गया टेक्स्ट सक्रिय ऐप तक कैसे पहुँचता है।",
+  "settings.insertHint":
+    "ट्रांसक्राइब किया गया टेक्स्ट सक्रिय ऐप तक कैसे पहुँचता है।",
   "settings.insertType": "टाइप करें (सिंथेटिक कीस्ट्रोक)",
   "settings.insertPaste": "पेस्ट करें (क्लिपबोर्ड + Cmd/Ctrl+V)",
   "settings.models": "मॉडल",
@@ -1283,7 +1301,8 @@ const hi: Dict = {
   "btn.remove": "हटाएँ",
   "btn.download": "डाउनलोड",
   "settings.history": "इतिहास",
-  "settings.historyHint": "ट्रांसक्रिप्शन होम और इनसाइट्स के लिए स्थानीय रूप से सहेजे जाते हैं।",
+  "settings.historyHint":
+    "ट्रांसक्रिप्शन होम और इनसाइट्स के लिए स्थानीय रूप से सहेजे जाते हैं।",
   "settings.clearHistory": "इतिहास साफ़ करें",
   "settings.cleared": "साफ़ किया गया ✓",
   "overlay.listening": "सुन रहा है…",
@@ -1305,7 +1324,21 @@ const hi: Dict = {
 };
 
 const DICTS: Record<string, Dict> = {
-  en, pt, es, fr, de, it, nl, ru, pl, tr, ja, ko, zh, ar, hi,
+  en,
+  pt,
+  es,
+  fr,
+  de,
+  it,
+  nl,
+  ru,
+  pl,
+  tr,
+  ja,
+  ko,
+  zh,
+  ar,
+  hi,
 };
 
 /// Right-to-left UI languages (only Arabic is in our set).
@@ -1322,7 +1355,10 @@ function initialLang(): string {
   return DICTS[sys] ? sys : "en";
 }
 
-type Translator = (key: string, vars?: Record<string, string | number>) => string;
+type Translator = (
+  key: string,
+  vars?: Record<string, string | number>,
+) => string;
 
 interface I18nValue {
   lang: string;

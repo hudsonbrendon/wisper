@@ -56,7 +56,10 @@ export interface DayBucket {
 
 /// Words/count per day for the last `days` days, oldest → newest, with empty
 /// days filled in so a bar chart has a continuous axis.
-export function dailyBuckets(entries: HistoryEntry[], days: number): DayBucket[] {
+export function dailyBuckets(
+  entries: HistoryEntry[],
+  days: number,
+): DayBucket[] {
   const byDay = new Map<string, { words: number; count: number }>();
   for (const e of entries) {
     const k = dayKey(e.ts_ms);

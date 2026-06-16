@@ -38,7 +38,9 @@ pub enum Phase {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Input {
     Press,
-    Release { held_long: bool },
+    Release {
+        held_long: bool,
+    },
     /// Fired once, `DOUBLE_TAP_WINDOW` after a tap, if no second press arrived.
     TapTimeout,
 }
@@ -203,7 +205,10 @@ mod tests {
 
     #[test]
     fn stray_events_are_no_ops() {
-        assert_eq!(step(Phase::Idle, Input::TapTimeout), (Phase::Idle, Action::None));
+        assert_eq!(
+            step(Phase::Idle, Input::TapTimeout),
+            (Phase::Idle, Action::None)
+        );
         assert_eq!(
             step(Phase::Idle, Input::Release { held_long: true }),
             (Phase::Idle, Action::None)

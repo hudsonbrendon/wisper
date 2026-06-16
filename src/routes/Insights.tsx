@@ -43,7 +43,9 @@ export default function Insights() {
         <Card>
           <BigNumber value={stats.totalWords.toLocaleString(lang)} />
           <Caption>{t("insights.totalWords")}</Caption>
-          <p className="mt-3 text-sm text-stone-500">{wordsContext(stats.totalWords, t)}</p>
+          <p className="mt-3 text-sm text-stone-500">
+            {wordsContext(stats.totalWords, t)}
+          </p>
         </Card>
         <Card>
           <BigNumber value={String(stats.totalEntries)} />
@@ -153,7 +155,10 @@ function Legend({ t }: { t: (k: string) => string }) {
     <div className="mt-3 flex items-center justify-end gap-1.5 text-xs text-stone-400">
       <span>{t("insights.less")}</span>
       {([0, 1, 2, 3, 4] as const).map((l) => (
-        <span key={l} className={"h-[11px] w-[11px] rounded-sm " + HEAT_CLASSES[l]} />
+        <span
+          key={l}
+          className={"h-[11px] w-[11px] rounded-sm " + HEAT_CLASSES[l]}
+        />
       ))}
       <span>{t("insights.more")}</span>
     </div>
@@ -167,7 +172,9 @@ function wordsContext(
 ): string {
   if (total === 0) return t("insights.start");
   const pages = Math.max(1, Math.round(total / 500));
-  return pages === 1 ? t("insights.pagesOne") : t("insights.pages", { n: pages });
+  return pages === 1
+    ? t("insights.pagesOne")
+    : t("insights.pages", { n: pages });
 }
 
 function Card({ children }: { children: React.ReactNode }) {

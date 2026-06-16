@@ -28,3 +28,6 @@ dist-ssr
 
 # OpenWispr runtime data — model files are downloaded at runtime, never commit them
 *.bin
+
+# test coverage
+coverage

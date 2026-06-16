@@ -80,8 +80,12 @@ export default function Overlay() {
         setElapsed(0);
       }
     });
-    const unLevel = onEvent<LevelPayload>("audio_level", (p) => setLevel(p.level));
-    const unError = onEvent<{ message: string }>("error", (p) => setError(p.message));
+    const unLevel = onEvent<LevelPayload>("audio_level", (p) =>
+      setLevel(p.level),
+    );
+    const unError = onEvent<{ message: string }>("error", (p) =>
+      setError(p.message),
+    );
     const unCfg = onEvent<{ language: string }>("config_changed", (p) =>
       setLang(p.language),
     );
@@ -154,11 +158,7 @@ export default function Overlay() {
   return (
     <div className={wrapper}>
       {menuOpen && (
-        <div
-          className="absolute inset-0"
-          onClick={closeMenu}
-          aria-hidden
-        />
+        <div className="absolute inset-0" onClick={closeMenu} aria-hidden />
       )}
       <div className={shell}>
         {state === "idle" && (
@@ -191,7 +191,9 @@ export default function Overlay() {
                         (l.code === lang ? "text-emerald-400" : "text-zinc-200")
                       }
                     >
-                      {l.code === "auto" ? t("lang.auto") : `${l.name} (${l.code})`}
+                      {l.code === "auto"
+                        ? t("lang.auto")
+                        : `${l.name} (${l.code})`}
                     </button>
                   ))}
                 </div>
@@ -216,7 +218,9 @@ export default function Overlay() {
                 style={{ width: `${meterWidth}%` }}
               />
             </div>
-            <span className="w-10 text-xs tabular-nums text-zinc-300">{mmss}</span>
+            <span className="w-10 text-xs tabular-nums text-zinc-300">
+              {mmss}
+            </span>
             <button
               type="button"
               onClick={() => void uiStopAndInsert()}
@@ -229,10 +233,14 @@ export default function Overlay() {
         )}
 
         {state === "transcribing" && (
-          <span className="min-w-[120px] text-sm">{t("overlay.transcribing")}</span>
+          <span className="min-w-[120px] text-sm">
+            {t("overlay.transcribing")}
+          </span>
         )}
         {state === "injecting" && (
-          <span className="min-w-[120px] text-sm">{t("overlay.inserting")}</span>
+          <span className="min-w-[120px] text-sm">
+            {t("overlay.inserting")}
+          </span>
         )}
       </div>
     </div>

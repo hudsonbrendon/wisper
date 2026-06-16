@@ -35,7 +35,9 @@ export default function UpdateControl() {
 
   // Keep a stable reference so the tray-event listener always calls the latest.
   const onCheckRef = useRef(onCheck);
-  onCheckRef.current = onCheck;
+  useEffect(() => {
+    onCheckRef.current = onCheck;
+  });
 
   useEffect(() => {
     getVersion().then(setVersion);

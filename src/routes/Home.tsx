@@ -71,7 +71,10 @@ export default function Home() {
       {/* Right rail */}
       <aside className="hidden w-64 shrink-0 lg:block">
         <div className="rounded-2xl border border-stone-200 bg-white p-5">
-          <Stat value={compact(stats.totalWords)} label={t("stat.totalWords")} />
+          <Stat
+            value={compact(stats.totalWords)}
+            label={t("stat.totalWords")}
+          />
           <Stat value={String(stats.wpm)} label={t("stat.wpm")} />
           <Stat value={String(stats.streak)} label={t("stat.dayStreak")} />
         </div>

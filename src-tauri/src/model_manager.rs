@@ -70,7 +70,8 @@ pub fn catalog() -> &'static [ModelInfo] {
         ModelInfo {
             id: "large-v3-turbo", // ~1.6 GB, multilingual, near-large accuracy & fast
             filename: "ggml-large-v3-turbo.bin",
-            url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin",
+            url:
+                "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin",
             sha256: "1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69",
         },
     ]

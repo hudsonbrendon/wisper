@@ -13,7 +13,16 @@
 <p align="center">
   <a href="https://github.com/hudsonbrendon/openwispr/releases/latest">Download</a> ·
   <a href="#build-from-source">Build from source</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a> ·
   <a href="#license">License</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/hudsonbrendon/openwispr/actions/workflows/ci.yml"><img src="https://github.com/hudsonbrendon/openwispr/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/hudsonbrendon/openwispr"><img src="https://codecov.io/gh/hudsonbrendon/openwispr/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://github.com/hudsonbrendon/openwispr/releases/latest"><img src="https://img.shields.io/github/v/release/hudsonbrendon/openwispr?sort=semver" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/hudsonbrendon/openwispr" alt="License"></a>
+  <img src="https://img.shields.io/badge/built%20with-Tauri-24C8DB?logo=tauri&logoColor=white" alt="Built with Tauri">
 </p>
 
 ---
@@ -44,11 +53,11 @@ It lives in your system tray and stays out of the way until you need it.
 Grab the installer for your platform from the
 [latest release](https://github.com/hudsonbrendon/openwispr/releases/latest):
 
-| Platform | Asset |
-| --- | --- |
-| **macOS** (Apple Silicon / Intel) | `.dmg` |
-| **Windows** | `.msi` / `.exe` |
-| **Linux** | `.AppImage` / `.deb` |
+| Platform                          | Asset                |
+| --------------------------------- | -------------------- |
+| **macOS** (Apple Silicon / Intel) | `.dmg`               |
+| **Windows**                       | `.msi` / `.exe`      |
+| **Linux**                         | `.AppImage` / `.deb` |
 
 > macOS builds are unsigned for now — on first launch, right-click the app and
 > choose **Open**, or allow it under **System Settings → Privacy & Security**.
@@ -67,13 +76,13 @@ Whisper's multilingual models transcribe all languages from a single file; the
 `.en` variants are English-only but a little faster. Bigger = more accurate and
 slower.
 
-| Model | Size | Languages |
-| --- | --- | --- |
-| `tiny` / `tiny.en` | ~75 MB | all / English |
-| `base` / `base.en` | ~142 MB | all / English |
-| `small` / `small.en` | ~466 MB | all / English |
-| `medium` / `medium.en` | ~1.5 GB | all / English |
-| `large-v3-turbo` | ~1.6 GB | all (near-large accuracy, fast) |
+| Model                  | Size    | Languages                       |
+| ---------------------- | ------- | ------------------------------- |
+| `tiny` / `tiny.en`     | ~75 MB  | all / English                   |
+| `base` / `base.en`     | ~142 MB | all / English                   |
+| `small` / `small.en`   | ~466 MB | all / English                   |
+| `medium` / `medium.en` | ~1.5 GB | all / English                   |
+| `large-v3-turbo`       | ~1.6 GB | all (near-large accuracy, fast) |
 
 ## Build from source
 

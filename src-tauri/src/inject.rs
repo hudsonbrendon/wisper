@@ -92,11 +92,13 @@ fn ensure_accessibility_trusted() -> Result<(), String> {
         // Not trusted: trigger the dialog (and re-register this binary) so the
         // user can fix it in one click instead of hunting through settings.
         accessibility::prompt();
-        Err("Grant Accessibility permission to OpenWispr (System Settings → \
+        Err(
+            "Grant Accessibility permission to OpenWispr (System Settings → \
              Privacy & Security → Accessibility). If OpenWispr is already \
              listed and enabled, toggle it off and on — the previous build's \
              permission goes stale after an update."
-            .to_string())
+                .to_string(),
+        )
     }
 }
 
