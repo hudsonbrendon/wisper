@@ -1,6 +1,8 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Keep class-based dark mode: `dark:` applies under any `.dark` ancestor.
+   We toggle `.dark` on <html> in src/lib/theme.ts. */
+@custom-variant dark (&:where(.dark, .dark *));
 
 html,
 body,
