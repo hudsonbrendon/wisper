@@ -331,7 +331,7 @@ fn on_shortcut(app: &tauri::AppHandle, pressed: bool) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         // Must be the first plugin: a second launch hands its args to this
         // callback and exits, so only one instance ever holds the global
         // hotkey (no stale instance keeping an old binding alive).
@@ -342,22 +342,16 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
-        // macOS: enables converting the overlay into a non-activating NSPanel
-        // so clicking the pill never steals focus from the target app.
-        // (no-op registration on other platforms via the cfg below)
-        .plugin({
-            #[cfg(target_os = "macos")]
-            {
-                tauri_nspanel::init()
-            }
-            #[cfg(not(target_os = "macos"))]
-            {
-                // A harmless no-op plugin on non-macOS targets.
-                tauri::plugin::Builder::new("noop-nspanel").build()
-            }
-        })
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_process::init());
+
+    // macOS only: convert the overlay into a non-activating NSPanel so clicking
+    // the pill never steals focus from the target app. Other platforms (which
+    // have no `tauri-nspanel`) need no equivalent — the pill is a normal window.
+    #[cfg(target_os = "macos")]
+    let builder = builder.plugin(tauri_nspanel::init());
+
+    builder
         .setup(|app| {
             let handle = app.handle().clone();
 
