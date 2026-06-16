@@ -11,6 +11,7 @@ export default tseslint.config(
       "coverage",
       "src-tauri/target",
       "src-tauri/gen",
+      ".claude",
       "**/*.config.js",
     ],
   },
