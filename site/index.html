@@ -1,29 +1,226 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/openwispr/logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>OpenWispr — Local-first voice dictation</title>
     <meta
       name="description"
-      content="OpenWispr is a private, local-first voice dictation app. Press a hotkey, speak, and your words appear in any app. Free and open source."
+      content="OpenWispr is open-source, local-first voice dictation. Press a hotkey, speak, and your words appear in any app — transcribed on-device with Whisper. Free for macOS, Windows, and Linux."
     />
-    <meta
-      property="og:title"
-      content="OpenWispr — Local-first voice dictation"
-    />
+    <meta property="og:title" content="OpenWispr — Local-first voice dictation" />
     <meta
       property="og:description"
       content="Press a hotkey, speak, and your words appear anywhere. 100% local, free and open source."
     />
-    <meta
-      property="og:image"
-      content="https://hudsonbrendon.github.io/openwispr/logo.png"
-    />
+    <meta property="og:image" content="https://hudsonbrendon.github.io/openwispr/assets/logo.png" />
+    <link rel="icon" href="assets/logo.png" type="image/png" />
+    <link rel="apple-touch-icon" href="assets/logo.png" />
+    <script>
+      /* set theme before paint to avoid a flash of the wrong theme */
+      (function () {
+        try {
+          var t = localStorage.getItem("ow-theme");
+          if (!t)
+            t =
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          document.documentElement.dataset.theme = t;
+        } catch (e) {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="assets/style.css" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div id="flash" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <a class="brand" href="index.html"
+        ><img class="brand-mark" src="assets/logo.png" alt="" width="64" height="64" />OpenWispr<span class="dot">.</span></a
+      >
+      <nav>
+        <a class="nav-link" href="#features" data-i18n="nav_features">Features</a>
+        <a class="nav-link" href="#how" data-i18n="nav_how">How it works</a>
+        <a class="nav-link" href="https://github.com/hudsonbrendon/openwispr" rel="noopener">GitHub</a>
+        <span class="ver-chip"></span>
+        <span class="tools">
+          <select class="lang-select" aria-label="Language"></select>
+          <button class="theme-toggle" type="button" aria-label="Switch to dark theme">
+            <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+            <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          </button>
+        </span>
+        <a class="nav-cta" href="#download" data-i18n="nav_download">Download</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="wrap hero in" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="hero-eyebrow mono reveal" data-i18n="hero_eyebrow">Open source · Local-first dictation</p>
+          <h1 id="hero-title" class="reveal">
+            <span data-i18n="hero_title_a">Your voice, typed</span> <em data-i18n="hero_title_b">everywhere</em>.
+          </h1>
+          <p class="lede reveal" data-i18n="hero_lede">
+            OpenWispr is a private voice dictation app. Press a hotkey, speak, and your
+            words land in any app — transcribed on-device with Whisper, never in the cloud.
+          </p>
+          <div class="hero-actions reveal">
+            <a class="btn" id="hero-dl" href="https://github.com/hudsonbrendon/openwispr/releases/latest"><span data-i18n="hero_cta">Download</span></a>
+            <a class="btn ghost" href="#features"><span data-i18n="hero_cta2">See what's inside</span></a>
+          </div>
+          <div class="hero-meta reveal">
+            <span data-i18n="hero_meta1">100% on-device</span>
+            <span data-i18n="hero_meta2">15+ languages</span>
+            <span id="ver-meta" data-i18n="hero_meta3">Latest release</span>
+          </div>
+        </div>
+
+        <div class="device reveal" aria-hidden="true">
+          <div class="screen">
+            <div class="win-bar">
+              <i></i><i></i><i></i>
+              <span class="win-title">Messages</span>
+            </div>
+            <div class="win-body">
+              <span class="typed" data-i18n="demo_text">Let's grab coffee on Thursday and walk through the launch plan</span><span class="caret"></span>
+            </div>
+            <div class="pill">
+              <span class="dotrec"></span>
+              <span class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+              <span class="pill-label" data-i18n="demo_pill">Listening</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" class="wrap" aria-labelledby="features-title">
+        <div class="section-head">
+          <h2 id="features-title" data-i18n="feat_head">Built for fast, private dictation.</h2>
+          <span class="idx">01 — <span data-i18n="sec_why">WHY</span></span>
+        </div>
+        <div class="features">
+          <article class="feat" data-io>
+            <div class="num">/01</div>
+            <h3 data-i18n="feat1_t">On-device transcription</h3>
+            <p data-i18n="feat1_d">Whisper runs locally. Your audio never leaves your machine — no accounts, no servers, no telemetry.</p>
+          </article>
+          <article class="feat" data-io>
+            <div class="num">/02</div>
+            <h3 data-i18n="feat2_t">Works in every app</h3>
+            <p data-i18n="feat2_d">Dictated text is typed straight into the focused field — your editor, browser, chat, anywhere.</p>
+          </article>
+          <article class="feat" data-io>
+            <div class="num">/03</div>
+            <h3 data-i18n="feat3_t">Press-hold or double-tap</h3>
+            <p data-i18n="feat3_d">Hold the hotkey to dictate a burst, or double-tap to toggle hands-free. The floating pill shows your levels.</p>
+          </article>
+          <article class="feat" data-io>
+            <div class="num">/04</div>
+            <h3 data-i18n="feat4_t">Custom vocabulary &amp; snippets</h3>
+            <p data-i18n="feat4_d">Teach it your names and jargon, and expand spoken triggers into canned text automatically.</p>
+          </article>
+          <article class="feat" data-io>
+            <div class="num">/05</div>
+            <h3 data-i18n="feat5_t">Your language</h3>
+            <p data-i18n="feat5_d">Transcribe in 15+ languages, switchable on the fly from the pill or the tray.</p>
+          </article>
+          <article class="feat" data-io>
+            <div class="num">/06</div>
+            <h3 data-i18n="feat6_t">Free &amp; open source</h3>
+            <p data-i18n="feat6_d">MIT-licensed and built on Tauri. Audit it, fork it, ship it. Updates arrive automatically.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="how" class="wrap" aria-labelledby="how-title">
+        <div class="section-head">
+          <h2 id="how-title" data-i18n="how_head">Three steps, no friction.</h2>
+          <span class="idx">02 — <span data-i18n="sec_how">HOW</span></span>
+        </div>
+        <div class="steps">
+          <div class="step" data-io>
+            <span class="n">1</span>
+            <h3 data-i18n="step1_t">Press your hotkey</h3>
+            <p data-i18n="step1_d">A floating pill appears above your taskbar and starts listening.</p>
+          </div>
+          <div class="step" data-io>
+            <span class="n">2</span>
+            <h3 data-i18n="step2_t">Speak naturally</h3>
+            <p data-i18n="step2_d">Watch the live audio meter. Click to stop, or release the hotkey.</p>
+          </div>
+          <div class="step" data-io>
+            <span class="n">3</span>
+            <h3 data-i18n="step3_t">Text appears</h3>
+            <p data-i18n="step3_d">Your words are transcribed on-device and typed into the active app.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="platforms" class="wrap" aria-labelledby="platforms-title">
+        <div class="section-head">
+          <h2 id="platforms-title" data-i18n="plat_head">One app, every desktop.</h2>
+          <span class="idx">03 — <span data-i18n="sec_platforms">PLATFORMS</span></span>
+        </div>
+        <div class="specs" data-io>
+          <div class="spec">
+            <div class="k" data-i18n="spec_platforms_k">Platforms</div>
+            <div class="v" data-i18n="spec_platforms_v">macOS · Win · Linux</div>
+          </div>
+          <div class="spec">
+            <div class="k" data-i18n="spec_engine_k">Engine</div>
+            <div class="v">Whisper<small>.cpp</small></div>
+          </div>
+          <div class="spec">
+            <div class="k" data-i18n="spec_langs_k">Languages</div>
+            <div class="v">15+</div>
+          </div>
+          <div class="spec">
+            <div class="k" data-i18n="spec_price_k">Price</div>
+            <div class="v" data-i18n="spec_price_v">Free</div>
+          </div>
+        </div>
+        <p style="color: var(--ink-soft); max-width: 60ch" data-io data-i18n="plat_note">
+          The same project ships native bundles for Apple Silicon and Intel Macs, Windows,
+          and Linux (AppImage, deb, rpm). Installed apps update themselves over the air.
+        </p>
+      </section>
+
+      <section id="download" class="wrap" aria-label="Download" style="padding-block: clamp(3rem, 9vh, 6rem)">
+        <div class="method primary" data-io>
+          <h3 data-i18n="cta_title">Ready when you are.</h3>
+          <p data-i18n="cta_body">
+            Download OpenWispr for your platform and start dictating in minutes. Free, open
+            source, and entirely on-device.
+          </p>
+          <a class="btn" id="cta-dl" href="https://github.com/hudsonbrendon/openwispr/releases/latest"><span data-i18n="cta_button">Download</span></a>
+          <details class="all-dl">
+            <summary data-i18n="all_platforms">All platforms &amp; versions</summary>
+            <ul id="all-dl-list"></ul>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="wrap">
+        <a class="brand" href="index.html"
+          ><img class="brand-mark" src="assets/logo.png" alt="" width="64" height="64" />OpenWispr<span class="dot">.</span></a
+        >
+        <nav>
+          <a href="https://github.com/hudsonbrendon/openwispr" rel="noopener">GitHub</a>
+          <a href="https://github.com/hudsonbrendon/openwispr/releases/latest" rel="noopener" data-i18n="foot_releases">Releases</a>
+          <a href="https://github.com/hudsonbrendon/openwispr/blob/main/LICENSE" rel="noopener" data-i18n="foot_license">License</a>
+        </nav>
+        <p data-i18n="foot_disclaimer">MIT-licensed · built with Tauri &amp; Whisper.</p>
+      </div>
+    </footer>
+
+    <script src="assets/i18n-data.js"></script>
+    <script src="assets/app.js"></script>
   </body>
 </html>
