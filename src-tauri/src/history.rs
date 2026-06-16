@@ -69,3 +69,78 @@ pub fn clear(data_dir: &Path) -> std::io::Result<()> {
         Err(e) => Err(e),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A fresh, empty temp dir unique to this test name.
+    fn fresh_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("openwispr_history_test_{name}"));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn entry(ts_ms: u64, text: &str) -> Entry {
+        Entry {
+            ts_ms,
+            text: text.to_string(),
+            words: text.split_whitespace().count(),
+            duration_ms: 1000,
+        }
+    }
+
+    #[test]
+    fn read_all_is_empty_when_no_file() {
+        let dir = fresh_dir("no_file");
+        assert!(read_all(&dir).is_empty());
+    }
+
+    #[test]
+    fn append_creates_dir_and_persists() {
+        // Use a nested, not-yet-existing data dir to exercise create_dir_all.
+        let dir = fresh_dir("append").join("nested");
+        append(&dir, &entry(1, "hello world")).unwrap();
+        let all = read_all(&dir);
+        assert_eq!(all.len(), 1);
+        assert_eq!(all[0].text, "hello world");
+        assert_eq!(all[0].words, 2);
+    }
+
+    #[test]
+    fn read_all_returns_newest_first() {
+        let dir = fresh_dir("order");
+        append(&dir, &entry(10, "old")).unwrap();
+        append(&dir, &entry(30, "newest")).unwrap();
+        append(&dir, &entry(20, "middle")).unwrap();
+        let texts: Vec<_> = read_all(&dir).into_iter().map(|e| e.text).collect();
+        assert_eq!(texts, vec!["newest", "middle", "old"]);
+    }
+
+    #[test]
+    fn read_all_skips_corrupt_and_blank_lines() {
+        let dir = fresh_dir("corrupt");
+        append(&dir, &entry(1, "good")).unwrap();
+        // Inject a garbage line + a blank line directly into the file.
+        let mut f = OpenOptions::new()
+            .append(true)
+            .open(history_path(&dir))
+            .unwrap();
+        f.write_all(b"not json at all\n\n").unwrap();
+        append(&dir, &entry(2, "alsogood")).unwrap();
+        let all = read_all(&dir);
+        assert_eq!(all.len(), 2);
+    }
+
+    #[test]
+    fn clear_removes_file_and_is_idempotent() {
+        let dir = fresh_dir("clear");
+        append(&dir, &entry(1, "x")).unwrap();
+        assert_eq!(read_all(&dir).len(), 1);
+        clear(&dir).unwrap();
+        assert!(read_all(&dir).is_empty());
+        // Clearing again (file already gone) must still succeed.
+        clear(&dir).unwrap();
+    }
+}
