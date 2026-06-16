@@ -44,7 +44,7 @@ jobs:
         run: pnpm coverage
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           files: ./coverage/lcov.info
           flags: frontend
@@ -115,7 +115,7 @@ jobs:
           --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           files: ./lcov.info
           flags: rust
