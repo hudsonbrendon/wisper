@@ -106,8 +106,12 @@ jobs:
         run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 
       - name: Test + coverage
+        # Exclude the Tauri runtime setup, IPC command glue, Whisper FFI and the
+        # keystroke-injection FFI — they require a real GUI/OS/hardware and can't
+        # be meaningfully unit-tested. Coverage reflects the testable core.
         run: >
           cargo llvm-cov --manifest-path src-tauri/Cargo.toml --lib
+          --ignore-filename-regex 'src/(lib|commands|stt|inject)\.rs'
           --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov

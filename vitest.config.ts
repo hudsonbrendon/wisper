@@ -7,6 +7,8 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
+    // Never pick up test copies inside agent worktrees or build output.
+    exclude: ["**/node_modules/**", "**/dist/**", "**/.claude/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov", "html"],
