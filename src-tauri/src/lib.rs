@@ -14,7 +14,7 @@ use hotkey::Action as HkAction;
 use state::{Event as SmEvent, State};
 use std::sync::Mutex;
 use std::time::Instant;
-use tauri::menu::{Menu, MenuItem};
+use tauri::menu::{CheckMenuItem, IsMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::TrayIconBuilder;
 use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
@@ -95,6 +95,8 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
             .clone();
         let method = app.state::<AppState>().config.lock().unwrap().inject_method;
 
+        let rms = audio::rms_level(&samples);
+
         // Guard against empty/too-short captures (e.g. a quick tap): Whisper
         // errors on an empty buffer. Require ~0.1s of audio (1600 @ 16kHz).
         if samples.len() < 1600 {
@@ -103,6 +105,22 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
                 "error",
                 serde_json::json!({
                     "message": "No audio captured — hold the hotkey while you speak."
+                }),
+            );
+            transition(&app, SmEvent::Error); // -> Idle
+            return;
+        }
+
+        // The buffer is long enough but near-silent: almost always the macOS
+        // Microphone permission is missing/stale (the OS hands us zeros), which
+        // otherwise makes Whisper hallucinate a stray phrase. Tell the user the
+        // real cause instead of inserting garbage.
+        if rms < 0.0008 {
+            eprintln!("near-silent capture (rms={rms:.5}) — likely no mic permission");
+            let _ = app.emit(
+                "error",
+                serde_json::json!({
+                    "message": "No audio detected — check OpenWispr's Microphone permission in System Settings → Privacy & Security → Microphone."
                 }),
             );
             transition(&app, SmEvent::Error); // -> Idle
@@ -329,6 +347,79 @@ fn on_shortcut(app: &tauri::AppHandle, pressed: bool) {
     dispatch(app, action);
 }
 
+/// Build the tray menu: Home, Check for Updates, Paste Last Transcription, a
+/// Microphone submenu (one checkable entry per input device, the active one
+/// checked), and Quit. Rebuilt whenever the mic selection changes so the check
+/// marks stay accurate.
+fn build_tray_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+    let home = MenuItem::with_id(app, "home", "Home", true, None::<&str>)?;
+    let updates =
+        MenuItem::with_id(app, "check_updates", "Check for Updates", true, None::<&str>)?;
+    let paste =
+        MenuItem::with_id(app, "paste_last", "Paste Last Transcription", true, None::<&str>)?;
+
+    // Microphone submenu. Id "mic:" is the system default; "mic:<name>" a device.
+    let current = app.state::<AppState>().config.lock().unwrap().mic_device.clone();
+    let default_item =
+        CheckMenuItem::with_id(app, "mic:", "System Default", true, current.is_none(), None::<&str>)?;
+    let device_items: Vec<CheckMenuItem<tauri::Wry>> = audio::list_input_devices()
+        .into_iter()
+        .map(|dev| {
+            let checked = current.as_deref() == Some(dev.as_str());
+            CheckMenuItem::with_id(app, format!("mic:{dev}"), &dev, true, checked, None::<&str>)
+        })
+        .collect::<tauri::Result<_>>()?;
+    let mut mic_refs: Vec<&dyn IsMenuItem<tauri::Wry>> = vec![&default_item];
+    mic_refs.extend(device_items.iter().map(|i| i as &dyn IsMenuItem<tauri::Wry>));
+    let microphone = Submenu::with_items(app, "Microphone", true, &mic_refs)?;
+
+    let sep = PredefinedMenuItem::separator(app)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit OpenWispr", true, None::<&str>)?;
+
+    Menu::with_items(app, &[&home, &updates, &paste, &microphone, &sep, &quit])
+}
+
+/// Re-inject the most recent transcription into the focused app. Runs on a short
+/// delay so the menu closes and focus returns to the previously-focused app.
+fn paste_last_transcription(app: &tauri::AppHandle) {
+    let (data_dir, method) = {
+        let st = app.state::<AppState>();
+        let method = st.config.lock().unwrap().inject_method;
+        (st.data_dir.clone(), method)
+    };
+    let Some(entry) = history::read_all(&data_dir).into_iter().next() else {
+        let _ = app.emit("error", serde_json::json!({ "message": "No transcription yet." }));
+        return;
+    };
+    let app2 = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        if let Err(e) = inject::insert(&entry.text, method) {
+            let _ = app2.emit("error", serde_json::json!({ "message": e }));
+        }
+    });
+}
+
+/// Apply a Microphone submenu selection (empty = system default): persist it and
+/// rebuild the tray menu so the check marks reflect the new choice.
+fn set_tray_mic_device(app: &tauri::AppHandle, device: &str) {
+    {
+        let st = app.state::<AppState>();
+        let mut cfg = st.config.lock().unwrap();
+        cfg.mic_device = if device.is_empty() {
+            None
+        } else {
+            Some(device.to_string())
+        };
+        let _ = config::save(&st.config_dir, &cfg);
+    }
+    if let Some(tray) = app.tray_by_id("main") {
+        if let Ok(menu) = build_tray_menu(app) {
+            let _ = tray.set_menu(Some(menu));
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
@@ -391,31 +482,45 @@ pub fn run() {
                 hotkey: Mutex::new(hotkey::Controller::new()),
             });
 
-            // Tray with a Settings + Quit menu.
-            let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
-            let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&settings_item, &quit_item])?;
+            // Tray menu: Home, updates, paste-last, Microphone submenu, Quit.
+            let menu = build_tray_menu(&handle)?;
             // Monochrome speech-bubble tray glyph. `icon_as_template` makes macOS
             // tint it to match the menu bar (light/dark) and size it to the bar,
             // so it shows as the bubble silhouette — not a square app icon.
             let tray_icon =
                 tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png"))?;
-            // build() registers a clone of the TrayIcon in the App's resource
-            // table (manager.tray.icons), so the icon persists for the app's
-            // lifetime even though the local handle is dropped here.
-            TrayIconBuilder::new()
+            // `with_id("main")` lets us fetch the tray later (app.tray_by_id) to
+            // swap the menu when the mic selection changes. build() registers a
+            // clone in the App's resource table, so the icon persists for the
+            // app's lifetime even though the local handle is dropped here.
+            TrayIconBuilder::with_id("main")
                 .icon(tray_icon)
                 .icon_as_template(true)
                 .menu(&menu)
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "settings" => {
+                .on_menu_event(|app, event| {
+                    let show_main = || {
                         if let Some(w) = app.get_webview_window("main") {
                             let _ = w.show();
                             let _ = w.set_focus();
                         }
+                    };
+                    match event.id.as_ref() {
+                        "home" => {
+                            show_main();
+                            let _ = app.emit("tray_navigate", "home");
+                        }
+                        "check_updates" => {
+                            show_main();
+                            let _ = app.emit("tray_check_updates", ());
+                        }
+                        "paste_last" => paste_last_transcription(app),
+                        "quit" => app.exit(0),
+                        other => {
+                            if let Some(dev) = other.strip_prefix("mic:") {
+                                set_tray_mic_device(app, dev);
+                            }
+                        }
                     }
-                    "quit" => app.exit(0),
-                    _ => {}
                 })
                 .build(app)?;
 

@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 import { checkForUpdate, installUpdate } from "../lib/updater";
+import { onEvent } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 
 type State = "idle" | "checking" | "uptodate" | "downloading" | "error";
@@ -13,10 +14,6 @@ export default function UpdateControl() {
   const [version, setVersion] = useState("");
   const [state, setState] = useState<State>("idle");
   const [pct, setPct] = useState(0);
-
-  useEffect(() => {
-    getVersion().then(setVersion);
-  }, []);
 
   const onCheck = async () => {
     setState("checking");
@@ -35,6 +32,19 @@ export default function UpdateControl() {
       setState("error");
     }
   };
+
+  // Keep a stable reference so the tray-event listener always calls the latest.
+  const onCheckRef = useRef(onCheck);
+  onCheckRef.current = onCheck;
+
+  useEffect(() => {
+    getVersion().then(setVersion);
+    // The tray "Check for Updates" item triggers the same flow.
+    const un = onEvent("tray_check_updates", () => void onCheckRef.current());
+    return () => {
+      un.then((f) => f());
+    };
+  }, []);
 
   const buttonLabel =
     state === "checking"
