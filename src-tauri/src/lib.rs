@@ -395,11 +395,17 @@ pub fn run() {
             let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&settings_item, &quit_item])?;
+            // Monochrome speech-bubble tray glyph. `icon_as_template` makes macOS
+            // tint it to match the menu bar (light/dark) and size it to the bar,
+            // so it shows as the bubble silhouette — not a square app icon.
+            let tray_icon =
+                tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png"))?;
             // build() registers a clone of the TrayIcon in the App's resource
             // table (manager.tray.icons), so the icon persists for the app's
             // lifetime even though the local handle is dropped here.
             TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(tray_icon)
+                .icon_as_template(true)
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "settings" => {

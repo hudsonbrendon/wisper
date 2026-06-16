@@ -1,6 +1,8 @@
 <p align="center">
-  <img src="assets/banner.png" alt="OpenWispr" width="640">
+  <img src="assets/logo.png" alt="OpenWispr" width="168">
 </p>
+
+<h1 align="center">OpenWispr</h1>
 
 <p align="center">
   <strong>Open-source, local-first voice dictation.</strong><br>
