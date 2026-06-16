@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/dashboard-redesign-and-macos-fixes]
   pull_request:
   workflow_dispatch:
 
