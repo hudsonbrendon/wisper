@@ -29,7 +29,8 @@ export default function Hero({ os, macArch }: { os: OS; macArch: MacArch }) {
         </h1>
         <p className="mt-6 max-w-xl text-lg text-stone-300">
           OpenWispr is a private voice dictation app. Press a hotkey, speak, and
-          your words land in any app — transcribed on-device, never in the cloud.
+          your words land in any app — transcribed on-device, never in the
+          cloud.
         </p>
         <div className="mt-10">
           <DownloadButton os={os} macArch={macArch} />

@@ -44,6 +44,8 @@ describe("allDownloads", () => {
   it("lists every platform asset", () => {
     const labels = allDownloads().map((d) => d.label);
     expect(labels).toHaveLength(5);
-    expect(allDownloads().every((d) => d.url.startsWith("https://"))).toBe(true);
+    expect(allDownloads().every((d) => d.url.startsWith("https://"))).toBe(
+      true,
+    );
   });
 });

@@ -39,7 +39,9 @@ export default function Features() {
               key={f.title}
               className="rounded-2xl border border-stone-800 bg-stone-900 p-6 transition hover:border-emerald-700/60 hover:bg-stone-800/60"
             >
-              <h3 className="text-lg font-semibold text-stone-100">{f.title}</h3>
+              <h3 className="text-lg font-semibold text-stone-100">
+                {f.title}
+              </h3>
               <p className="mt-2 text-sm leading-relaxed text-stone-400">
                 {f.body}
               </p>

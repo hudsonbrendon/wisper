@@ -21,7 +21,10 @@ export function downloadUrl(asset: string): string {
 /** Full platform list, used for the "all platforms" secondary section. */
 export function allDownloads(): Download[] {
   return [
-    { label: "macOS · Apple Silicon (.dmg)", url: downloadUrl(ASSETS.macApple) },
+    {
+      label: "macOS · Apple Silicon (.dmg)",
+      url: downloadUrl(ASSETS.macApple),
+    },
     { label: "macOS · Intel (.dmg)", url: downloadUrl(ASSETS.macIntel) },
     { label: "Windows (.exe)", url: downloadUrl(ASSETS.windows) },
     { label: "Linux (.AppImage)", url: downloadUrl(ASSETS.linuxAppImage) },
@@ -33,7 +36,10 @@ export function allDownloads(): Download[] {
 export function pickPrimary(os: OS, macArch: MacArch): Download {
   if (os === "mac") {
     return macArch === "intel"
-      ? { label: "Download for macOS (Intel)", url: downloadUrl(ASSETS.macIntel) }
+      ? {
+          label: "Download for macOS (Intel)",
+          url: downloadUrl(ASSETS.macIntel),
+        }
       : {
           label: "Download for macOS (Apple Silicon)",
           url: downloadUrl(ASSETS.macApple),
@@ -43,7 +49,10 @@ export function pickPrimary(os: OS, macArch: MacArch): Download {
     return { label: "Download for Windows", url: downloadUrl(ASSETS.windows) };
   }
   if (os === "linux") {
-    return { label: "Download for Linux", url: downloadUrl(ASSETS.linuxAppImage) };
+    return {
+      label: "Download for Linux",
+      url: downloadUrl(ASSETS.linuxAppImage),
+    };
   }
   return {
     label: "Download OpenWispr",

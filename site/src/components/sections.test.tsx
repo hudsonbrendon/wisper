@@ -8,9 +8,9 @@ describe("content sections", () => {
   it("Features lists multiple feature cards", () => {
     render(<Features />);
     expect(screen.getByText(/on-device/i)).toBeInTheDocument();
-    expect(screen.getAllByRole("heading", { level: 3 }).length).toBeGreaterThanOrEqual(
-      4,
-    );
+    expect(
+      screen.getAllByRole("heading", { level: 3 }).length,
+    ).toBeGreaterThanOrEqual(4);
   });
 
   it("HowItWorks shows numbered steps", () => {
