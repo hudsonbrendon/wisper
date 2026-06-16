@@ -68,6 +68,7 @@ site/
 ## Task 1: Scaffold the standalone `site/` Vite project
 
 **Files:**
+
 - Create: `site/package.json`
 - Create: `site/tsconfig.json`
 - Create: `site/tsconfig.node.json`
@@ -216,12 +217,18 @@ export default {
       name="description"
       content="OpenWispr is a private, local-first voice dictation app. Press a hotkey, speak, and your words appear in any app. Free and open source."
     />
-    <meta property="og:title" content="OpenWispr — Local-first voice dictation" />
+    <meta
+      property="og:title"
+      content="OpenWispr — Local-first voice dictation"
+    />
     <meta
       property="og:description"
       content="Press a hotkey, speak, and your words appear anywhere. 100% local, free and open source."
     />
-    <meta property="og:image" content="https://hudsonbrendon.github.io/openwispr/logo.png" />
+    <meta
+      property="og:image"
+      content="https://hudsonbrendon.github.io/openwispr/logo.png"
+    />
   </head>
   <body>
     <div id="root"></div>
@@ -342,6 +349,7 @@ git commit -m "chore(site): scaffold Vite + React + Tailwind v4 landing project"
 ## Task 2: Release metadata + download URL logic (`releases.ts`)
 
 **Files:**
+
 - Create: `site/src/lib/releases.ts`
 - Test: `site/src/lib/releases.test.ts`
 
@@ -396,7 +404,9 @@ describe("allDownloads", () => {
   it("lists every platform asset", () => {
     const labels = allDownloads().map((d) => d.label);
     expect(labels).toHaveLength(5);
-    expect(allDownloads().every((d) => d.url.startsWith("https://"))).toBe(true);
+    expect(allDownloads().every((d) => d.url.startsWith("https://"))).toBe(
+      true,
+    );
   });
 });
 ```
@@ -434,7 +444,10 @@ export function downloadUrl(asset: string): string {
 /** Full platform list, used for the "all platforms" secondary section. */
 export function allDownloads(): Download[] {
   return [
-    { label: "macOS · Apple Silicon (.dmg)", url: downloadUrl(ASSETS.macApple) },
+    {
+      label: "macOS · Apple Silicon (.dmg)",
+      url: downloadUrl(ASSETS.macApple),
+    },
     { label: "macOS · Intel (.dmg)", url: downloadUrl(ASSETS.macIntel) },
     { label: "Windows (.exe)", url: downloadUrl(ASSETS.windows) },
     { label: "Linux (.AppImage)", url: downloadUrl(ASSETS.linuxAppImage) },
@@ -446,7 +459,10 @@ export function allDownloads(): Download[] {
 export function pickPrimary(os: OS, macArch: MacArch): Download {
   if (os === "mac") {
     return macArch === "intel"
-      ? { label: "Download for macOS (Intel)", url: downloadUrl(ASSETS.macIntel) }
+      ? {
+          label: "Download for macOS (Intel)",
+          url: downloadUrl(ASSETS.macIntel),
+        }
       : {
           label: "Download for macOS (Apple Silicon)",
           url: downloadUrl(ASSETS.macApple),
@@ -456,7 +472,10 @@ export function pickPrimary(os: OS, macArch: MacArch): Download {
     return { label: "Download for Windows", url: downloadUrl(ASSETS.windows) };
   }
   if (os === "linux") {
-    return { label: "Download for Linux", url: downloadUrl(ASSETS.linuxAppImage) };
+    return {
+      label: "Download for Linux",
+      url: downloadUrl(ASSETS.linuxAppImage),
+    };
   }
   return {
     label: "Download OpenWispr",
@@ -484,6 +503,7 @@ git commit -m "feat(site): add release metadata and download URL helpers"
 ## Task 3: OS + macOS arch detection (`os.ts`)
 
 **Files:**
+
 - Create: `site/src/lib/os.ts`
 - Test: `site/src/lib/os.test.ts`
 
@@ -505,19 +525,19 @@ describe("osFromUA", () => {
     ).toBe("mac");
   });
   it("detects iPadOS as mac", () => {
-    expect(osFromUA("Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)", "iPad")).toBe(
-      "mac",
-    );
+    expect(
+      osFromUA("Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)", "iPad"),
+    ).toBe("mac");
   });
   it("detects Windows", () => {
-    expect(
-      osFromUA("Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Win32"),
-    ).toBe("windows");
+    expect(osFromUA("Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Win32")).toBe(
+      "windows",
+    );
   });
   it("detects Linux", () => {
-    expect(osFromUA("Mozilla/5.0 (X11; Ubuntu; Linux x86_64)", "Linux x86_64")).toBe(
-      "linux",
-    );
+    expect(
+      osFromUA("Mozilla/5.0 (X11; Ubuntu; Linux x86_64)", "Linux x86_64"),
+    ).toBe("linux");
   });
   it("returns unknown for unrecognized agents", () => {
     expect(osFromUA("SomeBot/1.0", "")).toBe("unknown");
@@ -532,7 +552,9 @@ describe("macArchFromRenderer", () => {
     );
   });
   it("maps Intel/AMD strings to intel", () => {
-    expect(macArchFromRenderer("Intel(R) Iris(TM) Plus Graphics")).toBe("intel");
+    expect(macArchFromRenderer("Intel(R) Iris(TM) Plus Graphics")).toBe(
+      "intel",
+    );
     expect(macArchFromRenderer("AMD Radeon Pro 5500M")).toBe("intel");
   });
   it("returns unknown for empty or unrecognized renderers", () => {
@@ -627,6 +649,7 @@ git commit -m "feat(site): add OS and macOS arch detection"
 ## Task 4: `DownloadButton` component
 
 **Files:**
+
 - Create: `site/src/components/DownloadButton.tsx`
 - Test: `site/src/components/DownloadButton.test.tsx`
 
@@ -643,13 +666,18 @@ describe("DownloadButton", () => {
   it("renders the primary CTA for the given platform", () => {
     render(<DownloadButton os="windows" macArch="unknown" />);
     const cta = screen.getByRole("link", { name: /download for windows/i });
-    expect(cta).toHaveAttribute("href", expect.stringContaining("x64-setup.exe"));
+    expect(cta).toHaveAttribute(
+      "href",
+      expect.stringContaining("x64-setup.exe"),
+    );
   });
 
   it("shows the macOS Apple Silicon CTA and lists all platforms", () => {
     render(<DownloadButton os="mac" macArch="apple" />);
     expect(
-      screen.getByRole("link", { name: /download for macOS \(Apple Silicon\)/i }),
+      screen.getByRole("link", {
+        name: /download for macOS \(Apple Silicon\)/i,
+      }),
     ).toBeInTheDocument();
     // The "all platforms" disclosure lists every asset (5 of them).
     expect(
@@ -750,6 +778,7 @@ git commit -m "feat(site): add OS-aware DownloadButton"
 ## Task 5: `Hero` section
 
 **Files:**
+
 - Create: `site/src/components/Hero.tsx`
 - Test: `site/src/components/Hero.test.tsx`
 
@@ -766,9 +795,9 @@ describe("Hero", () => {
   it("renders the logo, headline, and a download CTA", () => {
     render(<Hero os="mac" macArch="apple" />);
     expect(screen.getByAltText(/openwispr/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { level: 1 }),
-    ).toHaveTextContent(/voice/i);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      /voice/i,
+    );
     expect(
       screen.getByRole("link", { name: /download for macOS/i }),
     ).toBeInTheDocument();
@@ -817,7 +846,8 @@ export default function Hero({ os, macArch }: { os: OS; macArch: MacArch }) {
         </h1>
         <p className="mt-6 max-w-xl text-lg text-stone-300">
           OpenWispr is a private voice dictation app. Press a hotkey, speak, and
-          your words land in any app — transcribed on-device, never in the cloud.
+          your words land in any app — transcribed on-device, never in the
+          cloud.
         </p>
         <div className="mt-10">
           <DownloadButton os={os} macArch={macArch} />
@@ -845,6 +875,7 @@ git commit -m "feat(site): add Hero section"
 ## Task 6: `Features`, `HowItWorks`, and `Footer` sections
 
 **Files:**
+
 - Create: `site/src/components/Features.tsx`
 - Create: `site/src/components/HowItWorks.tsx`
 - Create: `site/src/components/Footer.tsx`
@@ -865,9 +896,9 @@ describe("content sections", () => {
   it("Features lists multiple feature cards", () => {
     render(<Features />);
     expect(screen.getByText(/on-device/i)).toBeInTheDocument();
-    expect(screen.getAllByRole("heading", { level: 3 }).length).toBeGreaterThanOrEqual(
-      4,
-    );
+    expect(
+      screen.getAllByRole("heading", { level: 3 }).length,
+    ).toBeGreaterThanOrEqual(4);
   });
 
   it("HowItWorks shows numbered steps", () => {
@@ -934,7 +965,9 @@ export default function Features() {
               key={f.title}
               className="rounded-2xl border border-stone-800 bg-stone-900 p-6 transition hover:border-emerald-700/60 hover:bg-stone-800/60"
             >
-              <h3 className="text-lg font-semibold text-stone-100">{f.title}</h3>
+              <h3 className="text-lg font-semibold text-stone-100">
+                {f.title}
+              </h3>
               <p className="mt-2 text-sm leading-relaxed text-stone-400">
                 {f.body}
               </p>
@@ -1058,6 +1091,7 @@ git commit -m "feat(site): add Features, HowItWorks, and Footer sections"
 ## Task 7: Compose `App.tsx`, wire detection, copy the logo
 
 **Files:**
+
 - Modify: `site/src/App.tsx`
 - Test: `site/src/App.test.tsx`
 - Create: `site/public/logo.png` (copied asset)
@@ -1113,7 +1147,10 @@ import Footer from "./components/Footer";
 export default function App() {
   const { os, macArch } = useMemo(() => {
     const os = detectOS();
-    return { os, macArch: os === "mac" ? detectMacArch() : ("unknown" as const) };
+    return {
+      os,
+      macArch: os === "mac" ? detectMacArch() : ("unknown" as const),
+    };
   }, []);
 
   return (
@@ -1160,6 +1197,7 @@ git commit -m "feat(site): compose landing page with platform detection"
 ## Task 8: Keep root CI green — ignore `site/` from root tooling
 
 **Files:**
+
 - Modify: `eslint.config.js` (root) — add `site` to `ignores`
 - Modify: `vitest.config.ts` (root) — add `**/site/**` to `test.exclude`
 - Create: `.prettierignore` (root) — ignore `site` (if the file already exists, append the line)
@@ -1228,6 +1266,7 @@ git commit -m "chore: exclude site/ from root lint, test, and format"
 ## Task 9: GitHub Actions workflow to deploy `site/` to Pages
 
 **Files:**
+
 - Create: `.github/workflows/pages.yml`
 
 > **Auth note:** the local `gh`/git token may lack the `workflow` OAuth scope, which blocks pushing new files under `.github/workflows/` via the API. Push over SSH (the repo's `origin` is `git@github.com:...`), which is not subject to that restriction. A normal `git push origin main` from the CLI works.
@@ -1380,6 +1419,7 @@ Dispatch the final code reviewer over the whole `site/` addition + workflow (per
 ## Self-Review
 
 **1. Spec coverage:**
+
 - "create a site for the project" → Tasks 1–7 (full landing page). ✓
 - "host it on GitHub Pages" → Tasks 9–10 (Actions deploy + verify). ✓
 - "identify the user's OS and enable the download button automatically based on the user's system" → Task 3 (`detectOS`), Task 2 (`pickPrimary`), Task 4 (`DownloadButton`), Task 7 (wired in `App`). ✓

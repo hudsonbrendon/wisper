@@ -5,17 +5,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 
 export default tseslint.config(
-  {
-    ignores: [
-      "dist",
-      "coverage",
-      "src-tauri/target",
-      "src-tauri/gen",
-      ".claude",
-      "site",
-      "**/*.config.js",
-    ],
-  },
+  { ignores: ["dist", "**/*.config.js"] },
   {
     files: ["**/*.{ts,tsx}"],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
@@ -38,9 +28,5 @@ export default tseslint.config(
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
     },
-  },
-  {
-    files: ["**/*.test.{ts,tsx}", "src/test/**"],
-    languageOptions: { globals: { ...globals.browser, ...globals.node } },
   },
 );
