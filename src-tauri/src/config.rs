@@ -32,6 +32,9 @@ pub struct Config {
     /// Pause playing media (Spotify / Apple Music) while dictating.
     #[serde(default)]
     pub mute_music: bool,
+    /// Whether the first-run onboarding tutorial has been completed.
+    #[serde(default)]
+    pub onboarded: bool,
 }
 
 /// serde default for the boolean fields that default to `true`.
@@ -55,6 +58,7 @@ impl Default for Config {
             show_pill: true,
             dictation_sounds: true,
             mute_music: false,
+            onboarded: false,
         }
     }
 }
@@ -113,6 +117,7 @@ mod tests {
             show_pill: false,
             dictation_sounds: false,
             mute_music: true,
+            onboarded: true,
         };
         let text = cfg.to_toml().expect("serialize");
         let parsed = Config::from_toml(&text);

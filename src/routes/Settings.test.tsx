@@ -785,11 +785,9 @@ describe("Settings", () => {
     // Microphone is the 3rd select (after interface language and transcription language, before inject method)
     // We look for the one that has "System default" option
     const micSelect = selects.find((s) =>
-      s.querySelector
-        ? Array.from(s.querySelectorAll("option")).some(
-            (o) => o.textContent === "System default",
-          )
-        : false,
+      Array.from(s.querySelectorAll("option")).some(
+        (o) => o.textContent === "System default",
+      ),
     );
     if (micSelect) {
       await userEvent.selectOptions(micSelect, "USB Mic");

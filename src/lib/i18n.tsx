@@ -135,6 +135,42 @@ const en: Dict = {
   "confirm.cancelDownload.title": "Cancel download?",
   "confirm.cancelDownload.message": "Stop downloading {name}?",
   "confirm.cancelDownload.action": "Stop download",
+  "settings.tutorial": "Tutorial",
+  "settings.tutorialHint": "Replay the first-run walkthrough.",
+  "settings.tutorialReplay": "Replay tutorial",
+  "onboarding.skip": "Skip",
+  "onboarding.back": "Back",
+  "onboarding.next": "Continue",
+  "onboarding.finish": "Start using OpenWispr",
+  "onboarding.welcome.title": "Welcome to OpenWispr",
+  "onboarding.welcome.body":
+    "Dictate anywhere with a hotkey. Your voice is transcribed on-device and typed into whatever app you're using — no cloud, no account.",
+  "onboarding.hotkey.title": "Pick your dictation hotkey",
+  "onboarding.hotkey.body":
+    "Click below and press the key combination you want to use.",
+  "onboarding.hotkey.press": "Press a key combination…",
+  "onboarding.hotkey.hold": "Hold to talk",
+  "onboarding.hotkey.holdBody":
+    "Press and hold while you speak; release to insert the text.",
+  "onboarding.hotkey.double": "Double-tap for hands-free",
+  "onboarding.hotkey.doubleBody":
+    "Tap it twice to keep recording without holding; tap once more to stop.",
+  "onboarding.model.title": "Download a model",
+  "onboarding.model.body":
+    "Transcription runs locally, so you need one Whisper model. 'base' is a good balance of size and quality.",
+  "onboarding.model.ready": "A model is installed — you're ready.",
+  "onboarding.practice.title": "Try it out",
+  "onboarding.practice.body":
+    "Click into the box below, then hold {hotkey} and say a sentence. Release to watch your words appear — just like in a real app.",
+  "onboarding.practice.suggest":
+    "Try: “This is my first dictation with OpenWispr.”",
+  "onboarding.practice.success":
+    "Nice — that's exactly how it works everywhere.",
+  "onboarding.practice.hint":
+    "Your text will be typed right into the focused box.",
+  "onboarding.done.title": "You're all set",
+  "onboarding.done.body":
+    "Use your hotkey in any app to dictate. You can tweak everything in Settings.",
   "overlay.listening": "Listening…",
   "overlay.transcribing": "Transcribing…",
   "overlay.inserting": "Inserting…",
@@ -250,6 +286,42 @@ const pt: Dict = {
   "confirm.cancelDownload.title": "Cancelar download?",
   "confirm.cancelDownload.message": "Parar o download de {name}?",
   "confirm.cancelDownload.action": "Parar download",
+  "settings.tutorial": "Tutorial",
+  "settings.tutorialHint": "Refaz o tour de primeira execução.",
+  "settings.tutorialReplay": "Refazer tutorial",
+  "onboarding.skip": "Pular",
+  "onboarding.back": "Voltar",
+  "onboarding.next": "Continuar",
+  "onboarding.finish": "Começar a usar o OpenWispr",
+  "onboarding.welcome.title": "Bem-vindo ao OpenWispr",
+  "onboarding.welcome.body":
+    "Dite em qualquer lugar com um atalho. Sua voz é transcrita no próprio dispositivo e digitada no app que você estiver usando — sem nuvem, sem conta.",
+  "onboarding.hotkey.title": "Escolha seu atalho de ditado",
+  "onboarding.hotkey.body":
+    "Clique abaixo e pressione a combinação de teclas que quiser usar.",
+  "onboarding.hotkey.press": "Pressione uma combinação…",
+  "onboarding.hotkey.hold": "Segurar para falar",
+  "onboarding.hotkey.holdBody":
+    "Pressione e segure enquanto fala; solte para inserir o texto.",
+  "onboarding.hotkey.double": "Dois toques para mãos-livres",
+  "onboarding.hotkey.doubleBody":
+    "Toque duas vezes para gravar sem segurar; toque mais uma vez para parar.",
+  "onboarding.model.title": "Baixe um modelo",
+  "onboarding.model.body":
+    "A transcrição roda localmente, então você precisa de um modelo Whisper. O 'base' equilibra bem tamanho e qualidade.",
+  "onboarding.model.ready": "Já há um modelo instalado — tudo pronto.",
+  "onboarding.practice.title": "Experimente",
+  "onboarding.practice.body":
+    "Clique no campo abaixo, segure {hotkey} e fale uma frase. Solte e veja o texto aparecer — igual a um app de verdade.",
+  "onboarding.practice.suggest":
+    "Tente: “Este é meu primeiro ditado com o OpenWispr.”",
+  "onboarding.practice.success":
+    "Boa — é exatamente assim que funciona em todo lugar.",
+  "onboarding.practice.hint":
+    "Seu texto será digitado direto no campo em foco.",
+  "onboarding.done.title": "Tudo pronto",
+  "onboarding.done.body":
+    "Use seu atalho em qualquer app para ditar. Você ajusta tudo nas Configurações.",
   "overlay.listening": "Ouvindo…",
   "overlay.transcribing": "Transcrevendo…",
   "overlay.inserting": "Inserindo…",

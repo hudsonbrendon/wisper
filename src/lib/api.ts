@@ -13,6 +13,7 @@ export interface Config {
   show_pill: boolean;
   dictation_sounds: boolean;
   mute_music: boolean;
+  onboarded: boolean;
 }
 
 export interface ModelMeta {

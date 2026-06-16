@@ -18,36 +18,8 @@ import {
 } from "../lib/api";
 import { useI18n, UI_LANGUAGES } from "../lib/i18n";
 import { LANGUAGES } from "../lib/languages";
+import { eventToAccelerator } from "../lib/hotkey";
 import ConfirmModal, { type ConfirmOpts } from "../components/ConfirmModal";
-
-/// Build a Tauri global-shortcut accelerator string from a keydown event.
-/// Returns null while only modifier keys are held (combo not complete yet).
-function eventToAccelerator(e: KeyboardEvent): string | null {
-  const mods: string[] = [];
-  if (e.ctrlKey) mods.push("Control");
-  if (e.altKey) mods.push("Alt");
-  if (e.shiftKey) mods.push("Shift");
-  if (e.metaKey) mods.push("Super");
-
-  const code = e.code;
-  let key: string | null = null;
-  if (/^Key[A-Z]$/.test(code)) key = code.slice(3);
-  else if (/^Digit[0-9]$/.test(code)) key = code.slice(5);
-  else if (/^Numpad[0-9]$/.test(code)) key = code.slice(6);
-  else if (/^F\d{1,2}$/.test(code)) key = code;
-  else if (code === "Space") key = "Space";
-  else if (code === "Enter" || code === "NumpadEnter") key = "Enter";
-  else if (code === "Tab") key = "Tab";
-  else if (code === "ArrowUp") key = "Up";
-  else if (code === "ArrowDown") key = "Down";
-  else if (code === "ArrowLeft") key = "Left";
-  else if (code === "ArrowRight") key = "Right";
-  // Fallback for other layouts (e.g. ABNT): use the printable character.
-  else if (e.key.length === 1 && e.key !== " ") key = e.key.toUpperCase();
-
-  if (!key) return null; // only modifiers down so far
-  return [...mods, key].join("+");
-}
 
 /// One labelled settings block. Stacked vertically so the page shows *all*
 /// current settings at a glance, rather than hiding them behind sub-tabs.
@@ -535,6 +507,21 @@ export default function Settings() {
                 checked={config.mute_music}
                 onChange={(v) => update({ mute_music: v })}
               />
+            </Field>
+            <Field
+              align="right"
+              label={t("settings.tutorial")}
+              hint={t("settings.tutorialHint")}
+            >
+              <button
+                type="button"
+                onClick={() =>
+                  window.dispatchEvent(new CustomEvent("replay-tutorial"))
+                }
+                className="rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100"
+              >
+                {t("settings.tutorialReplay")}
+              </button>
             </Field>
             <Field
               align="right"
