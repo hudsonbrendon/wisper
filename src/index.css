@@ -4,6 +4,18 @@
    We toggle `.dark` on <html> in src/lib/theme.ts. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Tell the engine which palette native form controls should use. Tailwind's
+   `dark:` classes only style the closed control; the option-list popup and the
+   internal chrome of <select>/<input> are drawn by the platform (WebKitGTK on
+   Linux) and follow `color-scheme`, not CSS. Without this they render light
+   even in dark mode. */
+:root {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
 /* Scrollable but with no visible scrollbar (used by the pill language menu).
    Wheel and arrow-key scrolling still work; only the track is hidden. */
 @utility no-scrollbar {

@@ -23,7 +23,7 @@ import {
 } from "../lib/api";
 import { useI18n, UI_LANGUAGES } from "../lib/i18n";
 import { LANGUAGES } from "../lib/languages";
-import { eventToAccelerator } from "../lib/hotkey";
+import { eventToAccelerator, loneModifierFromKeyup } from "../lib/hotkey";
 import ConfirmModal, { type ConfirmOpts } from "../components/ConfirmModal";
 
 /// One labelled settings block. Stacked vertically so the page shows *all*
@@ -168,46 +168,67 @@ export default function Settings() {
   // listen on window instead while capturing.
   useEffect(() => {
     if (!capturing) return;
-    const handler = (e: KeyboardEvent) => {
+    let done = false;
+    const commit = (accel: string) => {
+      if (done) return;
+      done = true;
+      setCapturing(false);
+      setCaptureHint("");
+      setHotkeyError("");
+      setConfig((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, hotkey: accel };
+        saveConfig(next)
+          .then(() => {
+            setSaved(true);
+            setTimeout(() => setSaved(false), 1500);
+          })
+          .catch((err) => {
+            setHotkeyError(String(err));
+            setConfig((p) => (p ? { ...p, hotkey: prev.hotkey } : p));
+          });
+        return next;
+      });
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
       e.preventDefault();
       e.stopPropagation();
       if (e.key === "Escape") {
+        done = true;
         setCapturing(false);
         setCaptureHint("");
         return;
       }
+      // A modifier+key combo (or bare key) commits immediately.
       const accel = eventToAccelerator(e);
       if (accel) {
-        setCapturing(false);
-        setCaptureHint("");
-        setHotkeyError("");
-        setConfig((prev) => {
-          if (!prev) return prev;
-          const next = { ...prev, hotkey: accel };
-          saveConfig(next)
-            .then(() => {
-              setSaved(true);
-              setTimeout(() => setSaved(false), 1500);
-            })
-            .catch((err) => {
-              setHotkeyError(String(err));
-              setConfig((p) => (p ? { ...p, hotkey: prev.hotkey } : p));
-            });
-          return next;
-        });
-      } else {
-        const mods: string[] = [];
-        if (e.ctrlKey) mods.push("Control");
-        if (e.altKey) mods.push("Alt");
-        if (e.shiftKey) mods.push("Shift");
-        if (e.metaKey) mods.push("Super");
-        setCaptureHint(
-          mods.length ? mods.join("+") + "+ (add a key)" : "Press a key…",
-        );
+        commit(accel);
+        return;
       }
+      // Only modifiers held so far — show progress; releasing one alone binds it.
+      const mods: string[] = [];
+      if (e.ctrlKey) mods.push("Control");
+      if (e.altKey) mods.push("Alt");
+      if (e.shiftKey) mods.push("Shift");
+      if (e.metaKey) mods.push("Super");
+      setCaptureHint(
+        mods.length
+          ? mods.join("+") + "+ … (add a key, or release for that modifier alone)"
+          : "Press a key or hold a modifier…",
+      );
     };
-    window.addEventListener("keydown", handler, true);
-    return () => window.removeEventListener("keydown", handler, true);
+    const onKeyUp = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const lone = loneModifierFromKeyup(e);
+      if (lone) commit(lone);
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("keyup", onKeyUp, true);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("keyup", onKeyUp, true);
+    };
   }, [capturing]);
 
   if (!config)

@@ -5,10 +5,13 @@ mod history;
 mod hotkey;
 mod inject;
 mod model_manager;
+#[cfg(target_os = "macos")]
+mod modtap;
 mod overlay;
 mod state;
 pub mod stt;
 mod text;
+mod uitext;
 
 use commands::AppState;
 use hotkey::Action as HkAction;
@@ -117,7 +120,7 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
     let app = app.clone();
     // Whisper is CPU-heavy and blocking; run off the UI thread.
     std::thread::spawn(move || {
-        let (language, method, prompt, replacements) = {
+        let (language, method, prompt, replacements, ui_lang) = {
             let st = app.state::<AppState>();
             let c = st.config.lock().unwrap();
             (
@@ -125,6 +128,7 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
                 c.inject_method,
                 text::dictionary_prompt(&c.dictionary),
                 c.replacements.clone(),
+                c.ui_language.clone(),
             )
         };
 
@@ -136,9 +140,7 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
             eprintln!("no audio captured ({} samples)", samples.len());
             let _ = app.emit(
                 "error",
-                serde_json::json!({
-                    "message": "No audio captured — hold the hotkey while you speak."
-                }),
+                serde_json::json!({ "message": uitext::t(&ui_lang, "err_no_audio") }),
             );
             transition(&app, SmEvent::Error); // -> Idle
             return;
@@ -151,11 +153,11 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
         if rms < 0.0008 {
             eprintln!("near-silent capture (rms={rms:.5}) — likely no mic permission");
             #[cfg(target_os = "macos")]
-            let hint = "No audio detected — grant OpenWispr's Microphone permission in System Settings → Privacy & Security → Microphone, then try again.";
+            let hint = uitext::t(&ui_lang, "err_no_mic_mac");
             #[cfg(target_os = "windows")]
-            let hint = "No audio detected — allow microphone access in Settings → Privacy & security → Microphone (turn on \"Let desktop apps access your microphone\"), then try again.";
+            let hint = uitext::t(&ui_lang, "err_no_mic_win");
             #[cfg(target_os = "linux")]
-            let hint = "No audio detected — check that your microphone is connected and not muted, then try again.";
+            let hint = uitext::t(&ui_lang, "err_no_mic_linux");
             let _ = app.emit("error", serde_json::json!({ "message": hint }));
             transition(&app, SmEvent::Error); // -> Idle
             return;
@@ -166,7 +168,7 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
             let guard = app_state.transcriber.lock().unwrap();
             match guard.as_ref() {
                 Some(t) => t.transcribe(&samples, &language, &prompt),
-                None => Err("no model loaded; download one in Settings".to_string()),
+                None => Err(uitext::t(&ui_lang, "err_no_model")),
             }
         };
 
@@ -380,6 +382,17 @@ fn dispatch(app: &tauri::AppHandle, action: HkAction) {
 pub(crate) fn register_hotkey(app: &tauri::AppHandle, accel: &str) -> Result<(), String> {
     let gs = app.global_shortcut();
     let _ = gs.unregister_all();
+
+    // A lone modifier (e.g. Option) can't be a global shortcut — drive it from
+    // the flagsChanged event tap instead (macOS only).
+    #[cfg(target_os = "macos")]
+    if let Some(flag) = modtap::modifier_flag(accel) {
+        modtap::set_modifier(Some(flag));
+        return Ok(());
+    }
+    #[cfg(target_os = "macos")]
+    modtap::set_modifier(None);
+
     gs.on_shortcut(accel, move |app, _shortcut, event| match event.state() {
         ShortcutState::Pressed => on_shortcut(app, true),
         ShortcutState::Released => on_shortcut(app, false),
@@ -387,8 +400,9 @@ pub(crate) fn register_hotkey(app: &tauri::AppHandle, accel: &str) -> Result<(),
     .map_err(|e| format!("register hotkey '{accel}': {e}"))
 }
 
-/// Handle a raw global-shortcut event through the gesture controller.
-fn on_shortcut(app: &tauri::AppHandle, pressed: bool) {
+/// Handle a raw global-shortcut / modifier-tap event through the gesture
+/// controller.
+pub(crate) fn on_shortcut(app: &tauri::AppHandle, pressed: bool) {
     let action = {
         let st = app.state::<AppState>();
         let mut c = st.hotkey.lock().unwrap();
@@ -510,34 +524,22 @@ pub(crate) fn apply_dock_visibility(app: &tauri::AppHandle, show: bool) {
 /// checked), and Quit. Rebuilt whenever the mic selection changes so the check
 /// marks stay accurate.
 fn build_tray_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
-    let home = MenuItem::with_id(app, "home", "Home", true, None::<&str>)?;
-    let updates = MenuItem::with_id(
-        app,
-        "check_updates",
-        "Check for Updates",
-        true,
-        None::<&str>,
-    )?;
-    let paste = MenuItem::with_id(
-        app,
-        "paste_last",
-        "Paste Last Transcription",
-        true,
-        None::<&str>,
-    )?;
+    let (lang, current) = {
+        let st = app.state::<AppState>();
+        let c = st.config.lock().unwrap();
+        (c.ui_language.clone(), c.mic_device.clone())
+    };
+    let tr = |key| uitext::t(&lang, key);
+
+    let home = MenuItem::with_id(app, "home", tr("tray_home"), true, None::<&str>)?;
+    let updates = MenuItem::with_id(app, "check_updates", tr("tray_updates"), true, None::<&str>)?;
+    let paste = MenuItem::with_id(app, "paste_last", tr("tray_paste"), true, None::<&str>)?;
 
     // Microphone submenu. Id "mic:" is the system default; "mic:<name>" a device.
-    let current = app
-        .state::<AppState>()
-        .config
-        .lock()
-        .unwrap()
-        .mic_device
-        .clone();
     let default_item = CheckMenuItem::with_id(
         app,
         "mic:",
-        "System Default",
+        tr("tray_system_default"),
         true,
         current.is_none(),
         None::<&str>,
@@ -555,10 +557,10 @@ fn build_tray_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
             .iter()
             .map(|i| i as &dyn IsMenuItem<tauri::Wry>),
     );
-    let microphone = Submenu::with_items(app, "Microphone", true, &mic_refs)?;
+    let microphone = Submenu::with_items(app, tr("tray_microphone"), true, &mic_refs)?;
 
     let sep = PredefinedMenuItem::separator(app)?;
-    let quit = MenuItem::with_id(app, "quit", "Quit OpenWispr", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", tr("tray_quit"), true, None::<&str>)?;
 
     Menu::with_items(app, &[&home, &updates, &paste, &microphone, &sep, &quit])
 }
@@ -566,15 +568,15 @@ fn build_tray_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
 /// Re-inject the most recent transcription into the focused app. Runs on a short
 /// delay so the menu closes and focus returns to the previously-focused app.
 fn paste_last_transcription(app: &tauri::AppHandle) {
-    let (data_dir, method) = {
+    let (data_dir, method, ui_lang) = {
         let st = app.state::<AppState>();
-        let method = st.config.lock().unwrap().inject_method;
-        (st.data_dir.clone(), method)
+        let c = st.config.lock().unwrap();
+        (st.data_dir.clone(), c.inject_method, c.ui_language.clone())
     };
     let Some(entry) = history::read_all(&data_dir).into_iter().next() else {
         let _ = app.emit(
             "error",
-            serde_json::json!({ "message": "No transcription yet." }),
+            serde_json::json!({ "message": uitext::t(&ui_lang, "err_no_transcription") }),
         );
         return;
     };
@@ -594,6 +596,23 @@ fn paste_last_transcription(app: &tauri::AppHandle) {
 
 /// Apply a Microphone submenu selection (empty = system default): persist it and
 /// rebuild the tray menu so the check marks reflect the new choice.
+/// Persist the interface language and rebuild the tray so its labels switch to
+/// it immediately. Called from the frontend whenever the UI language changes.
+#[tauri::command]
+fn set_ui_language(app: tauri::AppHandle, lang: String) {
+    {
+        let st = app.state::<AppState>();
+        let mut cfg = st.config.lock().unwrap();
+        cfg.ui_language = lang;
+        let _ = config::save(&st.config_dir, &cfg);
+    }
+    if let Some(tray) = app.tray_by_id("main") {
+        if let Ok(menu) = build_tray_menu(&app) {
+            let _ = tray.set_menu(Some(menu));
+        }
+    }
+}
+
 fn set_tray_mic_device(app: &tauri::AppHandle, device: &str) {
     {
         let st = app.state::<AppState>();
@@ -659,6 +678,11 @@ pub fn run() {
             // when ungranted and re-registers the current binary in TCC — so
             // injected text actually lands instead of being silently dropped.
             inject::prompt_accessibility_on_startup();
+
+            // Start the lone-modifier hotkey tap (e.g. push-to-talk on Option).
+            // No-op unless the configured hotkey is a single modifier.
+            #[cfg(target_os = "macos")]
+            modtap::start(handle.clone());
 
             // Trigger the Microphone permission prompt early (off the UI thread)
             // so capture works on the first dictation instead of recording
@@ -784,6 +808,7 @@ pub fn run() {
             commands::prompt_accessibility,
             commands::reset_microphone,
             commands::open_privacy_settings,
+            set_ui_language,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
@@ -791,10 +816,23 @@ pub fn run() {
             // Keep the app alive in the tray when windows close. `code.is_none()`
             // means the exit came from closing windows; an explicit `app.exit(n)`
             // (the tray Quit item) carries `Some(n)` and is allowed through.
-            if let tauri::RunEvent::ExitRequested { code, api, .. } = event {
+            if let tauri::RunEvent::ExitRequested { code, ref api, .. } = event {
                 if code.is_none() {
                     api.prevent_exit();
                 }
+            }
+
+            // On macOS the Metal-backed Whisper build (ggml) registers a global
+            // device whose static C++ destructor runs during the normal
+            // `std::process::exit` (via `__cxa_finalize`). That destructor frees
+            // Metal resource sets while a deferred init block may still be running
+            // on a background queue, which trips `ggml_abort` and crashes on quit.
+            // Skip the C runtime teardown entirely: `_exit` terminates immediately
+            // and lets the OS reclaim GPU and memory. Config/history are persisted
+            // synchronously on write, so there is nothing left to flush here.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Exit = event {
+                unsafe { libc::_exit(0) };
             }
         });
 }

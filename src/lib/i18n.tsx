@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { setUiLanguage } from "./api";
 
 /// Lightweight, dependency-free i18n for the UI. Translations live in flat
 /// key→string dictionaries per language; `t(key, vars)` looks up the active
@@ -1504,10 +1505,20 @@ const I18nContext = createContext<I18nValue | null>(null);
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<string>(initialLang);
 
-  // Keep <html lang/dir> in sync so RTL languages render correctly.
+  // Keep <html lang/dir> in sync so RTL languages render correctly, and mirror
+  // the choice to the backend so the native tray + error toasts match (fires on
+  // mount too, syncing a stored/system language to the config).
   useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = RTL.has(lang) ? "rtl" : "ltr";
+    // Best-effort: missing outside a Tauri context (and in tests where the api
+    // is mocked), so never let it break rendering.
+    try {
+      const r = setUiLanguage?.(lang);
+      if (r && typeof r.catch === "function") r.catch(() => {});
+    } catch {
+      /* not running under Tauri */
+    }
   }, [lang]);
 
   const setLang = useCallback((l: string) => {

@@ -1,6 +1,6 @@
 [package]
 name = "openwispr"
-version = "1.0.4"
+version = "1.0.5"
 description = "Open-source, local-first voice dictation desktop app"
 authors = ["Hudson Brendon"]
 edition = "2021"
@@ -38,6 +38,7 @@ tauri-plugin-autostart = "2"
 
 [target."cfg(target_os = \"macos\")".dependencies]
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2" }
+libc = "0.2"
 # Metal GPU acceleration for Whisper on Apple Silicon — slashes transcription
 # latency vs the CPU build (the default `WhisperContextParameters` then enables
 # the GPU via the `_gpu` feature the `metal` feature turns on).

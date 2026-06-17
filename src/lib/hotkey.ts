@@ -26,3 +26,22 @@ export function eventToAccelerator(e: KeyboardEvent): string | null {
   if (!key) return null; // only modifiers down so far
   return [...mods, key].join("+");
 }
+
+/// If a keyup event is the release of a single modifier with no other modifier
+/// still held, return that modifier as an accelerator ("Alt", "Control",
+/// "Shift", "Super") — used to bind a lone-modifier push-to-talk hotkey. Returns
+/// null otherwise. (Fn can't be observed reliably from the browser, so it is not
+/// offered here.)
+export function loneModifierFromKeyup(e: KeyboardEvent): string | null {
+  const map: Record<string, string> = {
+    Alt: "Alt",
+    Control: "Control",
+    Shift: "Shift",
+    Meta: "Super",
+  };
+  const mod = map[e.key];
+  if (!mod) return null;
+  // After releasing this key, no other modifier may remain held.
+  if (e.ctrlKey || e.altKey || e.shiftKey || e.metaKey) return null;
+  return mod;
+}

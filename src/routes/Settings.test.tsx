@@ -349,7 +349,7 @@ describe("Settings", () => {
       }),
     );
 
-    expect(await screen.findByText(/Alt\+ \(add a key\)/)).toBeInTheDocument();
+    expect(await screen.findByText(/Alt\+.*add a key/)).toBeInTheDocument();
   });
 
   it("pressing Space key saves hotkey with Space", async () => {

@@ -55,6 +55,10 @@ export const uiStopAndInsert = () => invoke<void>("ui_stop_and_insert");
 export const uiCancelRecording = () => invoke<void>("ui_cancel_recording");
 export const setLanguage = (lang: string) =>
   invoke<void>("set_language", { lang });
+/// Tell the backend the interface language so the native tray menu and error
+/// toasts match the UI.
+export const setUiLanguage = (lang: string) =>
+  invoke<void>("set_ui_language", { lang });
 export const setPillExpanded = (expanded: boolean) =>
   invoke<void>("set_pill_expanded", { expanded });
 export const setLaunchAtLogin = (enabled: boolean) =>

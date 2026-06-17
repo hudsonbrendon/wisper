@@ -50,11 +50,21 @@ pub struct Config {
     /// Snippets / fixups applied to every transcript after recognition.
     #[serde(default)]
     pub replacements: Vec<Replacement>,
+    /// Interface language code (e.g. "en", "pt"). Drives the native tray menu and
+    /// backend error toasts so they match the app's UI. Mirrors the frontend's
+    /// interface-language choice.
+    #[serde(default = "default_ui_language")]
+    pub ui_language: String,
 }
 
 /// serde default for the boolean fields that default to `true`.
 fn default_true() -> bool {
     true
+}
+
+/// serde default for `ui_language` (English) when an older config omits it.
+fn default_ui_language() -> String {
+    "en".to_string()
 }
 
 impl Default for Config {
@@ -79,6 +89,7 @@ impl Default for Config {
             onboarded: false,
             dictionary: Vec::new(),
             replacements: Vec::new(),
+            ui_language: "en".to_string(),
         }
     }
 }
@@ -143,6 +154,7 @@ mod tests {
                 from: "my email".to_string(),
                 to: "me@example.com".to_string(),
             }],
+            ui_language: "pt".to_string(),
         };
         let text = cfg.to_toml().expect("serialize");
         let parsed = Config::from_toml(&text);
