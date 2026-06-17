@@ -251,14 +251,18 @@ pub(crate) fn cancel_recording(app: &tauri::AppHandle) {
 
 /// Convert the overlay window to a non-activating NSPanel (macOS only). The
 /// NonActivatingPanel style mask (1 << 7) lets it receive clicks without
-/// activating the app, so the previously-focused app stays frontmost and
-/// injection still lands there. Best-effort: logs and continues on failure.
+/// activating the app, and `becomesKeyOnlyIfNeeded` keeps it from grabbing the
+/// keyboard focus just by being shown — so the app the user dictated into stays
+/// the key window and a follow-up Enter goes there, not to the pill. Best-effort.
 #[cfg(target_os = "macos")]
 fn convert_overlay_to_panel(app: &tauri::AppHandle) {
     use tauri_nspanel::WebviewWindowExt;
     if let Some(overlay) = app.get_webview_window("overlay") {
         match overlay.to_panel() {
-            Ok(panel) => panel.set_style_mask(1 << 7),
+            Ok(panel) => {
+                panel.set_style_mask(1 << 7);
+                panel.set_becomes_key_only_if_needed(true);
+            }
             Err(e) => eprintln!("overlay panel conversion failed: {e:?}"),
         }
     }
