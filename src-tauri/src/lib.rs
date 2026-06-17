@@ -201,15 +201,25 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
                 }
 
                 transition(&app, SmEvent::TranscriptionDone); // -> Injecting
-                match inject::insert(&text, method) {
-                    Ok(()) => {
-                        transition(&app, SmEvent::InjectionDone); // -> Idle
+                                                              // enigo touches macOS Text Input Source APIs (TSM) that assert
+                                                              // they run on the main thread — calling them from this worker
+                                                              // thread hard-crashes with SIGTRAP on macOS 26+. Hop to the main
+                                                              // thread for the actual injection (the heavy whisper work already
+                                                              // ran off it above).
+                let app_inj = app.clone();
+                let text_inj = text.clone();
+                let dispatched = app.run_on_main_thread(move || {
+                    match inject::insert(&text_inj, method) {
+                        Ok(()) => {}
+                        Err(e) => {
+                            eprintln!("inject failed: {e}");
+                            let _ = app_inj.emit("error", serde_json::json!({ "message": e }));
+                        }
                     }
-                    Err(e) => {
-                        eprintln!("inject failed: {e}");
-                        let _ = app.emit("error", serde_json::json!({ "message": e }));
-                        transition(&app, SmEvent::InjectionDone); // -> Idle
-                    }
+                    transition(&app_inj, SmEvent::InjectionDone); // -> Idle
+                });
+                if dispatched.is_err() {
+                    transition(&app, SmEvent::InjectionDone); // -> Idle (never stick)
                 }
             }
             Err(e) => {
@@ -566,10 +576,15 @@ fn paste_last_transcription(app: &tauri::AppHandle) {
     };
     let app2 = app.clone();
     std::thread::spawn(move || {
+        // Let the tray menu close and focus return to the target app first.
         std::thread::sleep(std::time::Duration::from_millis(300));
-        if let Err(e) = inject::insert(&entry.text, method) {
-            let _ = app2.emit("error", serde_json::json!({ "message": e }));
-        }
+        // enigo must run on the main thread (TSM asserts it); hop there.
+        let app3 = app2.clone();
+        let _ = app2.run_on_main_thread(move || {
+            if let Err(e) = inject::insert(&entry.text, method) {
+                let _ = app3.emit("error", serde_json::json!({ "message": e }));
+            }
+        });
     });
 }
 

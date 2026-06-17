@@ -68,7 +68,10 @@ impl Default for Config {
             model_id: "base".to_string(),
             mic_device: None,
             language: "auto".to_string(),
-            inject_method: InjectMethod::Type,
+            // Paste (clipboard + Cmd/Ctrl+V) is the reliable default: synthesized
+            // unicode typing is silently dropped by many apps on macOS even when
+            // AX-trusted, while a paste keystroke lands. Users can switch to Type.
+            inject_method: InjectMethod::Paste,
             show_in_dock: true,
             show_pill: true,
             dictation_sounds: true,

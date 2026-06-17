@@ -1,5 +1,7 @@
 use crate::config::InjectMethod;
-use enigo::{Direction, Enigo, Key, Keyboard, Settings};
+#[cfg(not(target_os = "macos"))]
+use enigo::{Direction, Key};
+use enigo::{Enigo, Keyboard, Settings};
 
 /// macOS Accessibility (AX) trust handling.
 ///
@@ -107,6 +109,32 @@ fn ensure_accessibility_trusted() -> Result<(), String> {
     Ok(())
 }
 
+/// Parse a positive PID out of `lsappinfo info -only pid` output, e.g. the line
+/// `"pid"=12345`. Returns `None` for missing/zero/unparseable values.
+#[cfg(target_os = "macos")]
+fn parse_lsappinfo_pid(output: &str) -> Option<i32> {
+    output
+        .rsplit('=')
+        .next()?
+        .trim()
+        .trim_matches('"')
+        .parse::<i32>()
+        .ok()
+        .filter(|&p| p > 0)
+}
+
+/// PID of the frontmost application (macOS), via `lsappinfo`. Used to target the
+/// paste keystroke at the real destination app regardless of key-window focus.
+#[cfg(target_os = "macos")]
+fn frontmost_pid() -> Option<i32> {
+    let out = std::process::Command::new("sh")
+        .arg("-c")
+        .arg("lsappinfo info -only pid $(lsappinfo front) 2>/dev/null")
+        .output()
+        .ok()?;
+    parse_lsappinfo_pid(&String::from_utf8_lossy(&out.stdout))
+}
+
 /// Insert `text` into the currently focused application using the configured
 /// method. On `Type` failure, automatically falls back to `Paste`.
 pub fn insert(text: &str, method: InjectMethod) -> Result<(), String> {
@@ -137,33 +165,123 @@ fn type_text(text: &str) -> Result<(), String> {
     enigo.text(text).map_err(|e| format!("enigo text: {e}"))
 }
 
-/// Copy `text` to the clipboard and send the platform paste shortcut.
-///
-/// Adaptation: `Key::Meta` is the correct name in enigo 0.6.1 for the macOS
-/// Command key (the older aliases `Key::Command` and `Key::Super` are marked
-/// `#[deprecated(since = "0.0.12")]` but still compile; we use the canonical
-/// `Key::Meta` as specified). On non-macOS targets `Key::Control` is used.
+/// macOS: post a real Cmd+V via CoreGraphics. Enigo's synthesized paste is
+/// unreliable here (the keystroke is frequently ignored by the target app even
+/// when AX-trusted), so we build the keyboard event directly with the Command
+/// flag set and the hard-coded `v` keycode (9). Must run on the main thread
+/// (the caller guarantees that). No layout/TSM lookup, so it never crashes.
+#[cfg(target_os = "macos")]
+mod cg {
+    use std::ffi::c_void;
+    type Ref = *const c_void;
+
+    #[link(name = "CoreGraphics", kind = "framework")]
+    extern "C" {
+        fn CGEventSourceCreate(state_id: i32) -> Ref;
+        fn CGEventCreateKeyboardEvent(source: Ref, keycode: u16, keydown: bool) -> Ref;
+        fn CGEventSetFlags(event: Ref, flags: u64);
+        fn CGEventPost(tap: u32, event: Ref);
+        fn CGEventPostToPid(pid: i32, event: Ref);
+    }
+    #[link(name = "CoreFoundation", kind = "framework")]
+    extern "C" {
+        fn CFRelease(cf: Ref);
+    }
+
+    const KCG_HID_EVENT_TAP: u32 = 0;
+    const KCG_FLAG_COMMAND: u64 = 0x0010_0000;
+    const KCG_SOURCE_HID_SYSTEM_STATE: i32 = 1;
+    const KEYCODE_V: u16 = 9;
+
+    /// Synthesize Command+V. When `pid` is `Some`, deliver the events directly to
+    /// that process (bypasses key-window/focus quirks — e.g. a floating overlay
+    /// panel stealing the key window). Otherwise post to the system HID tap.
+    pub fn cmd_v(pid: Option<i32>) {
+        unsafe {
+            let source = CGEventSourceCreate(KCG_SOURCE_HID_SYSTEM_STATE);
+            let down = CGEventCreateKeyboardEvent(source, KEYCODE_V, true);
+            let up = CGEventCreateKeyboardEvent(source, KEYCODE_V, false);
+            if down.is_null() || up.is_null() {
+                return;
+            }
+            CGEventSetFlags(down, KCG_FLAG_COMMAND);
+            CGEventSetFlags(up, KCG_FLAG_COMMAND);
+            match pid {
+                Some(p) => {
+                    CGEventPostToPid(p, down);
+                    CGEventPostToPid(p, up);
+                }
+                None => {
+                    CGEventPost(KCG_HID_EVENT_TAP, down);
+                    CGEventPost(KCG_HID_EVENT_TAP, up);
+                }
+            }
+            CFRelease(down);
+            CFRelease(up);
+            if !source.is_null() {
+                CFRelease(source);
+            }
+        }
+    }
+}
+
+/// Copy `text` to the clipboard and send the platform paste shortcut. On macOS
+/// the keystroke is a native CGEvent Cmd+V delivered straight to the frontmost
+/// app's PID — posting to the shared event tap let the floating overlay panel
+/// (key window) swallow it, so nothing pasted. Elsewhere it's enigo Ctrl+V. The
+/// user's previous clipboard is restored once the paste has been consumed.
 fn paste_text(text: &str) -> Result<(), String> {
     let mut clipboard = arboard::Clipboard::new().map_err(|e| format!("clipboard: {e}"))?;
+    let saved = clipboard.get_text().ok();
     clipboard
         .set_text(text.to_string())
         .map_err(|e| format!("clipboard set: {e}"))?;
-
-    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| format!("enigo init: {e}"))?;
-    // Cmd on macOS, Ctrl elsewhere.
+    // Let the clipboard write propagate before the paste reads it.
+    std::thread::sleep(std::time::Duration::from_millis(80));
     #[cfg(target_os = "macos")]
-    let modifier = Key::Meta;
+    cg::cmd_v(frontmost_pid());
     #[cfg(not(target_os = "macos"))]
-    let modifier = Key::Control;
+    {
+        let mut enigo = Enigo::new(&Settings::default()).map_err(|e| format!("enigo init: {e}"))?;
+        enigo
+            .key(Key::Control, Direction::Press)
+            .map_err(|e| format!("modifier press: {e}"))?;
+        enigo
+            .key(Key::Unicode('v'), Direction::Click)
+            .map_err(|e| format!("v click: {e}"))?;
+        enigo
+            .key(Key::Control, Direction::Release)
+            .map_err(|e| format!("modifier release: {e}"))?;
+    }
 
-    enigo
-        .key(modifier, Direction::Press)
-        .map_err(|e| format!("modifier press: {e}"))?;
-    enigo
-        .key(Key::Unicode('v'), Direction::Click)
-        .map_err(|e| format!("v click: {e}"))?;
-    enigo
-        .key(modifier, Direction::Release)
-        .map_err(|e| format!("modifier release: {e}"))?;
+    // Restore the user's previous clipboard once the paste has consumed it.
+    if let Some(prev) = saved {
+        std::thread::sleep(std::time::Duration::from_millis(250));
+        let _ = clipboard.set_text(prev);
+    }
     Ok(())
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_quoted_pid_line() {
+        assert_eq!(parse_lsappinfo_pid("\"pid\"=12345"), Some(12345));
+    }
+
+    #[test]
+    fn parses_pid_with_surrounding_whitespace() {
+        assert_eq!(parse_lsappinfo_pid("  \"pid\" = 42 \n"), Some(42));
+    }
+
+    #[test]
+    fn rejects_zero_and_garbage() {
+        assert_eq!(parse_lsappinfo_pid("\"pid\"=0"), None);
+        assert_eq!(parse_lsappinfo_pid("\"pid\"=-3"), None);
+        assert_eq!(parse_lsappinfo_pid(""), None);
+        assert_eq!(parse_lsappinfo_pid("no equals here"), None);
+        assert_eq!(parse_lsappinfo_pid("\"pid\"=notanumber"), None);
+    }
 }
