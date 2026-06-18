@@ -286,7 +286,7 @@ fn place_and_show_overlay(app: &tauri::AppHandle) {
             let size = mon.size();
             let win = overlay
                 .outer_size()
-                .unwrap_or(tauri::PhysicalSize::new(360, 72));
+                .unwrap_or(tauri::PhysicalSize::new(360, 340));
             let (x, y) = overlay::bottom_center(
                 (pos.x, pos.y),
                 (size.width, size.height),
@@ -305,38 +305,91 @@ fn place_and_show_overlay(app: &tauri::AppHandle) {
     }
 }
 
-/// Pill window height (logical px) when collapsed vs. expanded for the language
-/// menu. The menu is HTML *inside* the native window, so the window itself must
-/// be tall enough to draw it — otherwise the OS clips the dropdown.
-const PILL_WIDTH: f64 = 360.0;
-const PILL_HEIGHT_COLLAPSED: f64 = 72.0;
-const PILL_HEIGHT_EXPANDED: f64 = 340.0;
+// The overlay is a single fixed-size native window (see tauri.conf.json): the
+// pill sits at the bottom edge (CSS `items-end`) and the language menu expands
+// *upward* into the space already reserved above it. The window never resizes
+// or repositions while open. This avoids the cross-platform breakage of the old
+// grow-and-reanchor approach — on Wayland an app can't set its own window
+// position, so growing the window made the pill jump and the list render
+// mid-grow (it could also flicker on Windows). A fixed window has nothing to
+// jump.
 
-/// Grow the pill upward (menu open) or shrink it back (menu closed), keeping its
-/// bottom edge anchored bottom-center so the pill itself does not move.
+/// Logical-px band at the bottom of the window that the collapsed pill occupies.
+/// Only cursor hits inside this band (or anywhere, when the menu is open) keep
+/// the window interactive; elsewhere it is click-through. Generous so the pill's
+/// hit target is comfortable.
+const PILL_INTERACTIVE_BAND: f64 = 104.0;
+
+/// Whether the language menu is open. Drives the click-through hit test: open →
+/// the whole window is interactive (so clicking outside the menu can dismiss it);
+/// closed → only the pill band is.
+static PILL_EXPANDED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+/// Current `ignore_cursor_events` state, so the poller only calls the (main-
+/// thread) setter when it actually changes. Starts true: a fresh overlay is
+/// fully click-through until the cursor reaches the pill.
+static OVERLAY_IGNORING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
+
+/// Mark the menu open/closed and re-evaluate click-through immediately so the
+/// menu is interactive the instant it appears (rather than on the next poll).
 pub(crate) fn set_overlay_expanded(app: &tauri::AppHandle, expanded: bool) {
-    if let Some(overlay) = app.get_webview_window("overlay") {
-        let h = if expanded {
-            PILL_HEIGHT_EXPANDED
-        } else {
-            PILL_HEIGHT_COLLAPSED
-        };
-        let _ = overlay.set_size(tauri::LogicalSize::new(PILL_WIDTH, h));
-        let monitor = overlay
-            .current_monitor()
-            .ok()
-            .flatten()
-            .or_else(|| overlay.primary_monitor().ok().flatten());
-        if let Some(mon) = monitor {
-            // bottom_center works in physical px; convert the logical size.
-            let sf = overlay.scale_factor().unwrap_or(1.0);
-            let win = ((PILL_WIDTH * sf).round() as u32, (h * sf).round() as u32);
-            let pos = mon.position();
-            let size = mon.size();
-            let (x, y) = overlay::bottom_center((pos.x, pos.y), (size.width, size.height), win, 90);
-            let _ = overlay.set_position(tauri::PhysicalPosition::new(x, y));
-        }
+    PILL_EXPANDED.store(expanded, std::sync::atomic::Ordering::Relaxed);
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || update_overlay_clickthrough(&handle));
+}
+
+/// Is the global cursor over the currently-interactive region of the overlay?
+/// That region is the whole window while the menu is open, else the bottom pill
+/// band. All coordinates are physical px.
+fn cursor_over_pill(app: &tauri::AppHandle) -> bool {
+    let Some(overlay) = app.get_webview_window("overlay") else {
+        return false;
+    };
+    let (Ok(pos), Ok(size)) = (overlay.outer_position(), overlay.outer_size()) else {
+        return false;
+    };
+    let Ok(cur) = app.cursor_position() else {
+        return false;
+    };
+    let sf = overlay.scale_factor().unwrap_or(1.0);
+    let band = if PILL_EXPANDED.load(std::sync::atomic::Ordering::Relaxed) {
+        size.height as f64
+    } else {
+        PILL_INTERACTIVE_BAND * sf
+    };
+    overlay::point_in_band(
+        (cur.x, cur.y),
+        (pos.x as f64, pos.y as f64),
+        (size.width as f64, size.height as f64),
+        band,
+    )
+}
+
+/// Toggle the overlay between click-through and interactive based on where the
+/// cursor is. Cheap no-op when the desired state already matches. Must run on
+/// the main thread (it touches the native window).
+fn update_overlay_clickthrough(app: &tauri::AppHandle) {
+    let Some(overlay) = app.get_webview_window("overlay") else {
+        return;
+    };
+    // A hidden pill never needs to capture clicks.
+    let visible = overlay.is_visible().unwrap_or(false);
+    let want_ignore = !visible || !cursor_over_pill(app);
+    if OVERLAY_IGNORING.swap(want_ignore, std::sync::atomic::Ordering::Relaxed) != want_ignore {
+        let _ = overlay.set_ignore_cursor_events(want_ignore);
     }
+}
+
+/// Poll the cursor a few times a second and keep the overlay's click-through
+/// state in sync. Polling (rather than window cursor events) is required because
+/// while the window is click-through it receives no events at all, so it can't
+/// notice the cursor arriving over the pill on its own.
+fn start_overlay_clickthrough_poller(app: &tauri::AppHandle) {
+    let app = app.clone();
+    std::thread::spawn(move || loop {
+        std::thread::sleep(std::time::Duration::from_millis(60));
+        let handle = app.clone();
+        let _ = app.run_on_main_thread(move || update_overlay_clickthrough(&handle));
+    });
 }
 
 /// Carry out a gesture [`HkAction`] against the audio pipeline.
@@ -773,6 +826,15 @@ pub fn run() {
             // bottom-center, and keep it on screen for the app's lifetime.
             convert_overlay_to_panel(&handle);
             place_and_show_overlay(&handle);
+            // The pill window spans a tall transparent area (so the language
+            // menu can open upward without resizing the window). Start it fully
+            // click-through and let the poller make only the pill/menu region
+            // interactive, so the empty space never eats clicks meant for the
+            // app behind it.
+            if let Some(overlay) = handle.get_webview_window("overlay") {
+                let _ = overlay.set_ignore_cursor_events(true);
+            }
+            start_overlay_clickthrough_poller(&handle);
 
             // Hide the Dock icon if the user chose menu-bar-only.
             let show_in_dock = handle

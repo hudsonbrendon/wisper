@@ -19,9 +19,50 @@ pub fn bottom_center(
     (x, y)
 }
 
+/// Is `cursor` within the interactive band of the overlay window? The band is
+/// the bottom `band` px of the window (its full width); when the menu is open
+/// the caller passes the full window height so the whole window counts. All
+/// coordinates are physical px: `win_pos` is the window's top-left, `win_size`
+/// its size. Used to decide whether the click-through overlay should currently
+/// capture the cursor (over the pill/menu) or pass it through (empty space).
+pub fn point_in_band(cursor: (f64, f64), win_pos: (f64, f64), win_size: (f64, f64), band: f64) -> bool {
+    let (cx, cy) = cursor;
+    let (wx, wy) = win_pos;
+    let (ww, wh) = win_size;
+    let left = wx;
+    let right = wx + ww;
+    let bottom = wy + wh;
+    let top = bottom - band.min(wh);
+    cx >= left && cx <= right && cy >= top && cy <= bottom
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn band_hits_bottom_strip_only() {
+        let pos = (100.0, 200.0);
+        let size = (360.0, 340.0);
+        // Inside the bottom 104px band, horizontally centered.
+        assert!(point_in_band((280.0, 500.0), pos, size, 104.0));
+        // Same column but up in the empty area above the band.
+        assert!(!point_in_band((280.0, 300.0), pos, size, 104.0));
+        // Left of the window.
+        assert!(!point_in_band((50.0, 520.0), pos, size, 104.0));
+        // Right of the window.
+        assert!(!point_in_band((500.0, 520.0), pos, size, 104.0));
+    }
+
+    #[test]
+    fn full_height_band_covers_whole_window() {
+        let pos = (0.0, 0.0);
+        let size = (360.0, 340.0);
+        // With band == window height the top is interactive too (menu open).
+        assert!(point_in_band((180.0, 10.0), pos, size, 340.0));
+        // A band taller than the window is clamped, not overflowing upward.
+        assert!(!point_in_band((180.0, -5.0), pos, size, 999.0));
+    }
 
     #[test]
     fn centers_horizontally_above_margin() {

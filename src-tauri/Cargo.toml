@@ -1,6 +1,6 @@
 [package]
 name = "openwispr"
-version = "1.0.5"
+version = "1.0.6"
 description = "Open-source, local-first voice dictation desktop app"
 authors = ["Hudson Brendon"]
 edition = "2021"
