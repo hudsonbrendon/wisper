@@ -572,6 +572,42 @@ pub(crate) fn apply_dock_visibility(app: &tauri::AppHandle, show: bool) {
     }
 }
 
+// macOS tints the tray icon to the menu bar automatically via the template
+// image (`icon_as_template`), so the glyph is always the inverse of the bar.
+// Linux/Windows don't template, so we mirror that behavior by hand: pick a
+// black or white version of the glyph to contrast the status bar, and swap it
+// whenever the OS light/dark theme changes.
+#[cfg(not(target_os = "macos"))]
+fn tray_icon_for_theme(theme: tauri::Theme) -> tauri::Result<tauri::image::Image<'static>> {
+    // Dark bar → white glyph; light bar → black glyph (both have the waveform
+    // bars knocked out, so the bar shows through them either way).
+    let bytes: &[u8] = match theme {
+        tauri::Theme::Dark => include_bytes!("../icons/tray-light.png"),
+        _ => include_bytes!("../icons/tray.png"),
+    };
+    tauri::image::Image::from_bytes(bytes)
+}
+
+/// Set the tray icon to match `theme`. No-op on macOS, where the template image
+/// already auto-inverts to the menu bar.
+#[allow(unused_variables)]
+fn apply_tray_theme(app: &tauri::AppHandle, theme: tauri::Theme) {
+    #[cfg(not(target_os = "macos"))]
+    if let Some(tray) = app.tray_by_id("main") {
+        if let Ok(icon) = tray_icon_for_theme(theme) {
+            let _ = tray.set_icon(Some(icon));
+        }
+    }
+}
+
+/// The OS light/dark theme as reported by the main window (falls back to dark,
+/// the common default for Linux panels and Windows taskbars).
+fn current_os_theme(app: &tauri::AppHandle) -> tauri::Theme {
+    app.get_webview_window("main")
+        .and_then(|w| w.theme().ok())
+        .unwrap_or(tauri::Theme::Dark)
+}
+
 /// Build the tray menu: Home, Check for Updates, Paste Last Transcription, a
 /// Microphone submenu (one checkable entry per input device, the active one
 /// checked), and Quit. Rebuilt whenever the mic selection changes so the check
@@ -804,6 +840,10 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            // Match the tray glyph to the current OS theme (no-op on macOS,
+            // which templates the icon itself).
+            apply_tray_theme(&handle, current_os_theme(&handle));
+
             // Register the hotkey. Press/release are fed through the gesture
             // controller, which supports both hold-to-talk and double-tap
             // hands-free recording.
@@ -811,14 +851,20 @@ pub fn run() {
                 .map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
 
             // Closing the main window hides it instead of quitting — the app
-            // keeps running in the tray. Only the tray's Quit item exits.
+            // keeps running in the tray. Only the tray's Quit item exits. We
+            // also watch for OS light/dark changes here to re-tint the tray.
             if let Some(main) = app.get_webview_window("main") {
                 let main_for_close = main.clone();
-                main.on_window_event(move |event| {
-                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let theme_handle = handle.clone();
+                main.on_window_event(move |event| match event {
+                    tauri::WindowEvent::CloseRequested { api, .. } => {
                         api.prevent_close();
                         let _ = main_for_close.hide();
                     }
+                    tauri::WindowEvent::ThemeChanged(theme) => {
+                        apply_tray_theme(&theme_handle, *theme);
+                    }
+                    _ => {}
                 });
             }
 
