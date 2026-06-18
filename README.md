@@ -73,15 +73,15 @@ until you press your hotkey.
 
 ## Why OpenWispr
 
-| | OpenWispr | Typical cloud dictation |
-| --- | --- | --- |
-| **Where audio goes** | Stays on your device | Uploaded to a server |
-| **Account required** | No | Usually yes |
-| **Cost** | Free &amp; open source (MIT) | Subscription |
-| **Works offline** | Yes | No |
-| **Telemetry** | None | Common |
-| **Languages** | 99 (Whisper) | Varies |
-| **Customizable** | Source is yours | Closed |
+|                      | OpenWispr                    | Typical cloud dictation |
+| -------------------- | ---------------------------- | ----------------------- |
+| **Where audio goes** | Stays on your device         | Uploaded to a server    |
+| **Account required** | No                           | Usually yes             |
+| **Cost**             | Free &amp; open source (MIT) | Subscription            |
+| **Works offline**    | Yes                          | No                      |
+| **Telemetry**        | None                         | Common                  |
+| **Languages**        | 99 (Whisper)                 | Varies                  |
+| **Customizable**     | Source is yours              | Closed                  |
 
 ## ✨ Features
 
@@ -142,9 +142,9 @@ Grab the installer for your platform from the
 
 OpenWispr needs OS-level permissions to hear you and to type for you:
 
-| Permission | Why | Where |
-| --- | --- | --- |
-| **Microphone** | Capture your voice | macOS/Win/Linux prompt on first record |
+| Permission                | Why                                                    | Where                                                    |
+| ------------------------- | ------------------------------------------------------ | -------------------------------------------------------- |
+| **Microphone**            | Capture your voice                                     | macOS/Win/Linux prompt on first record                   |
 | **Accessibility** (macOS) | Insert text into other apps and read the global hotkey | System Settings → Privacy & Security → **Accessibility** |
 
 On macOS, after an app **update** the system can occasionally drop the
@@ -170,22 +170,22 @@ inserting after an update, re-enable it under Accessibility (see
 
 Everything is in **Settings**, persisted to a local `config.toml`:
 
-| Setting | What it does |
-| --- | --- |
-| **Hotkey** | Click to capture any combo, or a lone modifier (`Option`/`Ctrl`/`Shift`). |
-| **Model** | Active Whisper model; manage downloads here. |
-| **Language** | Transcription language, or auto-detect. |
-| **Interface language** | UI, tray, and error-message language (15 options). |
-| **Microphone** | Input device, or system default. |
-| **Injection mode** | `type` (synthetic keystrokes) or `paste` (clipboard). |
-| **Dictionary** | Bias words so names/jargon transcribe correctly. |
-| **Replacements** | `from → to` rewrites applied to every transcript. |
-| **Dictation sounds** | Start/stop audio cues. |
-| **Mute music** | Duck other audio while recording. |
-| **Show pill** | Keep the floating pill on screen, or hide until dictating. |
-| **Show in Dock** | Toggle Dock icon vs. menu-bar-only (macOS). |
-| **Launch at login** | Start OpenWispr automatically. |
-| **Theme** | Light or dark. |
+| Setting                | What it does                                                              |
+| ---------------------- | ------------------------------------------------------------------------- |
+| **Hotkey**             | Click to capture any combo, or a lone modifier (`Option`/`Ctrl`/`Shift`). |
+| **Model**              | Active Whisper model; manage downloads here.                              |
+| **Language**           | Transcription language, or auto-detect.                                   |
+| **Interface language** | UI, tray, and error-message language (15 options).                        |
+| **Microphone**         | Input device, or system default.                                          |
+| **Injection mode**     | `type` (synthetic keystrokes) or `paste` (clipboard).                     |
+| **Dictionary**         | Bias words so names/jargon transcribe correctly.                          |
+| **Replacements**       | `from → to` rewrites applied to every transcript.                         |
+| **Dictation sounds**   | Start/stop audio cues.                                                    |
+| **Mute music**         | Duck other audio while recording.                                         |
+| **Show pill**          | Keep the floating pill on screen, or hide until dictating.                |
+| **Show in Dock**       | Toggle Dock icon vs. menu-bar-only (macOS).                               |
+| **Launch at login**    | Start OpenWispr automatically.                                            |
+| **Theme**              | Light or dark.                                                            |
 
 ## 🧠 Models
 
@@ -321,6 +321,7 @@ Grant **Accessibility** permission (macOS: System Settings → Privacy & Securit
 Accessibility) so OpenWispr can type into other apps. After a macOS update the
 grant can reset — toggle OpenWispr off and on in that list. As a fallback, switch
 the **injection mode** to **paste** in Settings.
+
 </details>
 
 <details>
@@ -329,6 +330,7 @@ the **injection mode** to **paste** in Settings.
 Allow **Microphone** access when prompted (or in your OS privacy settings), and
 make sure the right input device is selected in **Settings → Microphone**. On
 macOS, a permission can need re-granting right after installing or updating.
+
 </details>
 
 <details>
@@ -337,6 +339,7 @@ macOS, a permission can need re-granting right after installing or updating.
 Use a smaller model (**base** or **small**), or **large-v3-turbo** for a good
 speed/accuracy trade-off. On Apple Silicon, Metal acceleration is enabled
 automatically.
+
 </details>
 
 <details>
@@ -344,6 +347,7 @@ automatically.
 
 Right-click the app → **Open**, then confirm. Builds are ad-hoc signed; this is a
 one-time step.
+
 </details>
 
 ## 🤝 Contributing
@@ -361,4 +365,4 @@ feature ideas are great as [issues](https://github.com/hudsonbrendon/openwispr/i
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp) and OpenAI's Whisper for on-device speech recognition
 - [Tauri](https://tauri.app) for the native cross-platform shell
 - Everyone who tests OpenWispr and files issues
-</content>
+  </content>
