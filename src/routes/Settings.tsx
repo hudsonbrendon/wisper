@@ -213,7 +213,8 @@ export default function Settings() {
       if (e.metaKey) mods.push("Super");
       setCaptureHint(
         mods.length
-          ? mods.join("+") + "+ … (add a key, or release for that modifier alone)"
+          ? mods.join("+") +
+              "+ … (add a key, or release for that modifier alone)"
           : "Press a key or hold a modifier…",
       );
     };
