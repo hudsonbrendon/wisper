@@ -25,7 +25,12 @@ pub fn bottom_center(
 /// coordinates are physical px: `win_pos` is the window's top-left, `win_size`
 /// its size. Used to decide whether the click-through overlay should currently
 /// capture the cursor (over the pill/menu) or pass it through (empty space).
-pub fn point_in_band(cursor: (f64, f64), win_pos: (f64, f64), win_size: (f64, f64), band: f64) -> bool {
+pub fn point_in_band(
+    cursor: (f64, f64),
+    win_pos: (f64, f64),
+    win_size: (f64, f64),
+    band: f64,
+) -> bool {
     let (cx, cy) = cursor;
     let (wx, wy) = win_pos;
     let (ww, wh) = win_size;
