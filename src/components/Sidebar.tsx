@@ -193,7 +193,7 @@ export default function Sidebar({
           onClick={() => onNavigate("settings")}
         />
         <a
-          href="https://github.com/hudsonbrendon/wisper.chat"
+          href="https://github.com/99labdev/wisper.chat"
           target="_blank"
           rel="noreferrer"
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition-colors hover:bg-stone-200/40 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100"

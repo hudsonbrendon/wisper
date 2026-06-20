@@ -14,7 +14,7 @@ dev environment running and the checks your change needs to pass.
 ## Getting started
 
 ```bash
-git clone https://github.com/hudsonbrendon/wisper.chat
+git clone https://github.com/99labdev/wisper.chat
 cd wisper.chat
 pnpm install
 pnpm tauri dev      # run the app with hot reload

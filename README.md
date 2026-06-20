@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/hudsonbrendon/wisper.chat/releases/latest">Download</a> ·
+  <a href="https://github.com/99labdev/wisper.chat/releases/latest">Download</a> ·
   <a href="#-quick-start">Quick start</a> ·
   <a href="#-build-from-source">Build from source</a> ·
   <a href="#-troubleshooting">Troubleshooting</a> ·
@@ -24,15 +24,15 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/hudsonbrendon/wisper.chat/actions/workflows/ci.yml"><img src="https://github.com/hudsonbrendon/wisper.chat/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://codecov.io/gh/hudsonbrendon/wisper.chat"><img src="https://codecov.io/gh/hudsonbrendon/wisper.chat/branch/main/graph/badge.svg" alt="Coverage"></a>
-  <a href="https://github.com/hudsonbrendon/wisper.chat/releases/latest"><img src="https://img.shields.io/github/v/release/hudsonbrendon/wisper.chat?sort=semver" alt="Latest release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/hudsonbrendon/wisper.chat" alt="License"></a>
+  <a href="https://github.com/99labdev/wisper.chat/actions/workflows/ci.yml"><img src="https://github.com/99labdev/wisper.chat/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/99labdev/wisper.chat"><img src="https://codecov.io/gh/99labdev/wisper.chat/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://github.com/99labdev/wisper.chat/releases/latest"><img src="https://img.shields.io/github/v/release/99labdev/wisper.chat?sort=semver" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/99labdev/wisper.chat" alt="License"></a>
   <img src="https://img.shields.io/badge/built%20with-Tauri-24C8DB?logo=tauri&logoColor=white" alt="Built with Tauri">
   <img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-blue" alt="Platforms">
-  <a href="https://github.com/hudsonbrendon/wisper.chat/commits/main"><img src="https://img.shields.io/github/last-commit/hudsonbrendon/wisper.chat" alt="Last commit"></a>
-  <a href="https://github.com/hudsonbrendon/wisper.chat/issues"><img src="https://img.shields.io/github/issues/hudsonbrendon/wisper.chat" alt="Open issues"></a>
-  <a href="https://github.com/hudsonbrendon/wisper.chat/stargazers"><img src="https://img.shields.io/github/stars/hudsonbrendon/wisper.chat?style=flat" alt="Stars"></a>
+  <a href="https://github.com/99labdev/wisper.chat/commits/main"><img src="https://img.shields.io/github/last-commit/99labdev/wisper.chat" alt="Last commit"></a>
+  <a href="https://github.com/99labdev/wisper.chat/issues"><img src="https://img.shields.io/github/issues/99labdev/wisper.chat" alt="Open issues"></a>
+  <a href="https://github.com/99labdev/wisper.chat/stargazers"><img src="https://img.shields.io/github/stars/99labdev/wisper.chat?style=flat" alt="Stars"></a>
 </p>
 
 ---
@@ -113,7 +113,7 @@ until you press your hotkey.
 
 ## 🚀 Quick start
 
-1. [Download](https://github.com/hudsonbrendon/wisper.chat/releases/latest) and
+1. [Download](https://github.com/99labdev/wisper.chat/releases/latest) and
    install for your OS.
 2. Launch it and complete the short onboarding.
 3. Grant **Microphone** (and on macOS, **Accessibility**) permission — see
@@ -125,7 +125,7 @@ until you press your hotkey.
 ## 📥 Install
 
 Grab the installer for your platform from the
-[latest release](https://github.com/hudsonbrendon/wisper.chat/releases/latest):
+[latest release](https://github.com/99labdev/wisper.chat/releases/latest):
 
 | Platform                          | Asset                |
 | --------------------------------- | -------------------- |
@@ -247,7 +247,7 @@ focus from the app you're typing into.
 [Tauri system dependencies](https://tauri.app/start/prerequisites/) for your OS.
 
 ```bash
-git clone https://github.com/hudsonbrendon/wisper.chat.git
+git clone https://github.com/99labdev/wisper.chat.git
 cd wisper.chat
 pnpm install
 pnpm tauri dev      # run in development
@@ -354,7 +354,7 @@ one-time step.
 
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md), keep
 changes focused, and run the checks above before opening a PR. Bug reports and
-feature ideas are great as [issues](https://github.com/hudsonbrendon/wisper.chat/issues).
+feature ideas are great as [issues](https://github.com/99labdev/wisper.chat/issues).
 
 ## 📄 License
 
