@@ -39,6 +39,10 @@ tauri-plugin-autostart = "2"
 [target."cfg(target_os = \"macos\")".dependencies]
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2" }
 libc = "0.2"
+# After dictation, resign the overlay panel's key window so keyboard focus
+# returns to the app the user dictated into (a trailing Enter then lands in the
+# field, not the pill). Needs NSWindow's orderOut/orderFrontRegardless.
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSWindow"] }
 # Metal GPU acceleration for Whisper on Apple Silicon — slashes transcription
 # latency vs the CPU build (the default `WhisperContextParameters` then enables
 # the GPU via the `_gpu` feature the `metal` feature turns on).
