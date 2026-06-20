@@ -149,7 +149,7 @@ mod tests {
             dictation_sounds: false,
             mute_music: true,
             onboarded: true,
-            dictionary: vec!["Wisp".to_string()],
+            dictionary: vec!["Wisper".to_string()],
             replacements: vec![Replacement {
                 from: "my email".to_string(),
                 to: "me@example.com".to_string(),

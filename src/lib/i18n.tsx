@@ -110,7 +110,7 @@ const en: Dict = {
   "settings.cleared": "Cleared ✓",
   "settings.system": "System",
   "settings.launchAtLogin": "Launch at login",
-  "settings.launchAtLoginHint": "Open Wisp automatically when you log in.",
+  "settings.launchAtLoginHint": "Open Wisper automatically when you log in.",
   "settings.showInDock": "Show in Dock",
   "settings.showInDockHint":
     "Show the app icon in the Dock. Off = menu bar only.",
@@ -130,7 +130,7 @@ const en: Dict = {
     "Reset all settings and clear history? The app will restart.",
   "confirm.reset.title": "Reset app?",
   "confirm.reset.message":
-    "This restores default settings, clears your history, and restarts Wisp.",
+    "This restores default settings, clears your history, and restarts Wisper.",
   "confirm.clearHistory.title": "Clear history?",
   "confirm.clearHistory.message":
     "This permanently deletes all of your transcription history.",
@@ -172,8 +172,8 @@ const en: Dict = {
   "onboarding.skip": "Skip",
   "onboarding.back": "Back",
   "onboarding.next": "Continue",
-  "onboarding.finish": "Start using Wisp",
-  "onboarding.welcome.title": "Welcome to Wisp",
+  "onboarding.finish": "Start using Wisper",
+  "onboarding.welcome.title": "Welcome to Wisper",
   "onboarding.welcome.body":
     "Dictate anywhere with a hotkey. Your voice is transcribed on-device and typed into whatever app you're using — no cloud, no account.",
   "onboarding.hotkey.title": "Pick your dictation hotkey",
@@ -194,7 +194,7 @@ const en: Dict = {
   "onboarding.practice.body":
     "Click into the box below, then hold {hotkey} and say a sentence. Release to watch your words appear — just like in a real app.",
   "onboarding.practice.suggest":
-    "Try: “This is my first dictation with Wisp.”",
+    "Try: “This is my first dictation with Wisper.”",
   "onboarding.practice.success":
     "Nice — that's exactly how it works everywhere.",
   "onboarding.practice.hint":
@@ -294,7 +294,7 @@ const pt: Dict = {
   "settings.system": "Sistema",
   "settings.launchAtLogin": "Iniciar no login",
   "settings.launchAtLoginHint":
-    "Abre o Wisp automaticamente ao ligar o computador.",
+    "Abre o Wisper automaticamente ao ligar o computador.",
   "settings.showInDock": "Mostrar no Dock",
   "settings.showInDockHint":
     "Mostra o ícone do app no Dock. Desligado = só na barra de menus.",
@@ -313,7 +313,7 @@ const pt: Dict = {
     "Resetar todas as configurações e limpar o histórico? O app vai reiniciar.",
   "confirm.reset.title": "Resetar o app?",
   "confirm.reset.message":
-    "Isto restaura as configurações padrão, limpa o histórico e reinicia o Wisp.",
+    "Isto restaura as configurações padrão, limpa o histórico e reinicia o Wisper.",
   "confirm.clearHistory.title": "Limpar histórico?",
   "confirm.clearHistory.message":
     "Isto apaga permanentemente todo o seu histórico de transcrições.",
@@ -354,8 +354,8 @@ const pt: Dict = {
   "onboarding.skip": "Pular",
   "onboarding.back": "Voltar",
   "onboarding.next": "Continuar",
-  "onboarding.finish": "Começar a usar o Wisp",
-  "onboarding.welcome.title": "Bem-vindo ao Wisp",
+  "onboarding.finish": "Começar a usar o Wisper",
+  "onboarding.welcome.title": "Bem-vindo ao Wisper",
   "onboarding.welcome.body":
     "Dite em qualquer lugar com um atalho. Sua voz é transcrita no próprio dispositivo e digitada no app que você estiver usando — sem nuvem, sem conta.",
   "onboarding.hotkey.title": "Escolha seu atalho de ditado",
@@ -376,7 +376,7 @@ const pt: Dict = {
   "onboarding.practice.body":
     "Clique no campo abaixo, segure {hotkey} e fale uma frase. Solte e veja o texto aparecer — igual a um app de verdade.",
   "onboarding.practice.suggest":
-    "Tente: “Este é meu primeiro ditado com o Wisp.”",
+    "Tente: “Este é meu primeiro ditado com o Wisper.”",
   "onboarding.practice.success":
     "Boa — é exatamente assim que funciona em todo lugar.",
   "onboarding.practice.hint":

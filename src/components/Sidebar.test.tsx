@@ -51,9 +51,9 @@ describe("Sidebar", () => {
     mockGetVersion.mockResolvedValue("0.1.0");
   });
 
-  it("renders the Wisp brand name", () => {
+  it("renders the Wisper brand name", () => {
     renderSidebar();
-    expect(screen.getByText("Wisp")).toBeInTheDocument();
+    expect(screen.getByText("Wisper")).toBeInTheDocument();
   });
 
   it("renders all primary navigation buttons", () => {
