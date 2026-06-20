@@ -89,11 +89,7 @@ mod tests {
 
     #[test]
     fn dictionary_prompt_joins_and_trims() {
-        let words = vec![
-            "  Wisper ".to_string(),
-            "".to_string(),
-            "Tauri".to_string(),
-        ];
+        let words = vec!["  Wisper ".to_string(), "".to_string(), "Tauri".to_string()];
         assert_eq!(dictionary_prompt(&words), "Wisper, Tauri");
         assert_eq!(dictionary_prompt(&[]), "");
     }

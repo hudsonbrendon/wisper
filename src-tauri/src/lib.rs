@@ -219,8 +219,8 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
                         }
                     }
                     transition(&app_inj, SmEvent::InjectionDone); // -> Idle
-                    // Re-showing the pill above grabbed the key window back; hand
-                    // it to the dictation target so a trailing Enter goes there.
+                                                                  // Re-showing the pill above grabbed the key window back; hand
+                                                                  // it to the dictation target so a trailing Enter goes there.
                     return_key_to_target(&app_inj);
                 });
                 if dispatched.is_err() {
