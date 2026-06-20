@@ -4,7 +4,7 @@
 //
 // Requires the base.en model at /tmp/ggml-base.en.bin (downloaded in Task 5).
 
-use openwispr_lib::stt::Transcriber;
+use wisper_lib::stt::Transcriber;
 
 #[test]
 #[ignore]

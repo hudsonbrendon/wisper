@@ -529,7 +529,7 @@ fn heal_permissions_if_updated(data_dir: &std::path::Path) {
     }
     for service in ["Microphone", "Accessibility"] {
         let _ = std::process::Command::new("tccutil")
-            .args(["reset", service, "com.hudsonbrendon.openwispr"])
+            .args(["reset", service, "chat.wisper"])
             .status();
     }
     let _ = std::fs::create_dir_all(data_dir);

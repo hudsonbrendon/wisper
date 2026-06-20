@@ -169,14 +169,14 @@ mod tests {
 
     #[test]
     fn load_returns_default_when_missing() {
-        let dir = std::env::temp_dir().join("openwispr_test_missing_cfg");
+        let dir = std::env::temp_dir().join("wisper_test_missing_cfg");
         let _ = std::fs::remove_dir_all(&dir);
         assert_eq!(load(&dir), Config::default());
     }
 
     #[test]
     fn save_then_load_round_trips() {
-        let dir = std::env::temp_dir().join("openwispr_test_save_load");
+        let dir = std::env::temp_dir().join("wisper_test_save_load");
         let _ = std::fs::remove_dir_all(&dir);
         let cfg = Config {
             language: "pt".to_string(),

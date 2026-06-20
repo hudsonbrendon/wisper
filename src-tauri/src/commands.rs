@@ -120,7 +120,7 @@ pub fn reset_microphone() {
     #[cfg(target_os = "macos")]
     {
         let _ = std::process::Command::new("tccutil")
-            .args(["reset", "Microphone", "com.hudsonbrendon.openwispr"])
+            .args(["reset", "Microphone", "chat.wisper"])
             .status();
         std::thread::spawn(crate::audio::prompt_microphone_access);
     }
