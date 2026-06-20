@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "OpenWispr",
+  "productName": "Wisper",
   "version": "1.0.8",
   "identifier": "com.hudsonbrendon.openwispr",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "OpenWispr",
+        "title": "Wisper",
         "width": 1080,
         "height": 760,
         "minWidth": 760,
@@ -54,7 +54,7 @@
     ],
     "macOS": {
       "minimumSystemVersion": "11.0",
-      "signingIdentity": "OpenWispr Dev",
+      "signingIdentity": "Wisper Dev",
       "entitlements": "Entitlements.plist"
     }
   },

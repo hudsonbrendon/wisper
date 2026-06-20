@@ -25,7 +25,7 @@ const CONFIG = {
   dictation_sounds: true,
   mute_music: false,
   onboarded: true,
-  dictionary: ["OpenWispr"],
+  dictionary: ["Wisper"],
   replacements: [],
 };
 
@@ -46,22 +46,22 @@ describe("Dictionary", () => {
 
   it("lists existing words", async () => {
     renderDict();
-    expect(await screen.findByText("OpenWispr")).toBeInTheDocument();
+    expect(await screen.findByText("Wisper")).toBeInTheDocument();
   });
 
   it("adds a word via the Add button and saves", async () => {
     renderDict();
-    await screen.findByText("OpenWispr");
+    await screen.findByText("Wisper");
     await userEvent.type(screen.getByPlaceholderText(/add a word/i), "Tauri");
     await userEvent.click(screen.getByRole("button", { name: /add/i }));
     expect(mockSaveConfig).toHaveBeenCalledWith(
-      expect.objectContaining({ dictionary: ["OpenWispr", "Tauri"] }),
+      expect.objectContaining({ dictionary: ["Wisper", "Tauri"] }),
     );
   });
 
   it("removes a word and saves", async () => {
     renderDict();
-    const chip = await screen.findByText("OpenWispr");
+    const chip = await screen.findByText("Wisper");
     const removeBtn = chip.parentElement!.querySelector("button")!;
     await userEvent.click(removeBtn);
     expect(mockSaveConfig).toHaveBeenCalledWith(

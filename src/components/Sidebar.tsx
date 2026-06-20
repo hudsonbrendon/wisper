@@ -152,7 +152,7 @@ export default function Sidebar({
           <line x1="19" y1="14" x2="19" y2="10" />
         </svg>
         <span className="text-[15px] font-semibold tracking-tight text-stone-900">
-          OpenWispr
+          Wisper
         </span>
       </div>
 

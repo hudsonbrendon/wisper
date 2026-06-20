@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/logo.png" alt="OpenWispr" width="180">
+  <img src="assets/logo.png" alt="Wisper" width="180">
 </p>
 
-<h1 align="center">OpenWispr</h1>
+<h1 align="center">Wisper</h1>
 
 <p align="center">
   <strong>Open-source, local-first voice dictation for your desktop.</strong><br>
@@ -40,7 +40,7 @@
 ## Contents
 
 - [What it is](#what-it-is)
-- [Why OpenWispr](#why-openwispr)
+- [Why Wisper](#why-openwispr)
 - [Features](#-features)
 - [Quick start](#-quick-start)
 - [Install](#-install)
@@ -62,7 +62,7 @@
 
 ## What it is
 
-OpenWispr is a free, open alternative to cloud dictation tools like Wispr Flow.
+Wisper is a free, open alternative to cloud dictation tools like Wispr Flow.
 Everything runs on your machine — **no cloud, no account, no telemetry, no
 subscription**. Your audio never leaves your computer; transcription happens
 entirely on-device via [whisper.cpp](https://github.com/ggerganov/whisper.cpp),
@@ -71,9 +71,9 @@ with Metal GPU acceleration on Apple Silicon.
 It lives in your system tray as a small floating "pill" and stays out of the way
 until you press your hotkey.
 
-## Why OpenWispr
+## Why Wisper
 
-|                      | OpenWispr                    | Typical cloud dictation |
+|                      | Wisper                    | Typical cloud dictation |
 | -------------------- | ---------------------------- | ----------------------- |
 | **Where audio goes** | Stays on your device         | Uploaded to a server    |
 | **Account required** | No                           | Usually yes             |
@@ -140,7 +140,7 @@ Grab the installer for your platform from the
 
 ## 🔐 Permissions
 
-OpenWispr needs OS-level permissions to hear you and to type for you:
+Wisper needs OS-level permissions to hear you and to type for you:
 
 | Permission                | Why                                                    | Where                                                    |
 | ------------------------- | ------------------------------------------------------ | -------------------------------------------------------- |
@@ -148,7 +148,7 @@ OpenWispr needs OS-level permissions to hear you and to type for you:
 | **Accessibility** (macOS) | Insert text into other apps and read the global hotkey | System Settings → Privacy & Security → **Accessibility** |
 
 On macOS, after an app **update** the system can occasionally drop the
-Accessibility grant. OpenWispr detects this and re-prompts; if text stops
+Accessibility grant. Wisper detects this and re-prompts; if text stops
 inserting after an update, re-enable it under Accessibility (see
 [Troubleshooting](#-troubleshooting)).
 
@@ -164,7 +164,7 @@ inserting after an update, re-enable it under Accessibility (see
    - **Push-to-talk** — hold the hotkey, speak, release.
    - **Hands-free** — double-tap the hotkey to start, single-press to stop.
 5. The floating pill shows recording state and a quick language switcher. Closing
-   the main window keeps OpenWispr running in the tray.
+   the main window keeps Wisper running in the tray.
 
 ## ⚙️ Configuration
 
@@ -184,7 +184,7 @@ Everything is in **Settings**, persisted to a local `config.toml`:
 | **Mute music**         | Duck other audio while recording.                                         |
 | **Show pill**          | Keep the floating pill on screen, or hide until dictating.                |
 | **Show in Dock**       | Toggle Dock icon vs. menu-bar-only (macOS).                               |
-| **Launch at login**    | Start OpenWispr automatically.                                            |
+| **Launch at login**    | Start Wisper automatically.                                            |
 | **Theme**              | Light or dark.                                                            |
 
 ## 🧠 Models
@@ -300,7 +300,7 @@ openwispr/
 
 ## 🔄 Updates & releases
 
-OpenWispr updates itself: it checks GitHub Releases and applies signed
+Wisper updates itself: it checks GitHub Releases and applies signed
 over-the-air updates in the background.
 
 For maintainers, pushing a `v*` tag triggers the
@@ -318,8 +318,8 @@ git push origin v1.0.0
 <summary><strong>It records but no text is inserted</strong></summary>
 
 Grant **Accessibility** permission (macOS: System Settings → Privacy & Security →
-Accessibility) so OpenWispr can type into other apps. After a macOS update the
-grant can reset — toggle OpenWispr off and on in that list. As a fallback, switch
+Accessibility) so Wisper can type into other apps. After a macOS update the
+grant can reset — toggle Wisper off and on in that list. As a fallback, switch
 the **injection mode** to **paste** in Settings.
 
 </details>
@@ -364,5 +364,5 @@ feature ideas are great as [issues](https://github.com/hudsonbrendon/openwispr/i
 
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp) and OpenAI's Whisper for on-device speech recognition
 - [Tauri](https://tauri.app) for the native cross-platform shell
-- Everyone who tests OpenWispr and files issues
+- Everyone who tests Wisper and files issues
   </content>
