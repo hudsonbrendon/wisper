@@ -65,7 +65,7 @@ mod tests {
 
     #[test]
     fn replaces_case_insensitively() {
-        let out = apply_replacements("Call OPENWISPR now", &[r("openwispr", "Wisper")]);
+        let out = apply_replacements("Call WISPER now", &[r("wisper", "Wisper")]);
         assert_eq!(out, "Call Wisper now");
     }
 

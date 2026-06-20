@@ -3,7 +3,7 @@
 (function () {
   "use strict";
 
-  var REPO = "hudsonbrendon/openwispr";
+  var REPO = "hudsonbrendon/wisper.chat";
   var FALLBACK_VERSION = "1.0.0";
 
   var reduceMotion =
