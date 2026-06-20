@@ -219,6 +219,9 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
                         }
                     }
                     transition(&app_inj, SmEvent::InjectionDone); // -> Idle
+                    // Re-showing the pill above grabbed the key window back; hand
+                    // it to the dictation target so a trailing Enter goes there.
+                    return_key_to_target(&app_inj);
                 });
                 if dispatched.is_err() {
                     transition(&app, SmEvent::InjectionDone); // -> Idle (never stick)
@@ -272,6 +275,35 @@ fn convert_overlay_to_panel(app: &tauri::AppHandle) {
 
 #[cfg(not(target_os = "macos"))]
 fn convert_overlay_to_panel(_app: &tauri::AppHandle) {}
+
+/// Hand the key window back to the app the user dictated into, after injection.
+///
+/// The overlay is a non-activating `NSPanel`, but `tauri-nspanel` hard-codes
+/// `canBecomeKeyWindow = YES`, so every time the pill is shown it grabs the key
+/// window. The target app stays *frontmost* (we paste straight to its PID), yet
+/// the pill owns the keyboard — so a trailing Enter goes to the pill and the
+/// user has to click the field again. Ordering the panel out resigns its key
+/// status, which AppKit hands to the frontmost app (the dictation target). When
+/// the pill is pinned we re-show it with `orderFrontRegardless`, which makes it
+/// visible again *without* taking the key window back. Must run on the main
+/// thread (AppKit). Best-effort.
+#[cfg(target_os = "macos")]
+fn return_key_to_target(app: &tauri::AppHandle) {
+    use objc2_app_kit::NSWindow;
+    let pinned = app.state::<AppState>().config.lock().unwrap().show_pill;
+    if let Some(overlay) = app.get_webview_window("overlay") {
+        if let Ok(ptr) = overlay.ns_window() {
+            let win: &NSWindow = unsafe { &*ptr.cast::<NSWindow>() };
+            win.orderOut(None);
+            if pinned {
+                win.orderFrontRegardless();
+            }
+        }
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn return_key_to_target(_app: &tauri::AppHandle) {}
 
 /// Anchor the pill bottom-center above the Dock/taskbar, then show it.
 fn place_and_show_overlay(app: &tauri::AppHandle) {
