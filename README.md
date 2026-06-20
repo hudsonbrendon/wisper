@@ -73,7 +73,7 @@ until you press your hotkey.
 
 ## Why Wisper
 
-|                      | Wisper                    | Typical cloud dictation |
+|                      | Wisper                       | Typical cloud dictation |
 | -------------------- | ---------------------------- | ----------------------- |
 | **Where audio goes** | Stays on your device         | Uploaded to a server    |
 | **Account required** | No                           | Usually yes             |
@@ -184,7 +184,7 @@ Everything is in **Settings**, persisted to a local `config.toml`:
 | **Mute music**         | Duck other audio while recording.                                         |
 | **Show pill**          | Keep the floating pill on screen, or hide until dictating.                |
 | **Show in Dock**       | Toggle Dock icon vs. menu-bar-only (macOS).                               |
-| **Launch at login**    | Start Wisper automatically.                                            |
+| **Launch at login**    | Start Wisper automatically.                                               |
 | **Theme**              | Light or dark.                                                            |
 
 ## 🧠 Models
