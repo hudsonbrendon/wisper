@@ -107,7 +107,7 @@ describe("Dashboard", () => {
 
   it("renders the sidebar brand name", async () => {
     renderDashboard();
-    expect(await screen.findByText("OpenWispr")).toBeInTheDocument();
+    expect(await screen.findByText("Wisp")).toBeInTheDocument();
   });
 
   it("renders the Home view by default", async () => {

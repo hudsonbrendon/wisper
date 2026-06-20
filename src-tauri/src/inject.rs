@@ -95,8 +95,8 @@ fn ensure_accessibility_trusted() -> Result<(), String> {
         // user can fix it in one click instead of hunting through settings.
         accessibility::prompt();
         Err(
-            "Grant Accessibility permission to OpenWispr (System Settings → \
-             Privacy & Security → Accessibility). If OpenWispr is already \
+            "Grant Accessibility permission to Wisp (System Settings → \
+             Privacy & Security → Accessibility). If Wisp is already \
              listed and enabled, toggle it off and on — the previous build's \
              permission goes stale after an update."
                 .to_string(),

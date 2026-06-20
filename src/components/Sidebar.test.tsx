@@ -51,9 +51,9 @@ describe("Sidebar", () => {
     mockGetVersion.mockResolvedValue("0.1.0");
   });
 
-  it("renders the OpenWispr brand name", () => {
+  it("renders the Wisp brand name", () => {
     renderSidebar();
-    expect(screen.getByText("OpenWispr")).toBeInTheDocument();
+    expect(screen.getByText("Wisp")).toBeInTheDocument();
   });
 
   it("renders all primary navigation buttons", () => {

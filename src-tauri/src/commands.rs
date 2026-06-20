@@ -67,7 +67,7 @@ pub fn save_config(
     Ok(())
 }
 
-/// Enable/disable launching OpenWispr at login (managed by the autostart plugin,
+/// Enable/disable launching Wisp at login (managed by the autostart plugin,
 /// not stored in our config).
 #[tauri::command]
 pub fn set_launch_at_login(app: AppHandle, enabled: bool) -> Result<(), String> {
@@ -76,7 +76,7 @@ pub fn set_launch_at_login(app: AppHandle, enabled: bool) -> Result<(), String> 
     if enabled { mgr.enable() } else { mgr.disable() }.map_err(|e| e.to_string())
 }
 
-/// Whether OpenWispr is set to launch at login.
+/// Whether Wisp is set to launch at login.
 #[tauri::command]
 pub fn get_launch_at_login(app: AppHandle) -> bool {
     use tauri_plugin_autostart::ManagerExt;

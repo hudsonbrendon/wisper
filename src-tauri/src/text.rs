@@ -65,8 +65,8 @@ mod tests {
 
     #[test]
     fn replaces_case_insensitively() {
-        let out = apply_replacements("Call OPENWISPR now", &[r("openwispr", "OpenWispr")]);
-        assert_eq!(out, "Call OpenWispr now");
+        let out = apply_replacements("Call OPENWISPR now", &[r("openwispr", "Wisp")]);
+        assert_eq!(out, "Call Wisp now");
     }
 
     #[test]
@@ -90,11 +90,11 @@ mod tests {
     #[test]
     fn dictionary_prompt_joins_and_trims() {
         let words = vec![
-            "  OpenWispr ".to_string(),
+            "  Wisp ".to_string(),
             "".to_string(),
             "Tauri".to_string(),
         ];
-        assert_eq!(dictionary_prompt(&words), "OpenWispr, Tauri");
+        assert_eq!(dictionary_prompt(&words), "Wisp, Tauri");
         assert_eq!(dictionary_prompt(&[]), "");
     }
 }
