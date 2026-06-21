@@ -1,7 +1,7 @@
 //! Core Audio process-tap capture (macOS 14.4+).
 //!
 //! Ported from insidegui/AudioCap (MIT, `AudioCap/ProcessTap/ProcessTap.swift`
-//! + `CoreAudioUtils.swift`) and Apple's "Capturing system audio with Core Audio
+//! and `CoreAudioUtils.swift`) and Apple's "Capturing system audio with Core Audio
 //! taps" sample. This is the 14.4+ path: a Core Audio *process tap* over the
 //! whole-system mix wired into a private *aggregate device*, whose IO proc copies
 //! interleaved f32 PCM into a shared buffer (mirroring `audio::Recorder` and the
