@@ -41,6 +41,7 @@ type Dict = Record<string, string>;
 const en: Dict = {
   "nav.home": "Home",
   "nav.insights": "Insights",
+  "nav.meetings": "Meetings",
   "nav.dictionary": "Dictionary",
   "nav.snippets": "Snippets",
   "dictionary.empty": "No words yet. Add names or jargon Whisper should know.",
@@ -223,6 +224,7 @@ const en: Dict = {
 const pt: Dict = {
   "nav.home": "Início",
   "nav.insights": "Insights",
+  "nav.meetings": "Reuniões",
   "nav.dictionary": "Dicionário",
   "nav.snippets": "Snippets",
   "dictionary.empty":

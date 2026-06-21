@@ -3,7 +3,7 @@ import { useI18n } from "../lib/i18n";
 import { getTheme, setTheme, type Theme } from "../lib/theme";
 import UpdateControl from "./UpdateControl";
 
-export type View = "home" | "insights" | "dictionary" | "snippets" | "settings";
+export type View = "home" | "insights" | "meetings" | "dictionary" | "snippets" | "settings";
 
 /// Inline SVGs keep the bundle dependency-free. Each takes the current text
 /// color via `stroke="currentColor"`, so active/inactive styling is just text
@@ -22,6 +22,11 @@ const icons: Record<string, ReactNode> = {
       <line x1="5" y1="20" x2="5" y2="12" />
       <line x1="12" y1="20" x2="12" y2="4" />
       <line x1="19" y1="20" x2="19" y2="9" />
+    </>
+  ),
+  meetings: (
+    <>
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
     </>
   ),
   dictionary: (
@@ -169,6 +174,12 @@ export default function Sidebar({
           label={t("nav.insights")}
           active={view === "insights"}
           onClick={() => onNavigate("insights")}
+        />
+        <NavButton
+          icon="meetings"
+          label={t("nav.meetings")}
+          active={view === "meetings"}
+          onClick={() => onNavigate("meetings")}
         />
         <NavButton
           icon="dictionary"
