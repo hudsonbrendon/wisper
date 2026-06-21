@@ -11,8 +11,12 @@ use tauri::{AppHandle, Emitter};
 /// Frame size for VAD at 16 kHz / 30 ms.
 const VAD_FRAME: usize = 480;
 const FRAME_MS: u64 = 30;
-/// ~2 frames (~60 ms) of silence closes a segment.
-const MIN_SILENCE_FRAMES: usize = 2;
+/// ~20 frames (~600 ms) of silence closes a segment. Long enough that a segment
+/// is a whole phrase, not a single word: Whisper transcribes a complete phrase
+/// far more accurately than isolated word-fragments cut on the 60 ms gaps
+/// between words. Short within-phrase pauses are bridged, so this doesn't split
+/// sentences.
+const MIN_SILENCE_FRAMES: usize = 20;
 /// How often the loop wakes to pull audio.
 const TICK_MS: u64 = 1000;
 /// Minimum speech length to transcribe live (~0.4 s @ 16 kHz). Whisper
