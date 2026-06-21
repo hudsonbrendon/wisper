@@ -47,6 +47,9 @@ objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std"
 # latency vs the CPU build (the default `WhisperContextParameters` then enables
 # the GPU via the `_gpu` feature the `metal` feature turns on).
 whisper-rs = { version = "0.16.0", features = ["metal"] }
+# System-audio capture for meeting transcription on macOS 13.0–14.3. The
+# `macos_13_0` feature gates the audio-capture FFI (system audio is 13.0+).
+screencapturekit = { version = "8.0.0", features = ["macos_13_0"] }
 
 [target."cfg(not(target_os = \"macos\"))".dependencies]
 whisper-rs = "0.16.0"
