@@ -66,6 +66,7 @@ objc2-foundation = { version = "0.3", default-features = false, features = ["std
 # callback only `push_slice`es into the producer (no lock, no alloc); a consumer
 # off the RT thread drains it into the full-take accumulator.
 ringbuf = "0.4"
+webrtc-vad = "0.4"
 
 [target."cfg(not(target_os = \"macos\"))".dependencies]
 whisper-rs = "0.16.0"
