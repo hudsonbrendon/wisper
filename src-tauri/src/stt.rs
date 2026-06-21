@@ -1,5 +1,12 @@
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct SttSegment {
+    pub start_ms: u64,
+    pub end_ms: u64,
+    pub text: String,
+}
+
 /// Loads a Whisper ggml model and transcribes 16 kHz mono f32 audio.
 pub struct Transcriber {
     ctx: WhisperContext,

@@ -5,6 +5,7 @@ mod history;
 mod hotkey;
 mod inject;
 mod model_manager;
+mod meetings;
 #[cfg(target_os = "macos")]
 mod modtap;
 mod overlay;
