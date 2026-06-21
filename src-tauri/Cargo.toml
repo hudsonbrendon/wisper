@@ -50,6 +50,18 @@ whisper-rs = { version = "0.16.0", features = ["metal"] }
 # System-audio capture for meeting transcription on macOS 13.0–14.3. The
 # `macos_13_0` feature gates the audio-capture FFI (system audio is 13.0+).
 screencapturekit = { version = "8.0.0", features = ["macos_13_0"] }
+# Core Audio process-tap capture for meeting transcription on macOS 14.4+
+# (`sysaudio::catap`). `coreaudio-sys` provides the aggregate-device + IO-proc
+# FFI and all the property/key constants; the newer process-tap symbols
+# (`AudioHardwareCreateProcessTap`/`DestroyProcessTap`) and the `CATapDescription`
+# Objective-C class are not in its bindings, so `catap` hand-declares those few
+# externs and builds the description via the objc2 runtime. `core-foundation`
+# builds the aggregate-device CFDictionary; `block2` builds the IO `AudioDeviceIOBlock`.
+coreaudio-sys = "0.2.18"
+core-foundation = "0.10.1"
+objc2 = "0.6"
+block2 = "0.6"
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSArray", "NSString", "NSDictionary", "NSUUID", "NSObject"] }
 
 [target."cfg(not(target_os = \"macos\"))".dependencies]
 whisper-rs = "0.16.0"
