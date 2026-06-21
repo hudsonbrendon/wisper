@@ -84,6 +84,51 @@ export type DownloadProgressPayload = {
   total: number;
 };
 
+export interface MeetingSegment {
+  speaker: "me" | "them";
+  start_ms: number;
+  end_ms: number;
+  text: string;
+}
+
+export interface Meeting {
+  id: string;
+  title: string;
+  started_ms: number;
+  duration_ms: number;
+  language: string;
+  partial: boolean;
+  segments: MeetingSegment[];
+}
+
+export interface MeetingSummary {
+  id: string;
+  title: string;
+  started_ms: number;
+  duration_ms: number;
+  language: string;
+  partial: boolean;
+}
+
+export const startMeeting = () => invoke<void>("start_meeting");
+export const stopMeeting = () => invoke<void>("stop_meeting");
+export const cancelMeeting = () => invoke<void>("cancel_meeting");
+export const getMeetingState = () => invoke<string>("get_meeting_state");
+export const listMeetings = () => invoke<MeetingSummary[]>("list_meetings");
+export const getMeeting = (id: string) => invoke<Meeting | null>("get_meeting", { id });
+export const deleteMeeting = (id: string) => invoke<void>("delete_meeting", { id });
+export const renameMeeting = (id: string, title: string) =>
+  invoke<void>("rename_meeting", { id, title });
+export const meetingSupported = () => invoke<boolean>("meeting_supported");
+export const checkSystemAudioPermission = () =>
+  invoke<boolean>("check_system_audio_permission");
+export const requestSystemAudioPermission = () =>
+  invoke<void>("request_system_audio_permission");
+export const openSystemAudioSettings = () => invoke<void>("open_system_audio_settings");
+
+export type MeetingStatePayload = { state: string };
+export type MeetingSavedPayload = { id: string };
+
 export const onEvent = <T>(
   name: string,
   handler: (payload: T) => void,
