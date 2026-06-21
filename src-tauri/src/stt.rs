@@ -7,6 +7,15 @@ pub struct SttSegment {
     pub text: String,
 }
 
+/// Convert a Whisper (t0, t1) timestamp pair in centiseconds to (start_ms,
+/// end_ms), clamping negatives to 0 and guaranteeing end_ms >= start_ms
+/// (Whisper occasionally emits inverted times for leading-silence segments).
+fn segment_times_ms(t0_cs: i64, t1_cs: i64) -> (u64, u64) {
+    let start = t0_cs.max(0) as u64 * 10;
+    let end = (t1_cs.max(0) as u64 * 10).max(start);
+    (start, end)
+}
+
 /// Loads a Whisper ggml model and transcribes 16 kHz mono f32 audio.
 pub struct Transcriber {
     ctx: WhisperContext,
@@ -111,8 +120,7 @@ impl Transcriber {
                 .ok_or_else(|| format!("segment {i} out of bounds"))?;
             let text = seg.to_str().map_err(|e| format!("segment text: {e}"))?;
             // start_timestamp()/end_timestamp() are i64 centiseconds.
-            let t0 = seg.start_timestamp().max(0) as u64 * 10;
-            let t1 = seg.end_timestamp().max(0) as u64 * 10;
+            let (t0, t1) = segment_times_ms(seg.start_timestamp(), seg.end_timestamp());
             out.push(SttSegment {
                 start_ms: t0,
                 end_ms: t1,
@@ -120,5 +128,20 @@ impl Transcriber {
             });
         }
         Ok(out)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn segment_times_clamp_negatives_and_inversions() {
+        assert_eq!(segment_times_ms(0, 0), (0, 0));
+        assert_eq!(segment_times_ms(5, 12), (50, 120));
+        // inverted: end must not be < start
+        assert_eq!(segment_times_ms(30, 10), (300, 300));
+        // negative start clamps to 0
+        assert_eq!(segment_times_ms(-1, 5), (0, 50));
     }
 }
