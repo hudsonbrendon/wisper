@@ -257,6 +257,126 @@ pub(crate) fn cancel_recording(app: &tauri::AppHandle) {
     transition(app, SmEvent::Cancel); // -> Idle
 }
 
+/// Start a meeting recording and show the bubble. Returns an error string the
+/// frontend surfaces (no model, no permission, unsupported OS, device busy).
+pub(crate) fn start_meeting(app: &tauri::AppHandle) -> Result<(), String> {
+    let st = app.state::<AppState>();
+    if st.transcriber.lock().unwrap().is_none() {
+        return Err("no_model".to_string());
+    }
+    if st.meeting.lock().unwrap().is_some() {
+        return Err("already_recording".to_string());
+    }
+    let mic_device = st.config.lock().unwrap().mic_device.clone();
+    let started_ms = now_ms();
+    let rec = crate::meeting::MeetingRecorder::start(mic_device.as_deref(), started_ms)?;
+    *st.meeting.lock().unwrap() = Some(rec);
+
+    place_and_show_meeting_bubble(app);
+    let _ = app.emit("meeting_state", serde_json::json!({ "state": "recording" }));
+
+    // Live level ticker for the bubble meter.
+    let app2 = app.clone();
+    std::thread::spawn(move || loop {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        let st = app2.state::<AppState>();
+        let guard = st.meeting.lock().unwrap();
+        match guard.as_ref() {
+            Some(rec) => {
+                let _ = app2.emit("meeting_level", serde_json::json!({ "level": rec.level() }));
+            }
+            None => break,
+        }
+    });
+    Ok(())
+}
+
+/// Stop the meeting, transcribe + save off the UI thread, hide the bubble, and
+/// emit `meeting_saved` with the new id when done.
+pub(crate) fn stop_meeting(app: &tauri::AppHandle) {
+    let rec = match app.state::<AppState>().meeting.lock().unwrap().take() {
+        Some(r) => r,
+        None => return,
+    };
+    if let Some(w) = app.get_webview_window("meeting-bubble") {
+        let _ = w.hide();
+    }
+    let _ = app.emit("meeting_state", serde_json::json!({ "state": "transcribing" }));
+
+    let app = app.clone();
+    std::thread::spawn(move || {
+        let (language, prompt, data_dir) = {
+            let st = app.state::<AppState>();
+            let c = st.config.lock().unwrap();
+            (
+                c.language.clone(),
+                text::dictionary_prompt(&c.dictionary),
+                st.data_dir.clone(),
+            )
+        };
+        let meeting = {
+            let st = app.state::<AppState>();
+            let guard = st.transcriber.lock().unwrap();
+            match guard.as_ref() {
+                Some(t) => rec.stop(t, &language, &prompt),
+                None => {
+                    let _ = app.emit("error", serde_json::json!({ "message": "no_model" }));
+                    let _ = app.emit("meeting_state", serde_json::json!({ "state": "idle" }));
+                    return;
+                }
+            }
+        };
+        if let Err(e) = meetings::save(&data_dir, &meeting) {
+            eprintln!("meeting save failed: {e}");
+        }
+        let _ = app.emit("meeting_state", serde_json::json!({ "state": "idle" }));
+        let _ = app.emit("meeting_saved", serde_json::json!({ "id": meeting.id }));
+    });
+}
+
+/// Discard the in-progress meeting without transcribing.
+pub(crate) fn cancel_meeting(app: &tauri::AppHandle) {
+    if let Some(rec) = app.state::<AppState>().meeting.lock().unwrap().take() {
+        rec.cancel();
+    }
+    if let Some(w) = app.get_webview_window("meeting-bubble") {
+        let _ = w.hide();
+    }
+    let _ = app.emit("meeting_state", serde_json::json!({ "state": "idle" }));
+}
+
+/// Epoch milliseconds now.
+fn now_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+/// Place the meeting bubble at the top-center of the current monitor and show it.
+fn place_and_show_meeting_bubble(app: &tauri::AppHandle) {
+    if let Some(win) = app.get_webview_window("meeting-bubble") {
+        let monitor = win
+            .current_monitor()
+            .ok()
+            .flatten()
+            .or_else(|| win.primary_monitor().ok().flatten());
+        if let Some(mon) = monitor {
+            let pos = mon.position();
+            let size = mon.size();
+            let w = win.outer_size().unwrap_or(tauri::PhysicalSize::new(280, 64));
+            let (x, y) = overlay::top_center(
+                (pos.x, pos.y),
+                (size.width, size.height),
+                (w.width, w.height),
+                24,
+            );
+            let _ = win.set_position(tauri::PhysicalPosition::new(x, y));
+        }
+        let _ = win.show();
+    }
+}
+
 /// Convert the overlay window to a non-activating NSPanel (macOS only). The
 /// NonActivatingPanel style mask (1 << 7) lets it receive clicks without
 /// activating the app, and `becomesKeyOnlyIfNeeded` keeps it from grabbing the
@@ -828,6 +948,7 @@ pub fn run() {
                 machine: Mutex::new(State::Idle),
                 transcriber: Mutex::new(transcriber),
                 recorder: Mutex::new(None),
+                meeting: Mutex::new(None),
                 config_dir,
                 data_dir,
                 cancels: Mutex::new(std::collections::HashSet::new()),
@@ -951,6 +1072,19 @@ pub fn run() {
             commands::prompt_accessibility,
             commands::reset_microphone,
             commands::open_privacy_settings,
+            commands::start_meeting,
+            commands::stop_meeting,
+            commands::cancel_meeting,
+            commands::meeting_level,
+            commands::get_meeting_state,
+            commands::list_meetings,
+            commands::get_meeting,
+            commands::delete_meeting,
+            commands::rename_meeting,
+            commands::meeting_supported,
+            commands::check_system_audio_permission,
+            commands::request_system_audio_permission,
+            commands::open_system_audio_settings,
             set_ui_language,
         ])
         .build(tauri::generate_context!())

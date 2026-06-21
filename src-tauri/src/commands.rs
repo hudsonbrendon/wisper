@@ -18,6 +18,9 @@ pub struct AppState {
     pub transcriber: Mutex<Option<Transcriber>>,
     /// Active recorder while in Recording state.
     pub recorder: Mutex<Option<crate::audio::Recorder>>,
+    /// Active meeting recording, independent of the dictation state machine so
+    /// hotkey dictation keeps working alongside it.
+    pub meeting: Mutex<Option<crate::meeting::MeetingRecorder>>,
     pub config_dir: PathBuf,
     pub data_dir: PathBuf,
     /// Model ids with a pending cancel request. The download loop checks this
@@ -301,4 +304,104 @@ pub fn set_language(
 #[tauri::command]
 pub fn set_pill_expanded(app: AppHandle, expanded: bool) {
     crate::set_overlay_expanded(&app, expanded);
+}
+
+/// Start a meeting recording from the UI. Errors as a code string ("no_model",
+/// "already_recording", or a capture error) the frontend maps to a message.
+#[tauri::command]
+pub fn start_meeting(app: AppHandle) -> Result<(), String> {
+    crate::start_meeting(&app)
+}
+
+#[tauri::command]
+pub fn stop_meeting(app: AppHandle) {
+    crate::stop_meeting(&app);
+}
+
+#[tauri::command]
+pub fn cancel_meeting(app: AppHandle) {
+    crate::cancel_meeting(&app);
+}
+
+#[tauri::command]
+pub fn meeting_level(state: tauri::State<AppState>) -> f32 {
+    state
+        .meeting
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|r| r.level())
+        .unwrap_or(0.0)
+}
+
+#[tauri::command]
+pub fn get_meeting_state(state: tauri::State<AppState>) -> String {
+    let recording = state.meeting.lock().unwrap().is_some();
+    if recording { "recording" } else { "idle" }.to_string()
+}
+
+#[tauri::command]
+pub fn list_meetings(state: tauri::State<AppState>) -> Vec<crate::meetings::MeetingSummary> {
+    crate::meetings::list(&state.data_dir)
+}
+
+#[tauri::command]
+pub fn get_meeting(state: tauri::State<AppState>, id: String) -> Option<crate::meetings::Meeting> {
+    crate::meetings::get(&state.data_dir, &id)
+}
+
+#[tauri::command]
+pub fn delete_meeting(state: tauri::State<AppState>, id: String) -> Result<(), String> {
+    crate::meetings::delete(&state.data_dir, &id).map_err(|e| format!("delete meeting: {e}"))
+}
+
+#[tauri::command]
+pub fn rename_meeting(
+    state: tauri::State<AppState>,
+    id: String,
+    title: String,
+) -> Result<(), String> {
+    crate::meetings::rename(&state.data_dir, &id, &title).map_err(|e| format!("rename meeting: {e}"))
+}
+
+/// Whether this OS can capture system audio at all (macOS 13+).
+#[tauri::command]
+pub fn meeting_supported() -> bool {
+    match crate::sysaudio::macos_version() {
+        Some(v) => crate::sysaudio::pick_backend(v) != crate::sysaudio::Backend::Unsupported,
+        None => false,
+    }
+}
+
+/// Has the user granted the screen/audio capture permission? Best-effort probe:
+/// we attempt a capture start and immediately stop it; success = granted.
+#[tauri::command]
+pub fn check_system_audio_permission() -> bool {
+    match crate::sysaudio::start_system_capture() {
+        Ok(cap) => {
+            let _ = cap.stop();
+            true
+        }
+        Err(_) => false,
+    }
+}
+
+/// Trigger the OS permission prompt by attempting a capture (which makes
+/// CoreAudio/ScreenCaptureKit hit the TCC gate), then stop it.
+#[tauri::command]
+pub fn request_system_audio_permission() {
+    if let Ok(cap) = crate::sysaudio::start_system_capture() {
+        let _ = cap.stop();
+    }
+}
+
+/// Open the macOS privacy pane for screen recording (covers both SCK and the
+/// audio-capture entitlement surfaces).
+#[tauri::command]
+pub fn open_system_audio_settings() {
+    #[cfg(target_os = "macos")]
+    {
+        let url = "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture";
+        let _ = std::process::Command::new("open").arg(url).spawn();
+    }
 }
