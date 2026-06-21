@@ -72,4 +72,53 @@ impl Transcriber {
         }
         Ok(out.trim().to_string())
     }
+
+    /// Like `transcribe`, but returns per-segment text with start/end times.
+    /// Whisper reports segment times in centiseconds (1/100 s); convert to ms.
+    /// Used by meeting transcription to interleave the mic and system streams.
+    pub fn transcribe_segments(
+        &self,
+        samples: &[f32],
+        language: &str,
+        prompt: &str,
+    ) -> Result<Vec<SttSegment>, String> {
+        let mut state = self
+            .ctx
+            .create_state()
+            .map_err(|e| format!("create whisper state: {e}"))?;
+
+        let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
+        if language != "auto" {
+            params.set_language(Some(language));
+        }
+        if !prompt.is_empty() {
+            params.set_initial_prompt(prompt);
+        }
+        params.set_print_progress(false);
+        params.set_print_realtime(false);
+        params.set_print_special(false);
+        params.set_print_timestamps(false);
+
+        state
+            .full(params, samples)
+            .map_err(|e| format!("whisper full: {e}"))?;
+
+        let num_segments = state.full_n_segments();
+        let mut out = Vec::with_capacity(num_segments as usize);
+        for i in 0..num_segments {
+            let seg = state
+                .get_segment(i)
+                .ok_or_else(|| format!("segment {i} out of bounds"))?;
+            let text = seg.to_str().map_err(|e| format!("segment text: {e}"))?;
+            // start_timestamp()/end_timestamp() are i64 centiseconds.
+            let t0 = seg.start_timestamp().max(0) as u64 * 10;
+            let t1 = seg.end_timestamp().max(0) as u64 * 10;
+            out.push(SttSegment {
+                start_ms: t0,
+                end_ms: t1,
+                text: text.trim().to_string(),
+            });
+        }
+        Ok(out)
+    }
 }
