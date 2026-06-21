@@ -54,7 +54,7 @@
     ],
     "macOS": {
       "minimumSystemVersion": "11.0",
-      "signingIdentity": "Wisper Dev",
+      "signingIdentity": "OpenWispr Dev",
       "entitlements": "Entitlements.plist"
     }
   },
