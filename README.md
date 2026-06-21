@@ -110,7 +110,7 @@ until you press your hotkey.
 - 🚀 **Launch at login** and optional **menu-bar-only** (hide the Dock icon).
 - 🌗 **Light & dark theme.**
 - 🔄 **Automatic updates** — signed over-the-air updates via GitHub Releases.
-- 🗓️ **Meeting transcription** *(macOS 13+)* — record a meeting capturing your
+- 🗓️ **Meeting transcription** _(macOS 13+)_ — record a meeting capturing your
   mic (**You**) and system audio (**Participants**) simultaneously; a floating
   recording bubble with a pulsing indicator and live timer sits at the top of
   your screen while the meeting runs. When you stop, Wisper transcribes
@@ -150,10 +150,10 @@ Grab the installer for your platform from the
 
 Wisper needs OS-level permissions to hear you and to type for you:
 
-| Permission                | Why                                                    | Where                                                    |
-| ------------------------- | ------------------------------------------------------ | -------------------------------------------------------- |
-| **Microphone**            | Capture your voice                                     | macOS/Win/Linux prompt on first record                   |
-| **Accessibility** (macOS) | Insert text into other apps and read the global hotkey | System Settings → Privacy & Security → **Accessibility** |
+| Permission                                       | Why                                                              | Where                                                                                                                            |
+| ------------------------------------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Microphone**                                   | Capture your voice                                               | macOS/Win/Linux prompt on first record                                                                                           |
+| **Accessibility** (macOS)                        | Insert text into other apps and read the global hotkey           | System Settings → Privacy & Security → **Accessibility**                                                                         |
 | **Screen Recording / Audio Capture** (macOS 13+) | Capture system audio (Participants) during meeting transcription | macOS 13–14.3: System Settings → Privacy & Security → **Screen Recording**; macOS 14.4+: prompted automatically on first meeting |
 
 On macOS, after an app **update** the system can occasionally drop the

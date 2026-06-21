@@ -24,6 +24,7 @@
 ## File Structure
 
 **Rust (novos):**
+
 - `src-tauri/src/meetings.rs` — structs `Meeting`/`Segment`/`MeetingSummary`, CRUD em `meetings/<id>.json`, e `merge_segments()`. Puro/testável.
 - `src-tauri/src/meeting.rs` — `MeetingRecorder`: orquestra mic + sistema, `stop()` transcreve+mescla+salva. macOS-gated.
 - `src-tauri/src/sysaudio/mod.rs` — trait `SystemAudioCapturer`, `macos_version()`, `pick_backend()`, `start_system_capture()`.
@@ -32,6 +33,7 @@
 - `src-tauri/Info.plist` — usage descriptions de áudio/tela.
 
 **Rust (modificados):**
+
 - `src-tauri/src/stt.rs` — `SttSegment` + `transcribe_segments()`.
 - `src-tauri/src/overlay.rs` — `top_center()` (posiciona o bubble).
 - `src-tauri/src/commands.rs` — `AppState.meeting`, comandos de meeting/permissão.
@@ -41,11 +43,13 @@
 - `src-tauri/Entitlements.plist` — entitlement de captura.
 
 **Frontend (novos):**
+
 - `src/routes/Meetings.tsx` — lista + botão "Iniciar reunião".
 - `src/routes/MeetingDetail.tsx` — transcrição, renomear, copiar, exportar, deletar.
 - `src/routes/MeetingBubble.tsx` — janela bubble.
 
 **Frontend (modificados):**
+
 - `src/lib/api.ts` — wrappers + tipos.
 - `src/components/Sidebar.tsx` (+ `Sidebar.test.tsx`) — item `meetings`.
 - `src/routes/Dashboard.tsx` — view `meetings`.
@@ -59,10 +63,12 @@
 Persistência pura, espelhando o estilo de `history.rs`. ID = `started_ms` decimal.
 
 **Files:**
+
 - Create: `src-tauri/src/meetings.rs`
 - Modify: `src-tauri/src/lib.rs:1-14` (declarar `mod meetings;`)
 
 **Interfaces:**
+
 - Produces:
   - `struct Segment { speaker: String, start_ms: u64, end_ms: u64, text: String }` (serde, Clone, PartialEq, Debug)
   - `struct Meeting { id: String, title: String, started_ms: u64, duration_ms: u64, language: String, partial: bool, segments: Vec<Segment> }`
@@ -369,10 +375,12 @@ git commit -m "feat(meetings): local meeting storage and segment merge"
 Extende o transcritor para devolver segmentos com timestamps, sem tocar no `transcribe()` do ditado.
 
 **Files:**
+
 - Modify: `src-tauri/src/stt.rs`
 - Test: `src-tauri/tests/stt_integration.rs`
 
 **Interfaces:**
+
 - Consumes: `WhisperState::get_segment(i)` → `Option<WhisperSegment>`; `WhisperSegment::to_str()`, `::start_timestamp()`, `::end_timestamp()` (i64, centésimos de segundo).
 - Produces:
   - `struct SttSegment { start_ms: u64, end_ms: u64, text: String }` (Clone, PartialEq, Debug)
@@ -501,9 +509,11 @@ git commit -m "feat(stt): transcribe_segments with per-segment timestamps"
 Função pura para ancorar o bubble no topo-centro (a pill de ditado já fica embaixo).
 
 **Files:**
+
 - Modify: `src-tauri/src/overlay.rs`
 
 **Interfaces:**
+
 - Produces: `fn top_center(mon_pos: (i32,i32), mon_size: (u32,u32), win: (u32,u32), top_margin: i32) -> (i32, i32)`
 
 - [ ] **Step 1: Write the failing test**
@@ -576,10 +586,12 @@ git commit -m "feat(overlay): top_center geometry for the meeting bubble"
 Trait + seleção de backend por versão do macOS. Lógica de seleção é pura/testável; os impls nativos chegam nas Tasks 5–6 (aqui ficam por trás de uma função que erra "não implementado" até lá).
 
 **Files:**
+
 - Create: `src-tauri/src/sysaudio/mod.rs`
 - Modify: `src-tauri/src/lib.rs` (garantir `mod sysaudio;`)
 
 **Interfaces:**
+
 - Produces:
   - `trait SystemAudioCapturer: Send { fn level(&self) -> f32; fn stop(self: Box<Self>) -> (Vec<f32>, u32, u16); }`
   - `enum Backend { Catap, ScreenCaptureKit, Unsupported }`
@@ -738,12 +750,14 @@ git commit -m "feat(sysaudio): capture trait + runtime backend selection"
 **Nativo — verificação manual.** Captura de áudio do sistema via ScreenCaptureKit (macOS 13–14.3). Não é unit-testável (precisa de áudio real do SO + permissão de Gravação de Tela). Implementa o trait com a crate `screencapturekit`.
 
 **Files:**
+
 - Modify: `src-tauri/Cargo.toml` (dependência macOS `screencapturekit`)
 - Modify: `src-tauri/src/sysaudio/screencapturekit.rs`
 - Create: `src-tauri/Info.plist`
 - Modify: `src-tauri/Entitlements.plist`
 
 **Interfaces:**
+
 - Produces: `screencapturekit::start() -> Result<Box<dyn SystemAudioCapturer>, String>` (impl concreta de `SystemAudioCapturer`)
 
 - [ ] **Step 1: Add the crate**
@@ -785,6 +799,7 @@ Em `src-tauri/Entitlements.plist`, garanta (dentro do `<dict>`) o entitlement de
 - [ ] **Step 3: Implement the SCK capturer**
 
 Substitua `src-tauri/src/sysaudio/screencapturekit.rs` por uma impl que:
+
 1. monta um `SCContentFilter` para o display principal (captura todo o mix de saída),
 2. configura `SCStreamConfiguration` com `captures_audio = true` e exclui o próprio processo,
 3. registra um handler de output de áudio que faz append das amostras f32 num `Arc<Mutex<Vec<f32>>>` (mesmo padrão de `audio.rs`),
@@ -908,10 +923,12 @@ git commit -m "feat(sysaudio): ScreenCaptureKit system-audio backend (macOS 13-1
 **Nativo — verificação manual.** Caminho principal em macOS 14.4+. FFI cru de Core Audio (`AudioHardwareCreateProcessTap` + aggregate device), portado da implementação de referência **insidegui/AudioCap** (https://github.com/insidegui/AudioCap) e do sample oficial da Apple (https://developer.apple.com/documentation/CoreAudio/capturing-system-audio-with-core-audio-taps). Não é unit-testável.
 
 **Files:**
+
 - Modify: `src-tauri/Cargo.toml` (deps Core Audio FFI no bloco macOS)
 - Modify: `src-tauri/src/sysaudio/catap.rs`
 
 **Interfaces:**
+
 - Produces: `catap::start() -> Result<Box<dyn SystemAudioCapturer>, String>` (impl concreta de `SystemAudioCapturer`)
 
 - [ ] **Step 1: Add Core Audio FFI deps**
@@ -1028,10 +1045,12 @@ git commit -m "feat(sysaudio): Core Audio process-tap backend (macOS 14.4+)"
 Junta mic + sistema, e no `stop()` transcreve os dois, mescla e monta o `Meeting`. A parte de duração é pura/testável; a orquestração é verificada via a UI (Task 14).
 
 **Files:**
+
 - Create/replace: `src-tauri/src/meeting.rs`
 - Modify: `src-tauri/src/lib.rs` (garantir `mod meeting;`)
 
 **Interfaces:**
+
 - Consumes: `audio::Recorder`, `audio::to_mono`, `audio::resample_to_16k`, `sysaudio::start_system_capture`, `sysaudio::SystemAudioCapturer`, `stt::Transcriber::transcribe_segments`, `meetings::{Meeting, merge_segments, default_title}`.
 - Produces:
   - `struct MeetingRecorder`
@@ -1182,10 +1201,12 @@ git commit -m "feat(meeting): MeetingRecorder orchestrates mic + system capture"
 Expõe os comandos Tauri e o estado da reunião. Orquestração verificada via UI.
 
 **Files:**
+
 - Modify: `src-tauri/src/commands.rs` (campo em `AppState` + comandos)
 - Modify: `src-tauri/src/lib.rs` (funções `start/stop/cancel_meeting`, registro no `invoke_handler`)
 
 **Interfaces:**
+
 - Consumes: `meeting::MeetingRecorder`, `meetings::{list, get, delete, rename, Meeting, MeetingSummary}`, `sysaudio::{macos_version, pick_backend, Backend}`.
 - Produces (comandos): `start_meeting`, `stop_meeting`, `cancel_meeting`, `meeting_level`, `get_meeting_state`, `list_meetings`, `get_meeting`, `delete_meeting`, `rename_meeting`, `meeting_supported`, `check_system_audio_permission`, `request_system_audio_permission`, `open_system_audio_settings`.
 
@@ -1481,11 +1502,13 @@ git commit -m "feat(meeting): tauri commands and meeting state wiring"
 Janela flutuante de gravação. Verificação manual (UI nativa).
 
 **Files:**
+
 - Modify: `src-tauri/tauri.conf.json` (janela `meeting-bubble`)
 - Create: `src/routes/MeetingBubble.tsx`
 - Modify: `src/App.tsx` (rota por label)
 
 **Interfaces:**
+
 - Consumes (eventos backend): `meeting_level` `{level:number}`, `meeting_state` `{state:string}`. Comandos: `stop_meeting`, `cancel_meeting`.
 
 - [ ] **Step 1: Declare the bubble window**
@@ -1514,17 +1537,17 @@ Em `src-tauri/tauri.conf.json`, no array `app.windows`, adicione após o objeto 
 Em `src/App.tsx`, troque a linha de render condicional por:
 
 ```tsx
-  return (
-    <I18nProvider>
-      {label === "overlay" ? (
-        <Overlay />
-      ) : label === "meeting-bubble" ? (
-        <MeetingBubble />
-      ) : (
-        <Dashboard />
-      )}
-    </I18nProvider>
-  );
+return (
+  <I18nProvider>
+    {label === "overlay" ? (
+      <Overlay />
+    ) : label === "meeting-bubble" ? (
+      <MeetingBubble />
+    ) : (
+      <Dashboard />
+    )}
+  </I18nProvider>
+);
 ```
 
 E adicione o import no topo:
@@ -1552,7 +1575,9 @@ export default function MeetingBubble() {
   const [seconds, setSeconds] = useState(0);
 
   useEffect(() => {
-    const un = onEvent<{ level: number }>("meeting_level", (p) => setLevel(p.level));
+    const un = onEvent<{ level: number }>("meeting_level", (p) =>
+      setLevel(p.level),
+    );
     const tick = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => {
       un.then((f) => f());
@@ -1569,7 +1594,10 @@ export default function MeetingBubble() {
       <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
       <span className="font-mono text-sm tabular-nums">{`${mm}:${ss}`}</span>
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-stone-700">
-        <div className="h-full bg-emerald-400 transition-[width] duration-100" style={{ width: `${barWidth}%` }} />
+        <div
+          className="h-full bg-emerald-400 transition-[width] duration-100"
+          style={{ width: `${barWidth}%` }}
+        />
       </div>
       <button
         type="button"
@@ -1602,9 +1630,11 @@ git commit -m "feat(meeting): floating recording bubble window"
 ## Task 10: Frontend API wrappers (`api.ts`)
 
 **Files:**
+
 - Modify: `src/lib/api.ts`
 
 **Interfaces:**
+
 - Produces: tipos `MeetingSummary`, `Meeting`, `MeetingSegment` + funções `startMeeting`, `stopMeeting`, `cancelMeeting`, `getMeetingState`, `listMeetings`, `getMeeting`, `deleteMeeting`, `renameMeeting`, `meetingSupported`, `checkSystemAudioPermission`, `requestSystemAudioPermission`, `openSystemAudioSettings`.
 
 - [ ] **Step 1: Add types and wrappers**
@@ -1643,8 +1673,10 @@ export const stopMeeting = () => invoke<void>("stop_meeting");
 export const cancelMeeting = () => invoke<void>("cancel_meeting");
 export const getMeetingState = () => invoke<string>("get_meeting_state");
 export const listMeetings = () => invoke<MeetingSummary[]>("list_meetings");
-export const getMeeting = (id: string) => invoke<Meeting | null>("get_meeting", { id });
-export const deleteMeeting = (id: string) => invoke<void>("delete_meeting", { id });
+export const getMeeting = (id: string) =>
+  invoke<Meeting | null>("get_meeting", { id });
+export const deleteMeeting = (id: string) =>
+  invoke<void>("delete_meeting", { id });
 export const renameMeeting = (id: string, title: string) =>
   invoke<void>("rename_meeting", { id, title });
 export const meetingSupported = () => invoke<boolean>("meeting_supported");
@@ -1652,7 +1684,8 @@ export const checkSystemAudioPermission = () =>
   invoke<boolean>("check_system_audio_permission");
 export const requestSystemAudioPermission = () =>
   invoke<void>("request_system_audio_permission");
-export const openSystemAudioSettings = () => invoke<void>("open_system_audio_settings");
+export const openSystemAudioSettings = () =>
+  invoke<void>("open_system_audio_settings");
 
 export type MeetingStatePayload = { state: string };
 export type MeetingSavedPayload = { id: string };
@@ -1677,10 +1710,12 @@ git commit -m "feat(api): meeting command wrappers and types"
 Tem teste (`Sidebar.test.tsx`) — TDD de verdade.
 
 **Files:**
+
 - Modify: `src/components/Sidebar.tsx`
 - Test: `src/components/Sidebar.test.tsx`
 
 **Interfaces:**
+
 - Consumes: tipo `View` (estende para incluir `"meetings"`).
 - Produces: `View = "home" | "insights" | "meetings" | "dictionary" | "snippets" | "settings"`.
 
@@ -1694,13 +1729,13 @@ Use o mesmo helper de render/i18n dos testes existentes ao escrever o novo caso.
 Adicione um caso a `src/components/Sidebar.test.tsx` (ajuste o `import`/render ao padrão do arquivo):
 
 ```tsx
-  it("renders the Meetings nav item and navigates to it", async () => {
-    const onNavigate = vi.fn();
-    render(<Sidebar view="home" onNavigate={onNavigate} />);
-    const btn = await screen.findByText("Meetings");
-    fireEvent.click(btn);
-    expect(onNavigate).toHaveBeenCalledWith("meetings");
-  });
+it("renders the Meetings nav item and navigates to it", async () => {
+  const onNavigate = vi.fn();
+  render(<Sidebar view="home" onNavigate={onNavigate} />);
+  const btn = await screen.findByText("Meetings");
+  fireEvent.click(btn);
+  expect(onNavigate).toHaveBeenCalledWith("meetings");
+});
 ```
 
 > Se o i18n de teste devolver a chave em vez de "Meetings", busque pela chave `nav.meetings`. Combine com como os outros casos buscam os labels.
@@ -1717,7 +1752,13 @@ Em `src/components/Sidebar.tsx`:
 (a) Estenda o tipo `View`:
 
 ```tsx
-export type View = "home" | "insights" | "meetings" | "dictionary" | "snippets" | "settings";
+export type View =
+  | "home"
+  | "insights"
+  | "meetings"
+  | "dictionary"
+  | "snippets"
+  | "settings";
 ```
 
 (b) Adicione um ícone ao mapa `icons` (ex.: um balão de fala):
@@ -1733,12 +1774,12 @@ export type View = "home" | "insights" | "meetings" | "dictionary" | "snippets" 
 (c) Adicione o `NavButton` na `<nav>` primária, após o de `insights`:
 
 ```tsx
-        <NavButton
-          icon="meetings"
-          label={t("nav.meetings")}
-          active={view === "meetings"}
-          onClick={() => onNavigate("meetings")}
-        />
+<NavButton
+  icon="meetings"
+  label={t("nav.meetings")}
+  active={view === "meetings"}
+  onClick={() => onNavigate("meetings")}
+/>
 ```
 
 - [ ] **Step 5: Run the test to verify it passes**
@@ -1760,10 +1801,12 @@ git commit -m "feat(sidebar): Meetings navigation entry"
 Lista as reuniões salvas e inicia novas. Verificação por build + manual.
 
 **Files:**
+
 - Create: `src/routes/Meetings.tsx`
 - Modify: `src/routes/Dashboard.tsx` (renderiza a view `meetings`)
 
 **Interfaces:**
+
 - Consumes: `listMeetings`, `startMeeting`, `meetingSupported`, `checkSystemAudioPermission`, `requestSystemAudioPermission`, `openSystemAudioSettings`, `onEvent("meeting_saved")`, `onEvent("meeting_state")`, tipo `MeetingSummary`.
 - Produces: `<Meetings onOpen={(id: string) => void} />` (Dashboard passa um handler que abre o detalhe).
 
@@ -1867,7 +1910,9 @@ export default function Meetings({ onOpen }: { onOpen: (id: string) => void }) {
         </p>
       )}
       {error && (
-        <p className="mb-4 rounded-lg bg-amber-100 px-4 py-3 text-sm text-amber-900">{error}</p>
+        <p className="mb-4 rounded-lg bg-amber-100 px-4 py-3 text-sm text-amber-900">
+          {error}
+        </p>
       )}
       <p className="mb-6 text-sm text-stone-500">{t("meetings.consentNote")}</p>
 
@@ -1884,7 +1929,9 @@ export default function Meetings({ onOpen }: { onOpen: (id: string) => void }) {
               >
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{m.title}</span>
-                  <span className="block text-xs text-stone-500">{fmtDate(m.started_ms)}</span>
+                  <span className="block text-xs text-stone-500">
+                    {fmtDate(m.started_ms)}
+                  </span>
                 </span>
                 <span className="ml-3 shrink-0 text-xs text-stone-500">
                   {fmtDur(m.duration_ms)}
@@ -1914,32 +1961,32 @@ import MeetingDetail from "./MeetingDetail";
 (b) adicione o estado do id aberto (perto do `useState<View>`):
 
 ```tsx
-  const [openMeeting, setOpenMeeting] = useState<string | null>(null);
+const [openMeeting, setOpenMeeting] = useState<string | null>(null);
 ```
 
 (c) na área de render das views, adicione:
 
 ```tsx
-          {view === "meetings" &&
-            (openMeeting ? (
-              <MeetingDetail id={openMeeting} onBack={() => setOpenMeeting(null)} />
-            ) : (
-              <Meetings
-                onOpen={(id) => setOpenMeeting(id)}
-              />
-            ))}
+{
+  view === "meetings" &&
+    (openMeeting ? (
+      <MeetingDetail id={openMeeting} onBack={() => setOpenMeeting(null)} />
+    ) : (
+      <Meetings onOpen={(id) => setOpenMeeting(id)} />
+    ));
+}
 ```
 
 (d) ao navegar para fora de meetings, limpe o detalhe — troque o `Sidebar` por:
 
 ```tsx
-      <Sidebar
-        view={view}
-        onNavigate={(v) => {
-          if (v !== "meetings") setOpenMeeting(null);
-          setView(v);
-        }}
-      />
+<Sidebar
+  view={view}
+  onNavigate={(v) => {
+    if (v !== "meetings") setOpenMeeting(null);
+    setView(v);
+  }}
+/>
 ```
 
 > `MeetingDetail` é criado na Task 13; o import já entra aqui para evitar reedição, mas se você executa em ordem estrita e quer compilar agora, crie um stub mínimo `export default function MeetingDetail(){return null}` e complete na Task 13.
@@ -1963,10 +2010,12 @@ git commit -m "feat(meetings): meetings list page wired into dashboard"
 Detalhe da reunião: transcrição Eu/Eles, renomear, copiar, exportar, deletar. Mais todas as strings i18n.
 
 **Files:**
+
 - Create: `src/routes/MeetingDetail.tsx`
 - Modify: `src/lib/i18n.tsx`
 
 **Interfaces:**
+
 - Consumes: `getMeeting`, `renameMeeting`, `deleteMeeting`, tipo `Meeting`.
 - Produces: `<MeetingDetail id={string} onBack={() => void} />`.
 
@@ -2003,10 +2052,21 @@ Crie `src/routes/MeetingDetail.tsx`:
 
 ```tsx
 import { useEffect, useState } from "react";
-import { getMeeting, renameMeeting, deleteMeeting, type Meeting } from "../lib/api";
+import {
+  getMeeting,
+  renameMeeting,
+  deleteMeeting,
+  type Meeting,
+} from "../lib/api";
 import { useI18n } from "../lib/i18n";
 
-export default function MeetingDetail({ id, onBack }: { id: string; onBack: () => void }) {
+export default function MeetingDetail({
+  id,
+  onBack,
+}: {
+  id: string;
+  onBack: () => void;
+}) {
   const { t } = useI18n();
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [title, setTitle] = useState("");
@@ -2024,7 +2084,9 @@ export default function MeetingDetail({ id, onBack }: { id: string; onBack: () =
     s === "me" ? t("meetings.you") : t("meetings.them");
 
   const asText = () =>
-    meeting.segments.map((s) => `${speakerLabel(s.speaker)}: ${s.text}`).join("\n");
+    meeting.segments
+      .map((s) => `${speakerLabel(s.speaker)}: ${s.text}`)
+      .join("\n");
 
   const copy = () => navigator.clipboard.writeText(asText());
 
@@ -2054,7 +2116,11 @@ export default function MeetingDetail({ id, onBack }: { id: string; onBack: () =
   return (
     <div>
       <div className="mb-4 flex items-center gap-2">
-        <button type="button" onClick={onBack} className="text-sm text-stone-500 hover:text-stone-900">
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-sm text-stone-500 hover:text-stone-900"
+        >
           ← {t("meetings.back")}
         </button>
       </div>
@@ -2064,7 +2130,9 @@ export default function MeetingDetail({ id, onBack }: { id: string; onBack: () =
         onBlur={saveTitle}
         className="mb-1 w-full bg-transparent text-2xl font-semibold outline-none"
       />
-      <p className="mb-4 text-xs text-stone-500">{new Date(meeting.started_ms).toLocaleString()}</p>
+      <p className="mb-4 text-xs text-stone-500">
+        {new Date(meeting.started_ms).toLocaleString()}
+      </p>
       {meeting.partial && (
         <p className="mb-4 rounded-lg bg-amber-100 px-4 py-2 text-sm text-amber-900">
           {t("meetings.partialNote")}
@@ -2072,13 +2140,25 @@ export default function MeetingDetail({ id, onBack }: { id: string; onBack: () =
       )}
 
       <div className="mb-4 flex gap-2">
-        <button type="button" onClick={copy} className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800">
+        <button
+          type="button"
+          onClick={copy}
+          className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+        >
           {t("meetings.copy")}
         </button>
-        <button type="button" onClick={exportMd} className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800">
+        <button
+          type="button"
+          onClick={exportMd}
+          className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+        >
           {t("meetings.export")}
         </button>
-        <button type="button" onClick={remove} className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50">
+        <button
+          type="button"
+          onClick={remove}
+          className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+        >
           {t("meetings.delete")}
         </button>
       </div>
@@ -2127,6 +2207,7 @@ git commit -m "feat(meetings): meeting detail page and i18n strings"
 Tudo compila e os testes puros passam. Esta task faz a verificação manual nativa (impossível em unit test) e documenta a feature.
 
 **Files:**
+
 - Modify: `README.md` (seção da feature)
 
 - [ ] **Step 1: Full build + all automated tests**
@@ -2144,6 +2225,7 @@ Siga o workflow de rebuild/reinstall da memória do projeto (build, instalar em 
 - [ ] **Step 3: Manual end-to-end checklist**
 
 Numa reunião ou vídeo real com áudio:
+
 - Abrir **Meetings** → clicar **Iniciar reunião** → primeira vez pede permissão; conceder.
 - Bubble aparece no topo-centro: ponto vermelho pulsando, cronômetro correndo, barra de nível reagindo ao áudio.
 - Falar (lado "Você") enquanto outra voz toca pelos alto-falantes (lado "Participantes").
@@ -2168,6 +2250,7 @@ git commit -m "docs: document meeting transcription feature"
 ## Self-Review
 
 **1. Spec coverage:**
+
 - Captura mic+sistema → Tasks 5, 6, 7. ✓
 - Dois backends por versão → Task 4 (seleção) + 5/6 (impls). ✓
 - Eu vs Eles por fonte → `merge_segments` Task 1, rótulos UI Task 13. ✓
@@ -2184,6 +2267,7 @@ git commit -m "docs: document meeting transcription feature"
 **2. Placeholder scan:** Os corpos `unsafe` nativos das Tasks 5/6 são deliberadamente ancorados em referências concretas (AudioCap, sample da Apple, docs da crate) com sequência de chamadas explícita e gate de verificação manual — não há "TODO genérico". Demais tasks têm código completo. ✓
 
 **3. Type consistency:**
+
 - `SttSegment { start_ms, end_ms, text }` — Task 2 define, Tasks 1/7 consomem. ✓
 - `Segment { speaker, start_ms, end_ms, text }` / `Meeting` / `MeetingSummary` — Task 1 define, Tasks 7/8/10 consomem com os mesmos campos. ✓
 - `SystemAudioCapturer::stop(self: Box<Self>) -> (Vec<f32>, u32, u16)` — Task 4 define, Tasks 5/6 implementam, Task 7 consome (`raw, rate, channels`). ✓

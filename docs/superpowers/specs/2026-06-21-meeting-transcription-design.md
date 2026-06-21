@@ -71,13 +71,13 @@ mesclados numa lista única ordenada por `start_ms`, cada um rotulado `me` ou
 
 ### Componentes — Rust (novos)
 
-| Módulo | Responsabilidade | Depende de |
-|---|---|---|
-| `src-tauri/src/sysaudio/mod.rs` | Trait `SystemAudioCapturer` + função `start_system_capture()` que escolhe o backend pela versão do macOS | sysaudio::catap, sysaudio::screencapturekit |
-| `src-tauri/src/sysaudio/catap.rs` | Captura via Core Audio process tap (macOS 14.4+), FFI cru sobre `AudioHardwareCreateProcessTap` + aggregate device | objc2/coreaudio FFI |
-| `src-tauri/src/sysaudio/screencapturekit.rs` | Captura via ScreenCaptureKit (`capturesAudio=true`, `excludesCurrentProcessAudio=true`) | crate `screencapturekit` |
-| `src-tauri/src/meeting.rs` | `MeetingRecorder`: inicia mic (`Recorder`) + sistema juntos; `level()`; `stop()` transcreve e mescla; `cancel()` | audio, sysaudio, stt, meetings |
-| `src-tauri/src/meetings.rs` | Persistência: `Meeting`/`Segment` structs + CRUD em `meetings/<id>.json` | serde |
+| Módulo                                       | Responsabilidade                                                                                                   | Depende de                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| `src-tauri/src/sysaudio/mod.rs`              | Trait `SystemAudioCapturer` + função `start_system_capture()` que escolhe o backend pela versão do macOS           | sysaudio::catap, sysaudio::screencapturekit |
+| `src-tauri/src/sysaudio/catap.rs`            | Captura via Core Audio process tap (macOS 14.4+), FFI cru sobre `AudioHardwareCreateProcessTap` + aggregate device | objc2/coreaudio FFI                         |
+| `src-tauri/src/sysaudio/screencapturekit.rs` | Captura via ScreenCaptureKit (`capturesAudio=true`, `excludesCurrentProcessAudio=true`)                            | crate `screencapturekit`                    |
+| `src-tauri/src/meeting.rs`                   | `MeetingRecorder`: inicia mic (`Recorder`) + sistema juntos; `level()`; `stop()` transcreve e mescla; `cancel()`   | audio, sysaudio, stt, meetings              |
+| `src-tauri/src/meetings.rs`                  | Persistência: `Meeting`/`Segment` structs + CRUD em `meetings/<id>.json`                                           | serde                                       |
 
 ### Interface de captura de sistema
 
@@ -116,20 +116,20 @@ pub fn pick_backend(version: (u32, u32)) -> Backend; // enum { Catap, ScreenCapt
 
 ### Comandos Tauri (novos, em `commands.rs`)
 
-| Comando | Assinatura | O quê |
-|---|---|---|
-| `start_meeting` | `(app) -> Result<(), String>` | Cria `MeetingRecorder`, abre o bubble |
-| `stop_meeting` | `(app) -> Result<Meeting, String>` | Transcreve, mescla, salva, fecha bubble |
-| `cancel_meeting` | `(app) -> ()` | Descarta a gravação em curso, fecha bubble |
-| `meeting_level` | `(state) -> f32` | RMS atual (mic+sistema) para o bubble |
-| `get_meeting_state` | `(state) -> String` | "idle" \| "recording" |
-| `list_meetings` | `(state) -> Vec<MeetingSummary>` | Resumos (id, título, data, duração), novos primeiro |
-| `get_meeting` | `(state, id) -> Option<Meeting>` | Reunião completa com segmentos |
-| `delete_meeting` | `(state, id) -> Result<(), String>` | Apaga o arquivo |
-| `rename_meeting` | `(state, id, title) -> Result<(), String>` | Renomeia |
-| `check_system_audio_permission` | `() -> bool` | TCC de áudio/tela concedido? |
-| `request_system_audio_permission` | `() -> ()` | Dispara o prompt do SO |
-| `open_system_audio_settings` | `() -> ()` | Abre o painel de privacidade |
+| Comando                           | Assinatura                                 | O quê                                               |
+| --------------------------------- | ------------------------------------------ | --------------------------------------------------- |
+| `start_meeting`                   | `(app) -> Result<(), String>`              | Cria `MeetingRecorder`, abre o bubble               |
+| `stop_meeting`                    | `(app) -> Result<Meeting, String>`         | Transcreve, mescla, salva, fecha bubble             |
+| `cancel_meeting`                  | `(app) -> ()`                              | Descarta a gravação em curso, fecha bubble          |
+| `meeting_level`                   | `(state) -> f32`                           | RMS atual (mic+sistema) para o bubble               |
+| `get_meeting_state`               | `(state) -> String`                        | "idle" \| "recording"                               |
+| `list_meetings`                   | `(state) -> Vec<MeetingSummary>`           | Resumos (id, título, data, duração), novos primeiro |
+| `get_meeting`                     | `(state, id) -> Option<Meeting>`           | Reunião completa com segmentos                      |
+| `delete_meeting`                  | `(state, id) -> Result<(), String>`        | Apaga o arquivo                                     |
+| `rename_meeting`                  | `(state, id, title) -> Result<(), String>` | Renomeia                                            |
+| `check_system_audio_permission`   | `() -> bool`                               | TCC de áudio/tela concedido?                        |
+| `request_system_audio_permission` | `() -> ()`                                 | Dispara o prompt do SO                              |
+| `open_system_audio_settings`      | `() -> ()`                                 | Abre o painel de privacidade                        |
 
 ### Modelo de dados
 
@@ -137,15 +137,25 @@ pub fn pick_backend(version: (u32, u32)) -> Backend; // enum { Catap, ScreenCapt
 // data_dir/meetings/<uuid>.json
 {
   "id": "uuid-v4",
-  "title": "Reunião 21 jun 14:30",   // auto do timestamp, editável
-  "started_ms": 1750000000000,        // epoch ms do início
+  "title": "Reunião 21 jun 14:30", // auto do timestamp, editável
+  "started_ms": 1750000000000, // epoch ms do início
   "duration_ms": 1834000,
   "language": "pt",
-  "partial": false,                   // true se a captura de sistema falhou no meio
+  "partial": false, // true se a captura de sistema falhou no meio
   "segments": [
-    { "speaker": "me",   "start_ms": 0,    "end_ms": 2400, "text": "Bom dia pessoal" },
-    { "speaker": "them", "start_ms": 2500, "end_ms": 4100, "text": "Oi, tudo bem?" }
-  ]
+    {
+      "speaker": "me",
+      "start_ms": 0,
+      "end_ms": 2400,
+      "text": "Bom dia pessoal",
+    },
+    {
+      "speaker": "them",
+      "start_ms": 2500,
+      "end_ms": 4100,
+      "text": "Oi, tudo bem?",
+    },
+  ],
 }
 ```
 
@@ -153,16 +163,16 @@ pub fn pick_backend(version: (u32, u32)) -> Backend; // enum { Catap, ScreenCapt
 
 ### Componentes — Frontend (React)
 
-| Arquivo | O quê |
-|---|---|
-| `src/components/Sidebar.tsx` | + `meetings` no enum `View` + ícone (inline SVG) + `NavButton` |
-| `src/routes/Meetings.tsx` | Lista de reuniões salvas + botão "Iniciar reunião" + nota de consentimento na 1ª vez |
-| `src/routes/MeetingDetail.tsx` | Transcrição Eu/Eles, renomear, copiar, exportar (.txt/.md), deletar |
-| `src/routes/MeetingBubble.tsx` | Janela bubble: `●` vermelho + cronômetro + medidor de nível + botão Parar |
-| `src/lib/api.ts` | wrappers dos comandos novos |
-| `src/App.tsx` | rotear `label === "meeting-bubble"` para `<MeetingBubble/>` |
-| `src/routes/Dashboard.tsx` | incluir `meetings` no switch de views |
-| i18n (`src/lib/i18n.tsx`) | strings PT/EN das telas novas |
+| Arquivo                        | O quê                                                                                |
+| ------------------------------ | ------------------------------------------------------------------------------------ |
+| `src/components/Sidebar.tsx`   | + `meetings` no enum `View` + ícone (inline SVG) + `NavButton`                       |
+| `src/routes/Meetings.tsx`      | Lista de reuniões salvas + botão "Iniciar reunião" + nota de consentimento na 1ª vez |
+| `src/routes/MeetingDetail.tsx` | Transcrição Eu/Eles, renomear, copiar, exportar (.txt/.md), deletar                  |
+| `src/routes/MeetingBubble.tsx` | Janela bubble: `●` vermelho + cronômetro + medidor de nível + botão Parar            |
+| `src/lib/api.ts`               | wrappers dos comandos novos                                                          |
+| `src/App.tsx`                  | rotear `label === "meeting-bubble"` para `<MeetingBubble/>`                          |
+| `src/routes/Dashboard.tsx`     | incluir `meetings` no switch de views                                                |
+| i18n (`src/lib/i18n.tsx`)      | strings PT/EN das telas novas                                                        |
 
 O bubble é uma segunda janela always-on-top (separada da `overlay` de ditado).
 Reaproveita as funções puras de geometria de `overlay.rs` (`bottom_center`,
@@ -196,6 +206,7 @@ ditado (bottom-center).
 ## Estratégia de testes
 
 **Unit / puro (TDD de verdade):**
+
 - `meetings.rs`: serialização, save/list/get/delete/rename, lista ordenada
   newest-first, arquivo corrompido ignorado (espelha os testes de `history.rs`).
 - `sysaudio::pick_backend`: seleção de backend por versão (13.0, 14.3, 14.4, 12.x).
@@ -205,6 +216,7 @@ ditado (bottom-center).
 - geometria do bubble (reaproveita testes de `overlay.rs`).
 
 **Manual (nativo, não unit-testável):**
+
 - Captura real CATap (14.4+) e SCK (13–14.3) — FFI de áudio do SO não roda em
   unit test. Verificação via build + reinstall em `/Applications` (workflow
   registrado na memória do projeto), numa call real de Meet/Zoom.
@@ -222,6 +234,7 @@ ditado (bottom-center).
 
 Leis de gravação variam (≈11 estados dos EUA exigem consentimento de todos os
 participantes). Abordagem v1, alinhada aos players locais:
+
 - Start **deliberado** (botão), nunca automático.
 - Indicador **sempre visível** (bubble) enquanto grava.
 - Nota de consentimento na primeira reunião.
