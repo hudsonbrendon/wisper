@@ -113,11 +113,13 @@ until you press your hotkey.
 - 🗓️ **Meeting transcription** _(macOS 13+)_ — record a meeting capturing your
   mic (**You**) and system audio (**Participants**) simultaneously; a floating
   recording bubble with a pulsing indicator and live timer sits at the top of
-  your screen while the meeting runs. When you stop, Wisper transcribes
-  everything on-device and saves it under a **Meetings** section with speaker-
-  labelled segments in chronological order. Copy, export as Markdown, rename,
-  or delete recordings — all local, nothing uploaded. (v1: no live transcript or
-  AI summary yet.)
+  your screen while the meeting runs. As you speak, a **live transcript**
+  appears in the Meetings panel in real time — speaker-labelled segments
+  (You / Participants) scroll in as they close, giving you a live preview of
+  the conversation. When you stop, Wisper does a full batch re-pass for
+  higher accuracy and saves the final transcript under **Meetings** with
+  speaker-labelled segments in chronological order. Copy, export as Markdown,
+  rename, or delete recordings — all local, nothing uploaded.
 
 ## 🚀 Quick start
 
