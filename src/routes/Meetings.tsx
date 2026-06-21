@@ -93,7 +93,9 @@ export default function Meetings({ onOpen }: { onOpen: (id: string) => void }) {
         </p>
       )}
       {error && (
-        <p className="mb-4 rounded-lg bg-amber-100 px-4 py-3 text-sm text-amber-900">{error}</p>
+        <p className="mb-4 rounded-lg bg-amber-100 px-4 py-3 text-sm text-amber-900">
+          {error}
+        </p>
       )}
       <p className="mb-6 text-sm text-stone-500">{t("meetings.consentNote")}</p>
 
@@ -110,7 +112,9 @@ export default function Meetings({ onOpen }: { onOpen: (id: string) => void }) {
               >
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{m.title}</span>
-                  <span className="block text-xs text-stone-500">{fmtDate(m.started_ms)}</span>
+                  <span className="block text-xs text-stone-500">
+                    {fmtDate(m.started_ms)}
+                  </span>
                 </span>
                 <span className="ml-3 shrink-0 text-xs text-stone-500">
                   {fmtDur(m.duration_ms)}

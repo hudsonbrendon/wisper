@@ -30,7 +30,11 @@ impl MeetingRecorder {
                 None
             }
         };
-        Ok(MeetingRecorder { mic, system, started_ms })
+        Ok(MeetingRecorder {
+            mic,
+            system,
+            started_ms,
+        })
     }
 
     /// Highest of the two live levels, for the bubble meter.

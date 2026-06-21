@@ -1,8 +1,19 @@
 import { useEffect, useState } from "react";
-import { getMeeting, renameMeeting, deleteMeeting, type Meeting } from "../lib/api";
+import {
+  getMeeting,
+  renameMeeting,
+  deleteMeeting,
+  type Meeting,
+} from "../lib/api";
 import { useI18n } from "../lib/i18n";
 
-export default function MeetingDetail({ id, onBack }: { id: string; onBack: () => void }) {
+export default function MeetingDetail({
+  id,
+  onBack,
+}: {
+  id: string;
+  onBack: () => void;
+}) {
   const { t } = useI18n();
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [title, setTitle] = useState("");
@@ -20,7 +31,9 @@ export default function MeetingDetail({ id, onBack }: { id: string; onBack: () =
     s === "me" ? t("meetings.you") : t("meetings.them");
 
   const asText = () =>
-    meeting.segments.map((s) => `${speakerLabel(s.speaker)}: ${s.text}`).join("\n");
+    meeting.segments
+      .map((s) => `${speakerLabel(s.speaker)}: ${s.text}`)
+      .join("\n");
 
   const copy = () => navigator.clipboard.writeText(asText());
 
@@ -50,7 +63,11 @@ export default function MeetingDetail({ id, onBack }: { id: string; onBack: () =
   return (
     <div>
       <div className="mb-4 flex items-center gap-2">
-        <button type="button" onClick={onBack} className="text-sm text-stone-500 hover:text-stone-900">
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-sm text-stone-500 hover:text-stone-900"
+        >
           ← {t("meetings.back")}
         </button>
       </div>
@@ -60,7 +77,9 @@ export default function MeetingDetail({ id, onBack }: { id: string; onBack: () =
         onBlur={saveTitle}
         className="mb-1 w-full bg-transparent text-2xl font-semibold outline-none"
       />
-      <p className="mb-4 text-xs text-stone-500">{new Date(meeting.started_ms).toLocaleString()}</p>
+      <p className="mb-4 text-xs text-stone-500">
+        {new Date(meeting.started_ms).toLocaleString()}
+      </p>
       {meeting.partial && (
         <p className="mb-4 rounded-lg bg-amber-100 px-4 py-2 text-sm text-amber-900">
           {t("meetings.partialNote")}
@@ -68,13 +87,25 @@ export default function MeetingDetail({ id, onBack }: { id: string; onBack: () =
       )}
 
       <div className="mb-4 flex gap-2">
-        <button type="button" onClick={copy} className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800">
+        <button
+          type="button"
+          onClick={copy}
+          className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+        >
           {t("meetings.copy")}
         </button>
-        <button type="button" onClick={exportMd} className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800">
+        <button
+          type="button"
+          onClick={exportMd}
+          className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+        >
           {t("meetings.export")}
         </button>
-        <button type="button" onClick={remove} className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50">
+        <button
+          type="button"
+          onClick={remove}
+          className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+        >
           {t("meetings.delete")}
         </button>
       </div>

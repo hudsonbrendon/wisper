@@ -3,7 +3,13 @@ import { useI18n } from "../lib/i18n";
 import { getTheme, setTheme, type Theme } from "../lib/theme";
 import UpdateControl from "./UpdateControl";
 
-export type View = "home" | "insights" | "meetings" | "dictionary" | "snippets" | "settings";
+export type View =
+  | "home"
+  | "insights"
+  | "meetings"
+  | "dictionary"
+  | "snippets"
+  | "settings";
 
 /// Inline SVGs keep the bundle dependency-free. Each takes the current text
 /// color via `stroke="currentColor"`, so active/inactive styling is just text

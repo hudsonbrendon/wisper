@@ -69,8 +69,7 @@ pub struct SckCapturer {
 }
 
 pub fn start() -> Result<Box<dyn SystemAudioCapturer>, String> {
-    let content =
-        SCShareableContent::get().map_err(|e| format!("shareable content: {e:?}"))?;
+    let content = SCShareableContent::get().map_err(|e| format!("shareable content: {e:?}"))?;
     let display = content
         .displays()
         .into_iter()

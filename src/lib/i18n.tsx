@@ -223,9 +223,11 @@ const en: Dict = {
   "meetings.start": "Start meeting",
   "meetings.stop": "Stop",
   "meetings.empty": "No meetings yet.",
-  "meetings.consentNote": "Let participants know you're recording. Audio stays on this Mac.",
+  "meetings.consentNote":
+    "Let participants know you're recording. Audio stays on this Mac.",
   "meetings.unsupported": "Meeting capture needs macOS 13 or later.",
-  "meetings.permissionNeeded": "Grant screen & audio recording permission, then try again.",
+  "meetings.permissionNeeded":
+    "Grant screen & audio recording permission, then try again.",
   "meetings.noModel": "Download a transcription model in Settings first.",
   "meetings.partial": "partial",
   "meetings.you": "You",
@@ -423,10 +425,14 @@ const pt: Dict = {
   "meetings.start": "Iniciar reunião",
   "meetings.stop": "Parar",
   "meetings.empty": "Nenhuma reunião ainda.",
-  "meetings.consentNote": "Avise os participantes que está gravando. O áudio fica neste Mac.",
-  "meetings.unsupported": "A captura de reuniões precisa do macOS 13 ou superior.",
-  "meetings.permissionNeeded": "Conceda a permissão de gravação de tela e áudio e tente de novo.",
-  "meetings.noModel": "Baixe um modelo de transcrição em Configurações primeiro.",
+  "meetings.consentNote":
+    "Avise os participantes que está gravando. O áudio fica neste Mac.",
+  "meetings.unsupported":
+    "A captura de reuniões precisa do macOS 13 ou superior.",
+  "meetings.permissionNeeded":
+    "Conceda a permissão de gravação de tela e áudio e tente de novo.",
+  "meetings.noModel":
+    "Baixe um modelo de transcrição em Configurações primeiro.",
   "meetings.partial": "parcial",
   "meetings.you": "Você",
   "meetings.them": "Participantes",

@@ -5,8 +5,8 @@ mod history;
 mod hotkey;
 mod inject;
 mod meeting;
-mod model_manager;
 mod meetings;
+mod model_manager;
 #[cfg(target_os = "macos")]
 mod modtap;
 mod overlay;
@@ -301,7 +301,10 @@ pub(crate) fn stop_meeting(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("meeting-bubble") {
         let _ = w.hide();
     }
-    let _ = app.emit("meeting_state", serde_json::json!({ "state": "transcribing" }));
+    let _ = app.emit(
+        "meeting_state",
+        serde_json::json!({ "state": "transcribing" }),
+    );
 
     let app = app.clone();
     std::thread::spawn(move || {
@@ -334,7 +337,10 @@ pub(crate) fn stop_meeting(app: &tauri::AppHandle) {
             Err(e) => {
                 eprintln!("meeting save failed: {e}");
                 let _ = app.emit("meeting_state", serde_json::json!({ "state": "idle" }));
-                let _ = app.emit("error", serde_json::json!({ "message": format!("meeting save failed: {e}") }));
+                let _ = app.emit(
+                    "error",
+                    serde_json::json!({ "message": format!("meeting save failed: {e}") }),
+                );
             }
         }
     });
@@ -370,7 +376,9 @@ fn place_and_show_meeting_bubble(app: &tauri::AppHandle) {
         if let Some(mon) = monitor {
             let pos = mon.position();
             let size = mon.size();
-            let w = win.outer_size().unwrap_or(tauri::PhysicalSize::new(280, 64));
+            let w = win
+                .outer_size()
+                .unwrap_or(tauri::PhysicalSize::new(280, 64));
             let (x, y) = overlay::top_center(
                 (pos.x, pos.y),
                 (size.width, size.height),

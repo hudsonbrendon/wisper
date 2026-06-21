@@ -115,8 +115,10 @@ export const stopMeeting = () => invoke<void>("stop_meeting");
 export const cancelMeeting = () => invoke<void>("cancel_meeting");
 export const getMeetingState = () => invoke<string>("get_meeting_state");
 export const listMeetings = () => invoke<MeetingSummary[]>("list_meetings");
-export const getMeeting = (id: string) => invoke<Meeting | null>("get_meeting", { id });
-export const deleteMeeting = (id: string) => invoke<void>("delete_meeting", { id });
+export const getMeeting = (id: string) =>
+  invoke<Meeting | null>("get_meeting", { id });
+export const deleteMeeting = (id: string) =>
+  invoke<void>("delete_meeting", { id });
 export const renameMeeting = (id: string, title: string) =>
   invoke<void>("rename_meeting", { id, title });
 export const meetingSupported = () => invoke<boolean>("meeting_supported");
@@ -124,7 +126,8 @@ export const checkSystemAudioPermission = () =>
   invoke<boolean>("check_system_audio_permission");
 export const requestSystemAudioPermission = () =>
   invoke<void>("request_system_audio_permission");
-export const openSystemAudioSettings = () => invoke<void>("open_system_audio_settings");
+export const openSystemAudioSettings = () =>
+  invoke<void>("open_system_audio_settings");
 
 export type MeetingStatePayload = { state: string };
 export type MeetingSavedPayload = { id: string };

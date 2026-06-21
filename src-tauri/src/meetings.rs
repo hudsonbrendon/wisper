@@ -217,15 +217,34 @@ mod tests {
     #[test]
     fn merge_orders_by_start_and_tags_speaker() {
         let me = vec![
-            SttSegment { start_ms: 0, end_ms: 100, text: "morning".into() },
-            SttSegment { start_ms: 400, end_ms: 500, text: "lets start".into() },
+            SttSegment {
+                start_ms: 0,
+                end_ms: 100,
+                text: "morning".into(),
+            },
+            SttSegment {
+                start_ms: 400,
+                end_ms: 500,
+                text: "lets start".into(),
+            },
         ];
-        let them = vec![SttSegment { start_ms: 200, end_ms: 300, text: "hi there".into() }];
+        let them = vec![SttSegment {
+            start_ms: 200,
+            end_ms: 300,
+            text: "hi there".into(),
+        }];
         let merged = merge_segments(&me, &them);
-        let pairs: Vec<_> = merged.iter().map(|s| (s.speaker.as_str(), s.text.as_str())).collect();
+        let pairs: Vec<_> = merged
+            .iter()
+            .map(|s| (s.speaker.as_str(), s.text.as_str()))
+            .collect();
         assert_eq!(
             pairs,
-            vec![("me", "morning"), ("them", "hi there"), ("me", "lets start")]
+            vec![
+                ("me", "morning"),
+                ("them", "hi there"),
+                ("me", "lets start")
+            ]
         );
     }
 

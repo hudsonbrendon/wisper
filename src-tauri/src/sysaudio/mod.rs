@@ -63,9 +63,7 @@ pub fn start_system_capture() -> Result<Box<dyn SystemAudioCapturer>, String> {
     match pick_backend(version) {
         Backend::Catap => catap::start(),
         Backend::ScreenCaptureKit => screencapturekit::start(),
-        Backend::Unsupported => {
-            Err("meeting capture needs macOS 13 or later".to_string())
-        }
+        Backend::Unsupported => Err("meeting capture needs macOS 13 or later".to_string()),
     }
 }
 

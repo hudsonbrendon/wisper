@@ -12,7 +12,9 @@ export default function MeetingBubble() {
   const [seconds, setSeconds] = useState(0);
 
   useEffect(() => {
-    const un = onEvent<{ level: number }>("meeting_level", (p) => setLevel(p.level));
+    const un = onEvent<{ level: number }>("meeting_level", (p) =>
+      setLevel(p.level),
+    );
     const tick = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => {
       un.then((f) => f());
@@ -29,7 +31,10 @@ export default function MeetingBubble() {
       <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
       <span className="font-mono text-sm tabular-nums">{`${mm}:${ss}`}</span>
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-stone-700">
-        <div className="h-full bg-emerald-400 transition-[width] duration-100" style={{ width: `${barWidth}%` }} />
+        <div
+          className="h-full bg-emerald-400 transition-[width] duration-100"
+          style={{ width: `${barWidth}%` }}
+        />
       </div>
       <button
         type="button"

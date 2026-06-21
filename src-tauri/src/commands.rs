@@ -361,7 +361,8 @@ pub fn rename_meeting(
     id: String,
     title: String,
 ) -> Result<(), String> {
-    crate::meetings::rename(&state.data_dir, &id, &title).map_err(|e| format!("rename meeting: {e}"))
+    crate::meetings::rename(&state.data_dir, &id, &title)
+        .map_err(|e| format!("rename meeting: {e}"))
 }
 
 /// Whether this OS can capture system audio at all (macOS 13+).

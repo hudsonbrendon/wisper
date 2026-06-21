@@ -48,6 +48,11 @@ fn transcribe_segments_have_timestamps_and_text() {
     assert!(!segs.is_empty(), "expected at least one segment");
     // Times are sane and ordered; full text mentions "country".
     assert!(segs[0].end_ms >= segs[0].start_ms);
-    let joined = segs.iter().map(|s| s.text.as_str()).collect::<Vec<_>>().join(" ").to_lowercase();
+    let joined = segs
+        .iter()
+        .map(|s| s.text.as_str())
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_lowercase();
     assert!(joined.contains("country"), "got: {joined}");
 }

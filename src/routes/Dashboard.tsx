@@ -52,11 +52,12 @@ export default function Dashboard() {
           {view === "insights" && <Insights />}
           {view === "meetings" &&
             (openMeeting ? (
-              <MeetingDetail id={openMeeting} onBack={() => setOpenMeeting(null)} />
-            ) : (
-              <Meetings
-                onOpen={(id) => setOpenMeeting(id)}
+              <MeetingDetail
+                id={openMeeting}
+                onBack={() => setOpenMeeting(null)}
               />
+            ) : (
+              <Meetings onOpen={(id) => setOpenMeeting(id)} />
             ))}
           {view === "dictionary" && <Dictionary />}
           {view === "snippets" && <Snippets />}
