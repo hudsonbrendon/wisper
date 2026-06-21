@@ -13,6 +13,7 @@
 
 use super::SystemAudioCapturer;
 use crate::audio::rms_window;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use screencapturekit::{
@@ -66,6 +67,7 @@ impl SCStreamOutputTrait for AudioSink {
 pub struct SckCapturer {
     stream: SCStream,
     buffer: Arc<Mutex<Vec<f32>>>,
+    read_pos: AtomicUsize,
 }
 
 pub fn start() -> Result<Box<dyn SystemAudioCapturer>, String> {
@@ -103,7 +105,11 @@ pub fn start() -> Result<Box<dyn SystemAudioCapturer>, String> {
         .start_capture()
         .map_err(|e| format!("start sck: {e:?}"))?;
 
-    Ok(Box::new(SckCapturer { stream, buffer }))
+    Ok(Box::new(SckCapturer {
+        stream,
+        buffer,
+        read_pos: AtomicUsize::new(0),
+    }))
 }
 
 impl SystemAudioCapturer for SckCapturer {
@@ -121,5 +127,20 @@ impl SystemAudioCapturer for SckCapturer {
         let _ = self.stream.stop_capture();
         let raw = self.buffer.lock().map(|b| b.clone()).unwrap_or_default();
         (raw, SR, CH)
+    }
+
+    fn read_new(&self) -> Vec<f32> {
+        let cursor = self.read_pos.load(Ordering::Relaxed);
+        let buf = match self.buffer.lock() {
+            Ok(b) => b,
+            Err(_) => return Vec::new(),
+        };
+        let (new, advanced) = crate::audio::read_new_from(&buf, cursor);
+        self.read_pos.store(advanced, Ordering::Relaxed);
+        new
+    }
+
+    fn format(&self) -> (u32, u16) {
+        (SR, CH)
     }
 }

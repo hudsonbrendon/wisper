@@ -16,6 +16,11 @@ pub trait SystemAudioCapturer: Send {
     fn level(&self) -> f32;
     /// Stop and return (native f32 samples, sample_rate, channels).
     fn stop(self: Box<Self>) -> (Vec<f32>, u32, u16);
+    /// Native samples captured since the last `read_new` call (non-destructive;
+    /// `stop` still returns the full take). For the live transcription loop.
+    fn read_new(&self) -> Vec<f32>;
+    /// (sample_rate, channels) of the native stream.
+    fn format(&self) -> (u32, u16);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

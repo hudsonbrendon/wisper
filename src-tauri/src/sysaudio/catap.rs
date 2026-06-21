@@ -79,6 +79,8 @@ pub struct CatapCapturer {
     tap_id: AudioObjectID,
     aggregate_id: AudioObjectID,
     io_proc: AudioDeviceIOProcID,
+    /// Cursor for non-destructive incremental reads via `read_new()`.
+    read_pos: std::sync::atomic::AtomicUsize,
     /// The IO block must outlive the IO proc that references it, so we keep it
     /// alive here for the whole capture. The block matches `AudioDeviceIOBlock`'s
     /// C ABI: five pointer args, returns void. We type the args as opaque
@@ -336,6 +338,7 @@ unsafe fn start_inner() -> Result<Box<dyn SystemAudioCapturer>, String> {
         tap_id,
         aggregate_id,
         io_proc,
+        read_pos: std::sync::atomic::AtomicUsize::new(0),
         _io_block: io_block,
     }))
 }
@@ -443,6 +446,25 @@ impl SystemAudioCapturer for CatapCapturer {
             .lock()
             .map(|b| rms_window(&b, window))
             .unwrap_or(0.0)
+    }
+
+    fn read_new(&self) -> Vec<f32> {
+        let cursor = self.read_pos.load(std::sync::atomic::Ordering::Relaxed);
+        let buf = match self.shared.buffer.lock() {
+            Ok(b) => b,
+            Err(_) => return Vec::new(),
+        };
+        let (new, advanced) = crate::audio::read_new_from(&buf, cursor);
+        self.read_pos
+            .store(advanced, std::sync::atomic::Ordering::Relaxed);
+        new
+    }
+
+    fn format(&self) -> (u32, u16) {
+        (
+            *self.shared.sample_rate.lock().unwrap(),
+            *self.shared.channels.lock().unwrap(),
+        )
     }
 
     fn stop(mut self: Box<Self>) -> (Vec<f32>, u32, u16) {
