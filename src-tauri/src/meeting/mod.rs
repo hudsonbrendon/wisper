@@ -57,6 +57,15 @@ impl MeetingRecorder {
         self.live = Some(live);
     }
 
+    /// End the live transcription loop (signal + join). Must be called WITHOUT
+    /// holding the transcriber lock — the live thread needs that lock to finish
+    /// its current chunk, so joining under it would deadlock.
+    pub fn end_live(&mut self) {
+        if let Some(live) = self.live.take() {
+            live.stop();
+        }
+    }
+
     /// Epoch-ms the meeting started (its id / timestamp base). Exposed for
     /// callers that need the meeting's absolute start; the live loop itself uses
     /// recorder-relative offsets, so it is not consumed internally yet.
@@ -74,12 +83,16 @@ impl MeetingRecorder {
 
     /// Stop both captures, transcribe each, merge, and build the Meeting.
     /// `partial` is true when system capture was unavailable or empty.
+    /// Callers MUST invoke `end_live` before acquiring the transcriber lock and
+    /// before calling this method — the live thread also locks the transcriber,
+    /// so joining it while holding that lock would deadlock.
     pub fn stop(self, transcriber: &Transcriber, language: &str, prompt: &str) -> Meeting {
-        // End the live loop first so it stops reading the buffers we are about to
-        // consume; it joins its thread before returning.
-        if let Some(live) = self.live {
-            live.stop();
-        }
+        // `end_live` must have been called before this (see lib.rs stop_meeting).
+        // self.live is None here; this is a safety assert in debug builds.
+        debug_assert!(
+            self.live.is_none(),
+            "end_live() must be called before stop()"
+        );
         let me_samples = self.mic.stop(); // already 16 kHz mono
         let (them_samples, had_system) = match self.system {
             Some(cap) => {

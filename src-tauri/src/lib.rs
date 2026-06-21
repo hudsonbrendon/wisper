@@ -356,6 +356,13 @@ pub(crate) fn stop_meeting(app: &tauri::AppHandle) {
                 st.data_dir.clone(),
             )
         };
+        // End the live transcription loop BEFORE locking the transcriber.
+        // The live thread's per-chunk closure also locks `st.transcriber`; joining
+        // it while we hold that lock would deadlock. `end_live` signals + joins the
+        // live thread without holding the transcriber lock, so any in-flight chunk
+        // can finish and release the lock before the join returns.
+        let mut rec = rec;
+        rec.end_live();
         let meeting = {
             let st = app.state::<AppState>();
             let guard = st.transcriber.lock().unwrap();
