@@ -24,6 +24,7 @@
 
 use super::SystemAudioCapturer;
 use crate::audio::rms_window;
+use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 
 use block2::RcBlock;
@@ -43,6 +44,8 @@ use objc2::msg_send;
 use objc2::rc::Retained;
 use objc2::runtime::{AnyClass, AnyObject};
 use objc2_foundation::{NSArray, NSString};
+use ringbuf::traits::{Consumer as _, Producer as _, Split};
+use ringbuf::{HeapCons, HeapRb};
 
 // Apple symbols missing from `coreaudio-sys` 0.2.18 (macOS 14.4 SDK). The first
 // argument is a `CATapDescription *` (an Objective-C object pointer). Declared
@@ -63,24 +66,42 @@ extern "C" {
 /// sentinel during teardown on error paths.
 const AUDIO_OBJECT_UNKNOWN: AudioObjectID = 0;
 
-/// Shared state written from the Core Audio IO thread and read by `level()` /
-/// `stop()`. The IO block only ever locks `buffer`; sample_rate/channels are set
-/// once in `start()` before the IO proc starts and read afterwards.
+/// Capacity of the SPSC ring that hands samples from the RT IO proc to the
+/// consumer: ~4 s at 48 kHz stereo f32. Generous slack so a slow consumer drain
+/// never overflows under normal scheduling; on overflow `push_slice` drops the
+/// excess (acceptable for real-time audio).
+const RING_CAPACITY: usize = 48_000 * 2 * 4;
+
+/// Format state set once in `start()` (from the tap's ASBD) before the IO proc
+/// starts, read afterwards by `level()`/`format()`/`stop()`. The real-time IO
+/// proc never touches this — it only pushes into the lock-free ring.
 struct Shared {
-    buffer: Mutex<Vec<f32>>,
     sample_rate: Mutex<u32>,
     channels: Mutex<u16>,
+}
+
+/// Consumer-side state for the ring. Lives behind a `Mutex` on the capturer and
+/// is **only ever touched off the real-time IO thread** (by `read_new`/`stop`/
+/// `level`, all on the capturer's owning thread). `drain` pops everything the RT
+/// proc has produced into `acc`, the full take; `read_pos` is the non-destructive
+/// `read_new` cursor over `acc`.
+struct Consumer {
+    rx: HeapCons<f32>,
+    acc: Vec<f32>,
+    read_pos: usize,
 }
 
 /// An active CATap capture. The handles are torn down in `stop()` (and, defensively,
 /// in `Drop` if `stop()` is never called) in the reverse order of creation.
 pub struct CatapCapturer {
     shared: Arc<Shared>,
+    /// Ring consumer + full-take accumulator + read cursor. The `Mutex` is now
+    /// touched ONLY off the RT thread (the IO proc pushes into the lock-free
+    /// producer, never this).
+    consumer: Mutex<Consumer>,
     tap_id: AudioObjectID,
     aggregate_id: AudioObjectID,
     io_proc: AudioDeviceIOProcID,
-    /// Cursor for non-destructive incremental reads via `read_new()`.
-    read_pos: std::sync::atomic::AtomicUsize,
     /// The IO block must outlive the IO proc that references it, so we keep it
     /// alive here for the whole capture. The block matches `AudioDeviceIOBlock`'s
     /// C ABI: five pointer args, returns void. We type the args as opaque
@@ -97,10 +118,30 @@ pub struct CatapCapturer {
     >,
 }
 
+/// Pop everything the RT IO proc has pushed into the ring into the full-take
+/// accumulator. Called off the RT thread by `read_new`/`stop`/`level` so they all
+/// see the latest audio. Keeps `acc` as the complete take (never consume-once).
+fn drain(consumer: &Mutex<Consumer>) {
+    let Ok(mut c) = consumer.lock() else {
+        return;
+    };
+    let mut tmp = [0f32; 4096];
+    loop {
+        let n = c.rx.pop_slice(&mut tmp);
+        if n == 0 {
+            break;
+        }
+        c.acc.extend_from_slice(&tmp[..n]);
+    }
+}
+
 // The raw Core Audio handles (`AudioObjectID` ints and the IO-proc/block pointers)
-// are only ever touched on this object's own thread plus the Core Audio IO thread,
-// which we coordinate through `Shared`'s mutexes. Sending the capturer between
-// threads (it lives behind the `SystemAudioCapturer` trait object) is sound.
+// are only ever touched on this object's own thread plus the Core Audio IO thread.
+// The RT thread and the owning thread never share mutable state directly: the IO
+// proc only pushes into the lock-free ring producer, and the consumer side
+// (`Mutex<Consumer>`) is touched exclusively off the RT thread. Sending the
+// capturer between threads (it lives behind the `SystemAudioCapturer` trait
+// object) is sound.
 unsafe impl Send for CatapCapturer {}
 
 /// CoreFoundation dictionary key constants come out of `coreaudio-sys` as
@@ -270,14 +311,24 @@ unsafe fn start_inner() -> Result<Box<dyn SystemAudioCapturer>, String> {
         }
     };
 
-    // 5. Install the IO proc: copy each callback's interleaved f32 frames into the
-    //    shared buffer. The aggregate delivers the tap's mix in the first buffer.
+    // 5. Install the IO proc. The RT callback does ONLY a lock-free ring push:
+    //    no Mutex, no allocation, no Vec realloc. A consumer off the RT thread
+    //    drains the ring into the full-take accumulator (see `drain`).
     let shared = Arc::new(Shared {
-        buffer: Mutex::new(Vec::new()),
         sample_rate: Mutex::new(sample_rate.max(16_000)),
         channels: Mutex::new(channels.max(1)),
     });
-    let shared_for_block = shared.clone();
+
+    // Lock-free SPSC ring: producer moves into the IO-proc block, consumer lives
+    // behind the capturer's `Mutex<Consumer>`. `HeapProd<f32>` is `Send` (f32 is
+    // `Send`), so moving it into the block (which crosses to the RT thread) is
+    // sound. The block is `Fn`, but `push_slice` needs `&mut producer`, so the
+    // producer is held in a `RefCell` and borrowed mutably for the push. The
+    // borrow is uncontended: the IO proc is the single producer and runs only on
+    // Core Audio's one RT thread.
+    let rb = HeapRb::<f32>::new(RING_CAPACITY);
+    let (producer, consumer_rx) = rb.split();
+    let producer = RefCell::new(producer);
     let io_block = RcBlock::new(
         move |_in_now: *const std::ffi::c_void,
               in_input: *const std::ffi::c_void,
@@ -296,9 +347,8 @@ unsafe fn start_inner() -> Result<Box<dyn SystemAudioCapturer>, String> {
             if n == 0 {
                 return;
             }
-            let Ok(mut out) = shared_for_block.buffer.lock() else {
-                return;
-            };
+            // Single producer, single thread: an uncontended mutable borrow.
+            let mut prod = producer.borrow_mut();
             // `mBuffers` is a flexible array member; iterate it as a slice.
             let buffers = std::slice::from_raw_parts(list.mBuffers.as_ptr(), n);
             for buf in buffers {
@@ -307,7 +357,9 @@ unsafe fn start_inner() -> Result<Box<dyn SystemAudioCapturer>, String> {
                 }
                 let count = buf.mDataByteSize as usize / std::mem::size_of::<f32>();
                 let samples = std::slice::from_raw_parts(buf.mData as *const f32, count);
-                out.extend_from_slice(samples);
+                // Lock-free push into the ring. On overflow `push_slice` writes
+                // what fits and drops the rest (acceptable for real-time audio).
+                prod.push_slice(samples);
             }
         },
     );
@@ -335,10 +387,14 @@ unsafe fn start_inner() -> Result<Box<dyn SystemAudioCapturer>, String> {
 
     Ok(Box::new(CatapCapturer {
         shared,
+        consumer: Mutex::new(Consumer {
+            rx: consumer_rx,
+            acc: Vec::new(),
+            read_pos: 0,
+        }),
         tap_id,
         aggregate_id,
         io_proc,
-        read_pos: std::sync::atomic::AtomicUsize::new(0),
         _io_block: io_block,
     }))
 }
@@ -435,28 +491,28 @@ unsafe fn build_aggregate_device(tap_uuid_string: &str) -> Result<AudioObjectID,
 
 impl SystemAudioCapturer for CatapCapturer {
     fn level(&self) -> f32 {
+        // Drain the ring first so RMS reflects the latest audio.
+        drain(&self.consumer);
         let (sr, ch) = (
             *self.shared.sample_rate.lock().unwrap(),
             *self.shared.channels.lock().unwrap(),
         );
         // RMS over ~100 ms of interleaved samples, matching the mic meter.
         let window = (sr as usize) * (ch.max(1) as usize) / 10;
-        self.shared
-            .buffer
+        self.consumer
             .lock()
-            .map(|b| rms_window(&b, window))
+            .map(|c| rms_window(&c.acc, window))
             .unwrap_or(0.0)
     }
 
     fn read_new(&self) -> Vec<f32> {
-        let cursor = self.read_pos.load(std::sync::atomic::Ordering::Relaxed);
-        let buf = match self.shared.buffer.lock() {
-            Ok(b) => b,
-            Err(_) => return Vec::new(),
+        // Drain the ring into the accumulator, then read forward from the cursor.
+        drain(&self.consumer);
+        let Ok(mut c) = self.consumer.lock() else {
+            return Vec::new();
         };
-        let (new, advanced) = crate::audio::read_new_from(&buf, cursor);
-        self.read_pos
-            .store(advanced, std::sync::atomic::Ordering::Relaxed);
+        let (new, advanced) = crate::audio::read_new_from(&c.acc, c.read_pos);
+        c.read_pos = advanced;
         new
     }
 
@@ -478,11 +534,14 @@ impl SystemAudioCapturer for CatapCapturer {
         self.aggregate_id = AUDIO_OBJECT_UNKNOWN;
         self.io_proc = None;
         self.tap_id = AUDIO_OBJECT_UNKNOWN;
+        // The IO proc is stopped/destroyed above, so the RT thread is quiesced and
+        // no longer pushing; drain whatever it produced into the full take, then
+        // hand back the complete accumulator.
+        drain(&self.consumer);
         let raw = self
-            .shared
-            .buffer
+            .consumer
             .lock()
-            .map(|b| b.clone())
+            .map(|c| c.acc.clone())
             .unwrap_or_default();
         let sr = *self.shared.sample_rate.lock().unwrap();
         let ch = *self.shared.channels.lock().unwrap();
