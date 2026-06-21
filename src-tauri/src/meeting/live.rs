@@ -64,7 +64,11 @@ impl LiveTranscriber {
             let mut them_buf: Vec<f32> = Vec::new();
             let mut them_off: usize = 0;
 
-            let mut vad = webrtc_vad::Vad::new_with_rate_and_mode(
+            let mut vad_me = webrtc_vad::Vad::new_with_rate_and_mode(
+                webrtc_vad::SampleRate::Rate16kHz,
+                webrtc_vad::VadMode::Quality,
+            );
+            let mut vad_them = webrtc_vad::Vad::new_with_rate_and_mode(
                 webrtc_vad::SampleRate::Rate16kHz,
                 webrtc_vad::VadMode::Quality,
             );
@@ -73,7 +77,14 @@ impl LiveTranscriber {
                 std::thread::sleep(std::time::Duration::from_millis(TICK_MS));
 
                 me_buf.extend((sources.read_me)());
-                process_source(&app, "me", &mut me_buf, &mut me_off, &mut vad, &*transcribe);
+                process_source(
+                    &app,
+                    "me",
+                    &mut me_buf,
+                    &mut me_off,
+                    &mut vad_me,
+                    &*transcribe,
+                );
 
                 if let Some(read_them) = sources.read_them.as_mut() {
                     them_buf.extend(read_them());
@@ -82,7 +93,7 @@ impl LiveTranscriber {
                         "them",
                         &mut them_buf,
                         &mut them_off,
-                        &mut vad,
+                        &mut vad_them,
                         &*transcribe,
                     );
                 }
