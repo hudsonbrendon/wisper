@@ -24,7 +24,9 @@ export default function MeetingBubble() {
 
   const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
   const ss = String(seconds % 60).padStart(2, "0");
-  const barWidth = Math.min(100, Math.round(level * 600));
+  // Perceptual scaling: speech RMS is small (~0.01–0.1), so sqrt expands the low
+  // end where the meter would otherwise look frozen.
+  const barWidth = Math.min(100, Math.round(Math.sqrt(level) * 160));
 
   return (
     <div className="flex h-screen w-screen items-center gap-3 rounded-full bg-stone-900/95 px-4 text-stone-100 shadow-lg">

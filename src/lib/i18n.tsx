@@ -238,6 +238,8 @@ const en: Dict = {
   "meetings.back": "Back",
   "meetings.rename": "Rename",
   "meetings.partialNote": "System audio wasn't captured for this meeting.",
+  "meetings.live": "Live meeting",
+  "meetings.liveWaiting": "Listening…",
 };
 
 const pt: Dict = {
@@ -442,6 +444,8 @@ const pt: Dict = {
   "meetings.back": "Voltar",
   "meetings.rename": "Renomear",
   "meetings.partialNote": "O áudio do sistema não foi capturado nesta reunião.",
+  "meetings.live": "Reunião ao vivo",
+  "meetings.liveWaiting": "Ouvindo…",
 };
 
 const es: Dict = {

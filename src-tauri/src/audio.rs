@@ -55,8 +55,47 @@ pub fn rms_window(samples: &[f32], window: usize) -> f32 {
     rms_level(&samples[start..])
 }
 
+/// New samples in `buffer` past `cursor`, plus the advanced cursor (= len).
+/// The read is non-destructive — the buffer is never truncated, so a later
+/// full read (e.g. `Recorder::stop`) still sees the entire take.
+pub fn read_new_from(buffer: &[f32], cursor: usize) -> (Vec<f32>, usize) {
+    let start = cursor.min(buffer.len());
+    (buffer[start..].to_vec(), buffer.len())
+}
+
+/// Send+Sync read handle into a `Recorder`'s buffer for the live loop. Holds only
+/// `Arc`s, so it can move into the live thread while the `Recorder` (which owns a
+/// non-`Sync` `cpal::Stream`) stays put behind the meeting's lock.
+#[derive(Clone)]
+pub struct ReaderHandle {
+    buffer: Arc<Mutex<Vec<f32>>>,
+    read_pos: Arc<AtomicUsize>,
+    sample_rate: u32,
+    channels: u16,
+}
+
+impl ReaderHandle {
+    /// New samples since the last call, converted to 16 kHz mono. Uses its own
+    /// cursor, independent of `Recorder::read_new` / `Recorder::stop`.
+    pub fn read_new_16k(&self) -> Vec<f32> {
+        let cursor = self.read_pos.load(Ordering::Relaxed);
+        let raw = {
+            let guard = match self.buffer.lock() {
+                Ok(b) => b,
+                Err(_) => return Vec::new(),
+            };
+            let (new, advanced) = read_new_from(&guard, cursor);
+            self.read_pos.store(advanced, Ordering::Relaxed);
+            new
+        };
+        let mono = to_mono(&raw, self.channels);
+        resample_to_16k(&mono, self.sample_rate)
+    }
+}
+
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{FromSample, Sample, SampleFormat, SizedSample, I24, U24};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 /// Build an input stream for one concrete sample type `T`, converting every
@@ -152,6 +191,9 @@ pub struct Recorder {
     buffer: Arc<Mutex<Vec<f32>>>,
     sample_rate: u32,
     channels: u16,
+    /// Read cursor for the live `ReaderHandle` (live transcription). Independent
+    /// of `stop`, which always consumes the whole buffer.
+    read_pos: Arc<AtomicUsize>,
 }
 
 impl Recorder {
@@ -197,6 +239,7 @@ impl Recorder {
             buffer,
             sample_rate,
             channels,
+            read_pos: Arc::new(AtomicUsize::new(0)),
         })
     }
 
@@ -210,6 +253,18 @@ impl Recorder {
             .lock()
             .map(|b| rms_window(&b, window))
             .unwrap_or(0.0)
+    }
+
+    /// A shareable, Send+Sync reader over this recorder's live buffer for the
+    /// live transcription loop. Holds only `Arc`s (buffer + cursor), so it can
+    /// move into the live thread while the `Recorder` itself stays put.
+    pub fn reader(&self) -> ReaderHandle {
+        ReaderHandle {
+            buffer: self.buffer.clone(),
+            read_pos: self.read_pos.clone(),
+            sample_rate: self.sample_rate,
+            channels: self.channels,
+        }
     }
 
     /// Stop capture and return 16 kHz mono samples ready for Whisper.
@@ -274,5 +329,26 @@ mod tests {
         assert_eq!(rms_window(&[0.0, 0.0], 100), 0.0);
         assert_eq!(rms_window(&[], 100), 0.0);
         assert_eq!(rms_window(&[1.0], 0), 0.0);
+    }
+
+    #[test]
+    fn read_new_from_returns_tail_and_advances() {
+        let buf = vec![0.1, 0.2, 0.3, 0.4];
+        let (new, cur) = read_new_from(&buf, 2);
+        assert_eq!(new, vec![0.3, 0.4]);
+        assert_eq!(cur, 4);
+        // Reading again from the advanced cursor yields nothing.
+        let (new2, cur2) = read_new_from(&buf, cur);
+        assert!(new2.is_empty());
+        assert_eq!(cur2, 4);
+    }
+
+    #[test]
+    fn read_new_from_handles_cursor_past_end() {
+        // Defensive: a cursor beyond len (shouldn't happen) returns empty.
+        let buf = vec![1.0, 2.0];
+        let (new, cur) = read_new_from(&buf, 5);
+        assert!(new.is_empty());
+        assert_eq!(cur, 2);
     }
 }
