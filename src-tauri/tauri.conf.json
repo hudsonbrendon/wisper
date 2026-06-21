@@ -34,6 +34,20 @@
         "shadow": false,
         "visible": false,
         "focus": false
+      },
+      {
+        "label": "meeting-bubble",
+        "url": "index.html",
+        "width": 280,
+        "height": 64,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "shadow": false,
+        "visible": false,
+        "focus": false
       }
     ],
     "macOSPrivateApi": true,
