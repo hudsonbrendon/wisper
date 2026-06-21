@@ -15,6 +15,12 @@ const FRAME_MS: u64 = 30;
 const MIN_SILENCE_FRAMES: usize = 2;
 /// How often the loop wakes to pull audio.
 const TICK_MS: u64 = 1000;
+/// Minimum speech length to transcribe live (~0.4 s @ 16 kHz). Whisper
+/// hallucinates canned phrases ("E aí", "Obrigado") on shorter chunks.
+const MIN_SEG_SAMPLES: usize = 6400;
+/// Minimum RMS to transcribe: skip near-silent segments the VAD let through
+/// (the real backstop against silence hallucinations).
+const MIN_RMS: f32 = 0.006;
 
 /// Convert 16 kHz mono f32 in [-1, 1] to i16 PCM (what webrtc-vad expects),
 /// clamping out-of-range values instead of wrapping.
@@ -70,11 +76,11 @@ impl LiveTranscriber {
 
             let mut vad_me = webrtc_vad::Vad::new_with_rate_and_mode(
                 webrtc_vad::SampleRate::Rate16kHz,
-                webrtc_vad::VadMode::Quality,
+                webrtc_vad::VadMode::VeryAggressive,
             );
             let mut vad_them = webrtc_vad::Vad::new_with_rate_and_mode(
                 webrtc_vad::SampleRate::Rate16kHz,
-                webrtc_vad::VadMode::Quality,
+                webrtc_vad::VadMode::VeryAggressive,
             );
 
             while !stop_for_thread.load(Ordering::Relaxed) {
@@ -156,7 +162,17 @@ fn process_source(
         let s = start_frame * VAD_FRAME;
         let e = (end_frame * VAD_FRAME).min(buf.len());
         let chunk = &buf[s..e];
+        // Skip too-short or too-quiet segments before hitting Whisper: it
+        // hallucinates canned phrases on brief/near-silent audio. The segment is
+        // still consumed (max_end_frame already advanced), so the buffer drains.
+        if chunk.len() < MIN_SEG_SAMPLES || crate::audio::rms_level(chunk) < MIN_RMS {
+            continue;
+        }
         for seg in transcribe(chunk) {
+            let text = seg.text.trim();
+            if text.is_empty() {
+                continue;
+            }
             // Absolute ms from meeting start: offset + segment-local position.
             let base_ms = crate::meeting::samples_to_ms(*offset_samples + s);
             let _ = app.emit(
@@ -165,7 +181,7 @@ fn process_source(
                     "speaker": speaker,
                     "start_ms": base_ms + seg.start_ms,
                     "end_ms": base_ms + seg.end_ms,
-                    "text": seg.text,
+                    "text": text,
                 }),
             );
         }
