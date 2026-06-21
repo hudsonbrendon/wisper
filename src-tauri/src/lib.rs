@@ -4,6 +4,7 @@ mod config;
 mod history;
 mod hotkey;
 mod inject;
+mod meeting;
 mod model_manager;
 mod meetings;
 #[cfg(target_os = "macos")]
