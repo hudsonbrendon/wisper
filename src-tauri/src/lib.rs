@@ -326,11 +326,17 @@ pub(crate) fn stop_meeting(app: &tauri::AppHandle) {
                 }
             }
         };
-        if let Err(e) = meetings::save(&data_dir, &meeting) {
-            eprintln!("meeting save failed: {e}");
+        match meetings::save(&data_dir, &meeting) {
+            Ok(()) => {
+                let _ = app.emit("meeting_state", serde_json::json!({ "state": "idle" }));
+                let _ = app.emit("meeting_saved", serde_json::json!({ "id": meeting.id }));
+            }
+            Err(e) => {
+                eprintln!("meeting save failed: {e}");
+                let _ = app.emit("meeting_state", serde_json::json!({ "state": "idle" }));
+                let _ = app.emit("error", serde_json::json!({ "message": format!("meeting save failed: {e}") }));
+            }
         }
-        let _ = app.emit("meeting_state", serde_json::json!({ "state": "idle" }));
-        let _ = app.emit("meeting_saved", serde_json::json!({ "id": meeting.id }));
     });
 }
 
