@@ -4,6 +4,7 @@ import Home from "./Home";
 import Insights from "./Insights";
 import Meetings from "./Meetings";
 import MeetingDetail from "./MeetingDetail";
+import LiveMeeting from "./LiveMeeting";
 import Dictionary from "./Dictionary";
 import Snippets from "./Snippets";
 import Settings from "./Settings";
@@ -17,6 +18,7 @@ import { onEvent, getConfig } from "../lib/api";
 export default function Dashboard() {
   const [view, setView] = useState<View>("home");
   const [openMeeting, setOpenMeeting] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
   // null while loading; true/false once config is read. The onboarding wizard
   // shows over the dashboard until completed (or replayed from Settings).
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
@@ -25,11 +27,15 @@ export default function Dashboard() {
     getConfig().then((c) => setOnboarded(c.onboarded));
     // The tray "Home" item shows the window and navigates here.
     const un = onEvent<string>("tray_navigate", (v) => setView(v as View));
+    const mstate = onEvent<{ state: string }>("meeting_state", (p) =>
+      setRecording(p.state === "recording"),
+    );
     // Settings' "Replay tutorial" re-opens the wizard (same window).
     const replay = () => setOnboarded(false);
     window.addEventListener("replay-tutorial", replay);
     return () => {
       un.then((f) => f());
+      mstate.then((f) => f());
       window.removeEventListener("replay-tutorial", replay);
     };
   }, []);
@@ -51,7 +57,9 @@ export default function Dashboard() {
           {view === "home" && <Home />}
           {view === "insights" && <Insights />}
           {view === "meetings" &&
-            (openMeeting ? (
+            (recording ? (
+              <LiveMeeting />
+            ) : openMeeting ? (
               <MeetingDetail
                 id={openMeeting}
                 onBack={() => setOpenMeeting(null)}

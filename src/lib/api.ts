@@ -131,6 +131,12 @@ export const openSystemAudioSettings = () =>
 
 export type MeetingStatePayload = { state: string };
 export type MeetingSavedPayload = { id: string };
+export type MeetingLiveSegmentPayload = {
+  speaker: "me" | "them";
+  start_ms: number;
+  end_ms: number;
+  text: string;
+};
 
 export const onEvent = <T>(
   name: string,
