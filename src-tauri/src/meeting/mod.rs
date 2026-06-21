@@ -2,6 +2,8 @@
 //! output ("them") captured in parallel, transcribed separately on stop and
 //! merged into one time-ordered, speaker-labelled transcript.
 
+mod live;
+
 use crate::audio::{self, Recorder};
 use crate::meetings::{self, Meeting};
 use crate::stt::Transcriber;
