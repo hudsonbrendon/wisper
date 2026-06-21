@@ -30,3 +30,29 @@ fn transcribes_jfk_sample() {
         "expected 'country' in transcript, got: {text}"
     );
 }
+
+#[test]
+#[ignore]
+fn transcribe_segments_have_timestamps_and_text() {
+    use wisper_lib::stt::Transcriber;
+    let model = "/tmp/ggml-base.en.bin";
+    let wav_path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/jfk.wav");
+    let mut reader = hound::WavReader::open(wav_path).expect("open wav");
+    let samples: Vec<f32> = reader
+        .samples::<i16>()
+        .map(|s| s.expect("sample") as f32 / 32768.0)
+        .collect();
+
+    let t = Transcriber::load(model).expect("load model");
+    let segs = t.transcribe_segments(&samples, "en", "").expect("segments");
+    assert!(!segs.is_empty(), "expected at least one segment");
+    // Times are sane and ordered; full text mentions "country".
+    assert!(segs[0].end_ms >= segs[0].start_ms);
+    let joined = segs
+        .iter()
+        .map(|s| s.text.as_str())
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_lowercase();
+    assert!(joined.contains("country"), "got: {joined}");
+}

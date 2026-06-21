@@ -134,4 +134,12 @@ describe("Sidebar", () => {
     const insightsBtn = screen.getByRole("button", { name: /^insights$/i });
     expect(insightsBtn.className).toContain("font-medium");
   });
+
+  it("renders the Meetings nav item and navigates to it", async () => {
+    const onNavigate = vi.fn();
+    renderSidebar("home", onNavigate);
+    const btn = await screen.findByRole("button", { name: /^meetings$/i });
+    await userEvent.click(btn);
+    expect(onNavigate).toHaveBeenCalledWith("meetings");
+  });
 });
