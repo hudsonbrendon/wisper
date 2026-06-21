@@ -272,6 +272,45 @@ pub(crate) fn start_meeting(app: &tauri::AppHandle) -> Result<(), String> {
     let rec = crate::meeting::MeetingRecorder::start(mic_device.as_deref(), started_ms)?;
     *st.meeting.lock().unwrap() = Some(rec);
 
+    // Spawn the during-meeting live transcription loop. The recorder is already in
+    // `AppState`; we pull Send+Sync reader handles off it and feed them to the
+    // loop, leaving the recorder's ownership of the non-Sync streams untouched.
+    {
+        let (language, prompt) = {
+            let c = st.config.lock().unwrap();
+            (c.language.clone(), text::dictionary_prompt(&c.dictionary))
+        };
+        let mut guard = st.meeting.lock().unwrap();
+        if let Some(rec) = guard.as_mut() {
+            let (mic_reader, sys_reader) = rec.readers();
+            let app_for_live = app.clone();
+            // The transcribe closure locks the model per call (serialized, same as
+            // dictation/batch — intentional).
+            let app_tx = app.clone();
+            let transcribe: crate::meeting::live::TranscribeFn =
+                std::sync::Arc::new(move |chunk: &[f32]| {
+                    let st = app_tx.state::<AppState>();
+                    let guard = st.transcriber.lock().unwrap();
+                    match guard.as_ref() {
+                        Some(t) => t
+                            .transcribe_segments(chunk, &language, &prompt)
+                            .unwrap_or_default(),
+                        None => Vec::new(),
+                    }
+                });
+            let sources = crate::meeting::live::LiveSources {
+                read_me: Box::new(move || mic_reader.read_new_16k()),
+                read_them: sys_reader.map(|r| {
+                    let mut r = r;
+                    Box::new(move || (r.0)()) as Box<dyn FnMut() -> Vec<f32> + Send>
+                }),
+            };
+            let live =
+                crate::meeting::live::LiveTranscriber::start(app_for_live, sources, transcribe);
+            rec.attach_live(live);
+        }
+    }
+
     place_and_show_meeting_bubble(app);
     let _ = app.emit("meeting_state", serde_json::json!({ "state": "recording" }));
 

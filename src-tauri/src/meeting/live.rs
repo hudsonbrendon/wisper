@@ -40,6 +40,10 @@ pub struct LiveSources {
     pub read_them: Option<Box<dyn FnMut() -> Vec<f32> + Send>>,
 }
 
+/// Turns a chunk of 16 kHz mono samples into transcript segments. The caller
+/// wires it to the loaded model under its lock (serialized per call).
+pub type TranscribeFn = Arc<dyn Fn(&[f32]) -> Vec<crate::stt::SttSegment> + Send + Sync>;
+
 pub struct LiveTranscriber {
     stop: Arc<AtomicBool>,
     handle: Option<std::thread::JoinHandle<()>>,
@@ -52,7 +56,7 @@ impl LiveTranscriber {
     pub fn start(
         app: AppHandle,
         mut sources: LiveSources,
-        transcribe: Arc<dyn Fn(&[f32]) -> Vec<crate::stt::SttSegment> + Send + Sync>,
+        transcribe: TranscribeFn,
     ) -> LiveTranscriber {
         let stop = Arc::new(AtomicBool::new(false));
         let stop_for_thread = stop.clone();

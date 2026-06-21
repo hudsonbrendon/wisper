@@ -16,12 +16,18 @@ pub trait SystemAudioCapturer: Send {
     fn level(&self) -> f32;
     /// Stop and return (native f32 samples, sample_rate, channels).
     fn stop(self: Box<Self>) -> (Vec<f32>, u32, u16);
-    /// Native samples captured since the last `read_new` call (non-destructive;
-    /// `stop` still returns the full take). For the live transcription loop.
-    fn read_new(&self) -> Vec<f32>;
-    /// (sample_rate, channels) of the native stream.
-    fn format(&self) -> (u32, u16);
+    /// A Send reader yielding new samples already converted to 16 kHz mono, for
+    /// the live transcription loop. Captures `Arc`s of this capturer's buffer +
+    /// cursor so it can move into the live thread while the capturer stays put
+    /// (non-destructive — `stop` still returns the full take).
+    fn reader(&self) -> SysReader;
 }
+
+/// Shareable reader over a system capturer's buffer for the live loop. The inner
+/// closure pulls new native samples and returns them as 16 kHz mono. `Send` so it
+/// can move into the live thread; each backend builds it over `Arc`s of its own
+/// buffer/consumer + cursor.
+pub struct SysReader(pub Box<dyn FnMut() -> Vec<f32> + Send>);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Backend {

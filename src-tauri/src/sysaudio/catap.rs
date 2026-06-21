@@ -22,8 +22,8 @@
 //!   binding; it is created via the objc2 runtime.
 #![allow(non_upper_case_globals, non_snake_case)]
 
-use super::SystemAudioCapturer;
-use crate::audio::rms_window;
+use super::{SysReader, SystemAudioCapturer};
+use crate::audio::{resample_to_16k, rms_window, to_mono};
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 
@@ -97,8 +97,9 @@ pub struct CatapCapturer {
     shared: Arc<Shared>,
     /// Ring consumer + full-take accumulator + read cursor. The `Mutex` is now
     /// touched ONLY off the RT thread (the IO proc pushes into the lock-free
-    /// producer, never this).
-    consumer: Mutex<Consumer>,
+    /// producer, never this). Behind an `Arc` so a `SysReader` closure can share
+    /// it with the live loop without moving the capturer.
+    consumer: Arc<Mutex<Consumer>>,
     tap_id: AudioObjectID,
     aggregate_id: AudioObjectID,
     io_proc: AudioDeviceIOProcID,
@@ -387,11 +388,11 @@ unsafe fn start_inner() -> Result<Box<dyn SystemAudioCapturer>, String> {
 
     Ok(Box::new(CatapCapturer {
         shared,
-        consumer: Mutex::new(Consumer {
+        consumer: Arc::new(Mutex::new(Consumer {
             rx: consumer_rx,
             acc: Vec::new(),
             read_pos: 0,
-        }),
+        })),
         tap_id,
         aggregate_id,
         io_proc,
@@ -505,22 +506,28 @@ impl SystemAudioCapturer for CatapCapturer {
             .unwrap_or(0.0)
     }
 
-    fn read_new(&self) -> Vec<f32> {
-        // Drain the ring into the accumulator, then read forward from the cursor.
-        drain(&self.consumer);
-        let Ok(mut c) = self.consumer.lock() else {
-            return Vec::new();
-        };
-        let (new, advanced) = crate::audio::read_new_from(&c.acc, c.read_pos);
-        c.read_pos = advanced;
-        new
-    }
-
-    fn format(&self) -> (u32, u16) {
-        (
-            *self.shared.sample_rate.lock().unwrap(),
-            *self.shared.channels.lock().unwrap(),
-        )
+    fn reader(&self) -> SysReader {
+        let consumer = self.consumer.clone();
+        let shared = self.shared.clone();
+        SysReader(Box::new(move || {
+            // Drain the lock-free ring into the accumulator first, then read
+            // forward from the cursor — same path the old `read_new` took.
+            drain(&consumer);
+            let raw = {
+                let Ok(mut c) = consumer.lock() else {
+                    return Vec::new();
+                };
+                let (new, advanced) = crate::audio::read_new_from(&c.acc, c.read_pos);
+                c.read_pos = advanced;
+                new
+            };
+            let (sr, ch) = (
+                *shared.sample_rate.lock().unwrap(),
+                *shared.channels.lock().unwrap(),
+            );
+            let mono = to_mono(&raw, ch);
+            resample_to_16k(&mono, sr)
+        }))
     }
 
     fn stop(mut self: Box<Self>) -> (Vec<f32>, u32, u16) {

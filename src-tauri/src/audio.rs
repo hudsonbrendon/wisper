@@ -63,6 +63,36 @@ pub fn read_new_from(buffer: &[f32], cursor: usize) -> (Vec<f32>, usize) {
     (buffer[start..].to_vec(), buffer.len())
 }
 
+/// Send+Sync read handle into a `Recorder`'s buffer for the live loop. Holds only
+/// `Arc`s, so it can move into the live thread while the `Recorder` (which owns a
+/// non-`Sync` `cpal::Stream`) stays put behind the meeting's lock.
+#[derive(Clone)]
+pub struct ReaderHandle {
+    buffer: Arc<Mutex<Vec<f32>>>,
+    read_pos: Arc<AtomicUsize>,
+    sample_rate: u32,
+    channels: u16,
+}
+
+impl ReaderHandle {
+    /// New samples since the last call, converted to 16 kHz mono. Uses its own
+    /// cursor, independent of `Recorder::read_new` / `Recorder::stop`.
+    pub fn read_new_16k(&self) -> Vec<f32> {
+        let cursor = self.read_pos.load(Ordering::Relaxed);
+        let raw = {
+            let guard = match self.buffer.lock() {
+                Ok(b) => b,
+                Err(_) => return Vec::new(),
+            };
+            let (new, advanced) = read_new_from(&guard, cursor);
+            self.read_pos.store(advanced, Ordering::Relaxed);
+            new
+        };
+        let mono = to_mono(&raw, self.channels);
+        resample_to_16k(&mono, self.sample_rate)
+    }
+}
+
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{FromSample, Sample, SampleFormat, SizedSample, I24, U24};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -161,8 +191,8 @@ pub struct Recorder {
     buffer: Arc<Mutex<Vec<f32>>>,
     sample_rate: u32,
     channels: u16,
-    /// Read cursor for `read_new` (live transcription). Independent of `stop`,
-    /// which always consumes the whole buffer.
+    /// Read cursor for the live `ReaderHandle` (live transcription). Independent
+    /// of `stop`, which always consumes the whole buffer.
     read_pos: Arc<AtomicUsize>,
 }
 
@@ -225,18 +255,16 @@ impl Recorder {
             .unwrap_or(0.0)
     }
 
-    /// Native-rate samples captured since the last `read_new` call. Non-
-    /// destructive: `stop` still returns the full take.
-    pub fn read_new(&self) -> Vec<f32> {
-        let cursor = self.read_pos.load(Ordering::Relaxed);
-        let guard = self.buffer.lock();
-        let buf = match guard {
-            Ok(b) => b,
-            Err(_) => return Vec::new(),
-        };
-        let (new, advanced) = read_new_from(&buf, cursor);
-        self.read_pos.store(advanced, Ordering::Relaxed);
-        new
+    /// A shareable, Send+Sync reader over this recorder's live buffer for the
+    /// live transcription loop. Holds only `Arc`s (buffer + cursor), so it can
+    /// move into the live thread while the `Recorder` itself stays put.
+    pub fn reader(&self) -> ReaderHandle {
+        ReaderHandle {
+            buffer: self.buffer.clone(),
+            read_pos: self.read_pos.clone(),
+            sample_rate: self.sample_rate,
+            channels: self.channels,
+        }
     }
 
     /// Stop capture and return 16 kHz mono samples ready for Whisper.

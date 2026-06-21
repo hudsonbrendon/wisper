@@ -11,8 +11,8 @@
 //! `CMSampleBuffer::audio_buffer_list()` as raw `&[u8]` we reinterpret as f32,
 //! and `SCStream` is already `Send + Sync`.
 
-use super::SystemAudioCapturer;
-use crate::audio::rms_window;
+use super::{SysReader, SystemAudioCapturer};
+use crate::audio::{resample_to_16k, rms_window, to_mono};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -67,7 +67,9 @@ impl SCStreamOutputTrait for AudioSink {
 pub struct SckCapturer {
     stream: SCStream,
     buffer: Arc<Mutex<Vec<f32>>>,
-    read_pos: AtomicUsize,
+    /// Live-loop read cursor. `Arc` so a `SysReader` closure can own a clone and
+    /// read incrementally without moving the capturer.
+    read_pos: Arc<AtomicUsize>,
 }
 
 pub fn start() -> Result<Box<dyn SystemAudioCapturer>, String> {
@@ -108,7 +110,7 @@ pub fn start() -> Result<Box<dyn SystemAudioCapturer>, String> {
     Ok(Box::new(SckCapturer {
         stream,
         buffer,
-        read_pos: AtomicUsize::new(0),
+        read_pos: Arc::new(AtomicUsize::new(0)),
     }))
 }
 
@@ -129,18 +131,22 @@ impl SystemAudioCapturer for SckCapturer {
         (raw, SR, CH)
     }
 
-    fn read_new(&self) -> Vec<f32> {
-        let cursor = self.read_pos.load(Ordering::Relaxed);
-        let buf = match self.buffer.lock() {
-            Ok(b) => b,
-            Err(_) => return Vec::new(),
-        };
-        let (new, advanced) = crate::audio::read_new_from(&buf, cursor);
-        self.read_pos.store(advanced, Ordering::Relaxed);
-        new
-    }
-
-    fn format(&self) -> (u32, u16) {
-        (SR, CH)
+    fn reader(&self) -> SysReader {
+        let buffer = self.buffer.clone();
+        let read_pos = self.read_pos.clone();
+        SysReader(Box::new(move || {
+            let cursor = read_pos.load(Ordering::Relaxed);
+            let raw = {
+                let buf = match buffer.lock() {
+                    Ok(b) => b,
+                    Err(_) => return Vec::new(),
+                };
+                let (new, advanced) = crate::audio::read_new_from(&buf, cursor);
+                read_pos.store(advanced, Ordering::Relaxed);
+                new
+            };
+            let mono = to_mono(&raw, CH);
+            resample_to_16k(&mono, SR)
+        }))
     }
 }
