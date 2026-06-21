@@ -19,6 +19,24 @@ pub fn bottom_center(
     (x, y)
 }
 
+/// Top-left position (physical px) to anchor a `win`-sized window at the
+/// top-center of a monitor, `top_margin` px below the top edge (clear of the
+/// menu bar / notch). Mirrors `bottom_center` for the meeting bubble, which sits
+/// at the top so it never overlaps the dictation pill at the bottom.
+pub fn top_center(
+    mon_pos: (i32, i32),
+    mon_size: (u32, u32),
+    win: (u32, u32),
+    top_margin: i32,
+) -> (i32, i32) {
+    let (mx, my) = mon_pos;
+    let mw = mon_size.0 as i32;
+    let ww = win.0 as i32;
+    let x = mx + (mw - ww) / 2;
+    let y = my + top_margin;
+    (x, y)
+}
+
 /// Is `cursor` within the interactive band of the overlay window? The band is
 /// the bottom `band` px of the window (its full width); when the menu is open
 /// the caller passes the full window height so the whole window counts. All
@@ -82,6 +100,22 @@ mod tests {
         assert_eq!(
             bottom_center((1920, 0), (1280, 1024), (360, 72), 90),
             (1920 + (1280 - 360) / 2, 1024 - 72 - 90)
+        );
+    }
+
+    #[test]
+    fn top_center_centers_horizontally_below_margin() {
+        assert_eq!(
+            top_center((0, 0), (1920, 1080), (320, 64), 24),
+            ((1920 - 320) / 2, 24)
+        );
+    }
+
+    #[test]
+    fn top_center_respects_monitor_offset() {
+        assert_eq!(
+            top_center((1920, 0), (1280, 1024), (320, 64), 24),
+            (1920 + (1280 - 320) / 2, 24)
         );
     }
 }
