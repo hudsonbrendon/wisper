@@ -23,6 +23,8 @@ export default function MeetingBubble() {
   const [seconds, setSeconds] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [segments, setSegments] = useState<MeetingLiveSegmentPayload[]>([]);
+  // Show only the most recent messages; "load more" reveals 10 older at a time.
+  const [visibleCount, setVisibleCount] = useState(10);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,6 +41,7 @@ export default function MeetingBubble() {
       if (p.state === "recording") {
         setSeconds(0);
         setSegments([]);
+        setVisibleCount(10);
       }
     });
     const tick = setInterval(() => setSeconds((s) => s + 1), 1000);
@@ -125,8 +128,20 @@ export default function MeetingBubble() {
             </p>
           ) : (
             <div className="flex flex-col gap-1.5">
-              {segments.map((s, i) => (
-                <div key={i} className="flex gap-2">
+              {segments.length > visibleCount && (
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((c) => c + 10)}
+                  className="mb-1 self-center rounded-lg border border-stone-200 px-2 py-0.5 text-[10px] text-stone-600 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800"
+                >
+                  {t("meetings.loadMore")} ({segments.length - visibleCount})
+                </button>
+              )}
+              {segments.slice(-visibleCount).map((s, i) => (
+                <div
+                  key={segments.length - visibleCount + i}
+                  className="flex gap-2"
+                >
                   <span
                     className={
                       "shrink-0 text-[10px] font-medium " +
