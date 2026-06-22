@@ -12,6 +12,7 @@ mod modtap;
 mod overlay;
 mod state;
 pub mod stt;
+mod summarizer;
 mod sysaudio;
 mod text;
 mod uitext;
