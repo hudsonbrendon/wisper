@@ -120,6 +120,12 @@ until you press your hotkey.
   higher accuracy and saves the final transcript under **Meetings** with
   speaker-labelled segments in chronological order. Copy, export as Markdown,
   rename, or delete recordings — all local, nothing uploaded.
+- 🤖 **Local AI meeting summary** _(macOS 13+)_ — after a meeting, generate a
+  structured summary on demand: **Resumo** (overview), **Pontos-chave** (key
+  points), **Decisões** (decisions), and **Action items** — all produced
+  entirely on-device by a local language model. No cloud, no API key. Requires
+  a one-time ~4.5 GB model download (initiated from inside the app); once
+  downloaded the model is reused for every subsequent summary.
 
 ## 🚀 Quick start
 
