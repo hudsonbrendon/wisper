@@ -259,6 +259,7 @@ const en: Dict = {
   "meetings.loadMore": "Load older messages",
   "meetings.transcribing": "Generating transcript…",
   "meetings.copySummary": "Copy summary",
+  "meetings.liveToggle": "Live transcript",
   "meetings.confirmDeleteTitle": "Delete meeting?",
   "meetings.confirmDeleteMsg":
     "This permanently deletes the meeting and its transcript. This can't be undone.",
@@ -490,6 +491,7 @@ const pt: Dict = {
   "meetings.loadMore": "Carregar mensagens antigas",
   "meetings.transcribing": "Gerando transcrição…",
   "meetings.copySummary": "Copiar resumo",
+  "meetings.liveToggle": "Transcrição ao vivo",
   "meetings.confirmDeleteTitle": "Excluir reunião?",
   "meetings.confirmDeleteMsg":
     "Isto exclui a reunião e a transcrição permanentemente. Não pode ser desfeito.",
