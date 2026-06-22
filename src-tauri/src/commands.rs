@@ -412,7 +412,7 @@ pub fn open_system_audio_settings() {
 /// Whether the local summary LLM is downloaded.
 #[tauri::command]
 pub fn llm_model_downloaded(state: tauri::State<AppState>) -> bool {
-    model_manager::is_downloaded(&state.data_dir, model_manager::llm_model_info())
+    model_manager::is_present(&state.data_dir, model_manager::llm_model_info())
 }
 
 /// Download the summary LLM, emitting "llm_download_progress" {received,total}.
@@ -444,7 +444,7 @@ pub async fn generate_summary(app: AppHandle, id: String) -> Result<String, Stri
     if transcript.trim().is_empty() {
         return Err("empty_transcript".to_string());
     }
-    if !model_manager::is_downloaded(&data_dir, model_manager::llm_model_info()) {
+    if !model_manager::is_present(&data_dir, model_manager::llm_model_info()) {
         return Err("no_llm_model".to_string());
     }
     let language = meeting.language.clone();
