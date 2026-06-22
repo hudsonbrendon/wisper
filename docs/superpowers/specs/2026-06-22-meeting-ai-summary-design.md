@@ -165,3 +165,51 @@ linha de aviso no fim do trecho quando truncado.
 - Escolha de **modelo** na UI / múltiplos tamanhos.
 - **Chunk+merge** de transcripts muito longos (v1 trunca).
 - Resumo por **participante** / diarização de múltiplos remotos.
+
+---
+
+## REVISÃO (2026-06-22): isolamento por processo (descoberta no device)
+
+**Problema encontrado testando no Mac:** linkar `llama-cpp-2` no mesmo binário do
+`whisper-rs` **quebra o whisper**. Ambas as crates trazem (e linkam estaticamente)
+o seu próprio `ggml`; o linker funde os símbolos e o whisper passa a rodar contra
+o `ggml` mais novo do llama.cpp (ABI incompatível). Sintoma: `transcribe` devolve
+**0 segmentos** mesmo com áudio claro (rms ~0.03), quebrando TODA transcrição
+(ditado, reunião ao vivo e o batch salvo). O boot mostra o ggml novo do llama
+(`tensor API`, `MTLGPUFamilyMetal4`, `residency set collection`) inicializando o
+whisper. A abordagem in-process (Summarizer com llama-cpp-2 dentro do app) **não
+é viável**.
+
+**Decisão:** rodar o LLM num **processo separado**.
+
+### Arquitetura revisada
+
+```
+app principal (src-tauri): SÓ whisper-rs (ditado/reunião) — llama REMOVIDO
+   │  generate_summary → spawn subprocesso (sidecar Tauri)
+   ▼
+helper bin (crate separada, SÓ llama-cpp-2): lê {model_path, transcript, language}
+   → build_prompt → llama.cpp/Metal → escreve markdown no stdout
+```
+
+### O que muda vs o spec original
+
+- **Remover `llama-cpp-2` do `src-tauri`** (descorrompe o whisper). Remover o
+  `Summarizer` in-process e o campo `AppState.summarizer`.
+- **Nova crate de workspace** (ex.: `summarize-helper`) que depende SÓ de
+  `llama-cpp-2` (metal no macOS), produz um binário. `build_prompt`/`truncate`
+  (puros) movem pra essa crate (ou uma crate `summarize-core` compartilhada).
+- **Bundling como sidecar Tauri** (`externalBin` em tauri.conf.json): o binário
+  helper é embutido no `.app` e resolvido em runtime.
+- **`generate_summary`** passa a fazer spawn do sidecar (transcript via stdin ou
+  arquivo temporário, model_path via arg), lê o markdown do stdout, salva em
+  `Meeting.summary`. Erros `no_llm_model`/`empty_transcript` permanecem.
+- **Inalterado:** `Meeting.summary` + `transcript_text` (Task 1), `llm_model_info`
+  - download via `model_manager` no app principal (Task 4), e toda a UI (Task 6,
+    chama o mesmo comando `generate_summary`).
+
+### Build/CI
+
+- O app principal volta a ter só o ggml do whisper → whisper funciona de novo.
+- O helper compila o llama.cpp; o build do app passa a depender de buildar o
+  helper antes e copiá-lo pro local do sidecar (pipeline a definir no plano).
