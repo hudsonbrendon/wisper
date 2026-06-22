@@ -1,28 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { onEvent, type MeetingLiveSegmentPayload } from "../lib/api";
+import { type MeetingLiveSegmentPayload } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 
-type Seg = MeetingLiveSegmentPayload;
-
-/// Live transcript shown while a meeting is recording. Appends each closed
-/// segment as it arrives and auto-scrolls. The saved transcript comes later from
-/// the batch re-pass; this view is replaced by MeetingDetail on meeting_saved.
-export default function LiveMeeting() {
+/// Live transcript shown while a meeting is recording. The segments are owned by
+/// Dashboard (always mounted, so it never misses an event) and passed in; this
+/// view is replaced by MeetingDetail on meeting_saved.
+export default function LiveMeeting({
+  segments,
+}: {
+  segments: MeetingLiveSegmentPayload[];
+}) {
   const { t } = useI18n();
-  const [segments, setSegments] = useState<Seg[]>([]);
   // Show only the most recent messages; "load more" reveals 10 older at a time.
   const [visibleCount, setVisibleCount] = useState(10);
   const endRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const un = onEvent<Seg>("meeting_live_segment", (p) =>
-      setSegments((prev) => [...prev, p]),
-    );
-    return () => {
-      un.then((f) => f());
-    };
-  }, []);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });

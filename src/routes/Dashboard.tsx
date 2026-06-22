@@ -10,7 +10,7 @@ import Snippets from "./Snippets";
 import Settings from "./Settings";
 import Onboarding from "./Onboarding";
 import UpdateBanner from "../components/UpdateBanner";
-import { onEvent, getConfig } from "../lib/api";
+import { onEvent, getConfig, type MeetingLiveSegmentPayload } from "../lib/api";
 
 /// The main window shell: a fixed sidebar plus a rounded content surface, in
 /// the light "Flow"-style theme. View switching is local state — the app has
@@ -19,6 +19,14 @@ export default function Dashboard() {
   const [view, setView] = useState<View>("home");
   const [openMeeting, setOpenMeeting] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  // Live transcript lives here, not in LiveMeeting: the meetings view swaps
+  // which child is mounted at exactly the wrong moments (recording→transcribing,
+  // navigating tabs), so a child that subscribes on mount misses events.
+  // Dashboard is always mounted, so it never misses a segment or a state change.
+  const [liveSegments, setLiveSegments] = useState<MeetingLiveSegmentPayload[]>(
+    [],
+  );
   // null while loading; true/false once config is read. The onboarding wizard
   // shows over the dashboard until completed (or replayed from Settings).
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
@@ -27,8 +35,15 @@ export default function Dashboard() {
     getConfig().then((c) => setOnboarded(c.onboarded));
     // The tray "Home" item shows the window and navigates here.
     const un = onEvent<string>("tray_navigate", (v) => setView(v as View));
-    const mstate = onEvent<{ state: string }>("meeting_state", (p) =>
-      setRecording(p.state === "recording"),
+    const mstate = onEvent<{ state: string }>("meeting_state", (p) => {
+      setRecording(p.state === "recording");
+      setTranscribing(p.state === "transcribing");
+      // A new recording starts with a clean transcript.
+      if (p.state === "recording") setLiveSegments([]);
+    });
+    const live = onEvent<MeetingLiveSegmentPayload>(
+      "meeting_live_segment",
+      (p) => setLiveSegments((prev) => [...prev, p]),
     );
     // Settings' "Replay tutorial" re-opens the wizard (same window).
     const replay = () => setOnboarded(false);
@@ -36,6 +51,7 @@ export default function Dashboard() {
     return () => {
       un.then((f) => f());
       mstate.then((f) => f());
+      live.then((f) => f());
       window.removeEventListener("replay-tutorial", replay);
     };
   }, []);
@@ -58,14 +74,17 @@ export default function Dashboard() {
           {view === "insights" && <Insights />}
           {view === "meetings" &&
             (recording ? (
-              <LiveMeeting />
+              <LiveMeeting segments={liveSegments} />
             ) : openMeeting ? (
               <MeetingDetail
                 id={openMeeting}
                 onBack={() => setOpenMeeting(null)}
               />
             ) : (
-              <Meetings onOpen={(id) => setOpenMeeting(id)} />
+              <Meetings
+                transcribing={transcribing}
+                onOpen={(id) => setOpenMeeting(id)}
+              />
             ))}
           {view === "dictionary" && <Dictionary />}
           {view === "snippets" && <Snippets />}

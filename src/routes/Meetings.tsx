@@ -13,12 +13,17 @@ import {
 } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 
-export default function Meetings({ onOpen }: { onOpen: (id: string) => void }) {
+export default function Meetings({
+  transcribing,
+  onOpen,
+}: {
+  transcribing: boolean;
+  onOpen: (id: string) => void;
+}) {
   const { t } = useI18n();
   const [items, setItems] = useState<MeetingSummary[]>([]);
   const [supported, setSupported] = useState(true);
   const [recording, setRecording] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,16 +31,12 @@ export default function Meetings({ onOpen }: { onOpen: (id: string) => void }) {
 
   useEffect(() => {
     meetingSupported().then(setSupported);
-    getMeetingState().then((s) => {
-      setRecording(s === "recording");
-      setTranscribing(s === "transcribing");
-    });
+    getMeetingState().then((s) => setRecording(s === "recording"));
     refresh();
     const saved = onEvent<{ id: string }>("meeting_saved", () => refresh());
-    const state = onEvent<{ state: string }>("meeting_state", (p) => {
-      setRecording(p.state === "recording");
-      setTranscribing(p.state === "transcribing");
-    });
+    const state = onEvent<{ state: string }>("meeting_state", (p) =>
+      setRecording(p.state === "recording"),
+    );
     return () => {
       saved.then((f) => f());
       state.then((f) => f());
@@ -83,7 +84,7 @@ export default function Meetings({ onOpen }: { onOpen: (id: string) => void }) {
         ) : (
           <button
             type="button"
-            disabled={!supported || busy}
+            disabled={!supported || busy || transcribing}
             onClick={start}
             className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-40 dark:bg-stone-100 dark:text-stone-900"
           >
