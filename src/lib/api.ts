@@ -100,6 +100,7 @@ export interface Meeting {
   partial: boolean;
   segments: MeetingSegment[];
   summary?: string;
+  has_audio?: boolean;
 }
 
 export interface MeetingSummary {
@@ -126,6 +127,14 @@ export const renameMeeting = (id: string, title: string) =>
 // or null if the user cancelled.
 export const exportMeetingFile = (defaultName: string, contents: string) =>
   invoke<string | null>("export_meeting_file", { defaultName, contents });
+// Absolute path to the meeting's recorded audio (feed to convertFileSrc), or
+// null if there's no recording.
+export const meetingAudioPath = (id: string) =>
+  invoke<string | null>("meeting_audio_path", { id });
+// Native save dialog to download the meeting's audio; resolves to the saved
+// path or null if cancelled.
+export const exportMeetingAudio = (id: string) =>
+  invoke<string | null>("export_meeting_audio", { id });
 export const meetingSupported = () => invoke<boolean>("meeting_supported");
 export const checkSystemAudioPermission = () =>
   invoke<boolean>("check_system_audio_permission");

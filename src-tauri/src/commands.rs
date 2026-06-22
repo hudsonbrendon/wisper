@@ -394,6 +394,48 @@ pub async fn export_meeting_file(
     }
 }
 
+/// Absolute path to a meeting's recorded audio, or None if there isn't one.
+/// The frontend feeds this to `convertFileSrc` for the `<audio>` player.
+#[tauri::command]
+pub fn meeting_audio_path(state: tauri::State<AppState>, id: String) -> Option<String> {
+    let p = crate::meetings::audio_path(&state.data_dir, &id);
+    p.exists().then(|| p.to_string_lossy().to_string())
+}
+
+/// Open a native save dialog and copy the meeting's WAV to the chosen path.
+/// Returns the saved path, or None if cancelled.
+#[tauri::command]
+pub async fn export_meeting_audio(app: AppHandle, id: String) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let (src, default_name) = {
+        let state = app.state::<AppState>();
+        let src = crate::meetings::audio_path(&state.data_dir, &id);
+        if !src.exists() {
+            return Err("no_audio".into());
+        }
+        let name = crate::meetings::get(&state.data_dir, &id)
+            .map(|m| m.title.replace(['/', '\\', ':'], "-"))
+            .unwrap_or_else(|| id.clone());
+        (src, format!("{name}.wav"))
+    };
+    let path = app
+        .dialog()
+        .file()
+        .set_file_name(&default_name)
+        .add_filter("Audio", &["wav"])
+        .blocking_save_file();
+    match path {
+        Some(p) => {
+            let dest = p
+                .into_path()
+                .map_err(|e| format!("resolve export path: {e}"))?;
+            std::fs::copy(&src, &dest).map_err(|e| format!("copy audio: {e}"))?;
+            Ok(Some(dest.to_string_lossy().to_string()))
+        }
+        None => Ok(None),
+    }
+}
+
 /// Whether this OS can capture system audio at all (macOS 13+).
 #[tauri::command]
 pub fn meeting_supported() -> bool {

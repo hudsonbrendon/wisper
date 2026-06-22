@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import {
   getMeeting,
   renameMeeting,
   deleteMeeting,
   exportMeetingFile,
+  meetingAudioPath,
+  exportMeetingAudio,
   generateSummary,
   llmModelDownloaded,
   downloadLlmModel,
@@ -86,6 +89,18 @@ export default function MeetingDetail({
   } | null>(null);
   // Show only the most recent messages; "load more" reveals 10 older at a time.
   const [visibleCount, setVisibleCount] = useState(10);
+  const [audioSrc, setAudioSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const p = meeting?.has_audio ? await meetingAudioPath(id) : null;
+      if (active) setAudioSrc(p ? convertFileSrc(p) : null);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [meeting?.has_audio, id]);
 
   useEffect(() => {
     llmModelDownloaded().then(setHasModel);
@@ -264,6 +279,19 @@ export default function MeetingDetail({
             ? `${t("meetings.exportedTo")} ${exported.msg}`
             : exported.msg}
         </p>
+      )}
+
+      {audioSrc && (
+        <div className="mb-6 flex items-center gap-3 rounded-lg border border-stone-200 px-4 py-3 dark:border-stone-800">
+          <audio controls src={audioSrc} className="h-9 min-w-0 flex-1" />
+          <button
+            type="button"
+            onClick={() => exportMeetingAudio(id)}
+            className="shrink-0 rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+          >
+            {t("meetings.downloadAudio")}
+          </button>
+        </div>
       )}
 
       <section className="mb-6">

@@ -29,6 +29,10 @@ pub struct Meeting {
     /// meetings saved before this field existed loadable.
     #[serde(default)]
     pub summary: Option<String>,
+    /// Whether a `<id>.wav` recording sits next to this meeting's JSON.
+    /// `serde(default)` keeps pre-audio meetings loadable.
+    #[serde(default)]
+    pub has_audio: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -47,6 +51,41 @@ fn meetings_dir(data_dir: &Path) -> PathBuf {
 
 fn meeting_path(data_dir: &Path, id: &str) -> PathBuf {
     meetings_dir(data_dir).join(format!("{id}.json"))
+}
+
+/// Path to a meeting's recorded audio (sibling `<id>.wav`).
+pub fn audio_path(data_dir: &Path, id: &str) -> PathBuf {
+    meetings_dir(data_dir).join(format!("{id}.wav"))
+}
+
+/// Write 16 kHz mono f32 samples as a 16-bit PCM WAV. Minimal, no encoder dep.
+pub fn write_wav(path: &Path, samples: &[f32]) -> std::io::Result<()> {
+    const SAMPLE_RATE: u32 = 16_000;
+    const CHANNELS: u16 = 1;
+    const BITS: u16 = 16;
+    let block_align = CHANNELS * BITS / 8;
+    let byte_rate = SAMPLE_RATE * block_align as u32;
+    let data_len = (samples.len() * 2) as u32;
+
+    let mut buf = Vec::with_capacity(44 + data_len as usize);
+    buf.extend_from_slice(b"RIFF");
+    buf.extend_from_slice(&(36 + data_len).to_le_bytes());
+    buf.extend_from_slice(b"WAVE");
+    buf.extend_from_slice(b"fmt ");
+    buf.extend_from_slice(&16u32.to_le_bytes()); // fmt chunk size
+    buf.extend_from_slice(&1u16.to_le_bytes()); // PCM
+    buf.extend_from_slice(&CHANNELS.to_le_bytes());
+    buf.extend_from_slice(&SAMPLE_RATE.to_le_bytes());
+    buf.extend_from_slice(&byte_rate.to_le_bytes());
+    buf.extend_from_slice(&block_align.to_le_bytes());
+    buf.extend_from_slice(&BITS.to_le_bytes());
+    buf.extend_from_slice(b"data");
+    buf.extend_from_slice(&data_len.to_le_bytes());
+    for &s in samples {
+        let v = (s.clamp(-1.0, 1.0) * 32767.0) as i16;
+        buf.extend_from_slice(&v.to_le_bytes());
+    }
+    std::fs::write(path, buf)
 }
 
 /// Number of stored meetings — used to pick the next sequential title number.
@@ -126,6 +165,8 @@ pub fn list(data_dir: &Path) -> Vec<MeetingSummary> {
 
 /// Delete one meeting. Missing file is success.
 pub fn delete(data_dir: &Path, id: &str) -> std::io::Result<()> {
+    // Best-effort remove the audio sidecar; ignore if it never existed.
+    let _ = std::fs::remove_file(audio_path(data_dir, id));
     match std::fs::remove_file(meeting_path(data_dir, id)) {
         Ok(()) => Ok(()),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
@@ -205,6 +246,7 @@ mod tests {
             language: "en".to_string(),
             partial: false,
             summary: None,
+            has_audio: false,
             segments: vec![Segment {
                 speaker: "me".to_string(),
                 start_ms: 0,
@@ -342,6 +384,7 @@ mod tests {
             language: "pt".into(),
             partial: false,
             summary: None,
+            has_audio: false,
             segments: vec![
                 Segment {
                     speaker: "me".into(),
@@ -379,6 +422,7 @@ mod tests {
             language: "pt".into(),
             partial: false,
             summary: None,
+            has_audio: false,
             segments: vec![],
         };
         assert_eq!(transcript_text(&m), "");

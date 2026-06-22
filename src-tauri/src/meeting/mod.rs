@@ -86,7 +86,13 @@ impl MeetingRecorder {
     /// Callers MUST invoke `end_live` before acquiring the transcriber lock and
     /// before calling this method — the live thread also locks the transcriber,
     /// so joining it while holding that lock would deadlock.
-    pub fn stop(self, transcriber: &Transcriber, language: &str, prompt: &str) -> Meeting {
+    pub fn stop(
+        self,
+        transcriber: &Transcriber,
+        language: &str,
+        prompt: &str,
+        out_dir: &std::path::Path,
+    ) -> Meeting {
         // `end_live` must have been called before this (see lib.rs stop_meeting).
         // self.live is None here; this is a safety assert in debug builds.
         debug_assert!(
@@ -118,6 +124,18 @@ impl MeetingRecorder {
         let duration_ms = samples_to_ms(me_samples.len().max(them_samples.len()));
         let id = self.started_ms.to_string();
 
+        // Mix mic + system into one 16 kHz mono track and save it next to the
+        // meeting so it can be played back and downloaded later.
+        let n = me_samples.len().max(them_samples.len());
+        let mut mix = vec![0f32; n];
+        for (i, m) in mix.iter_mut().enumerate() {
+            let a = me_samples.get(i).copied().unwrap_or(0.0);
+            let b = them_samples.get(i).copied().unwrap_or(0.0);
+            *m = (a + b).clamp(-1.0, 1.0);
+        }
+        let has_audio = !mix.is_empty()
+            && meetings::write_wav(&meetings::audio_path(out_dir, &id), &mix).is_ok();
+
         Meeting {
             id: id.clone(),
             // Filled in by stop_meeting (it has the interface language + meeting
@@ -128,6 +146,7 @@ impl MeetingRecorder {
             language: language.to_string(),
             partial: !had_system,
             summary: None,
+            has_audio,
             segments,
         }
     }

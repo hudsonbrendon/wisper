@@ -381,7 +381,7 @@ pub(crate) fn stop_meeting(app: &tauri::AppHandle) {
             let st = app.state::<AppState>();
             let guard = st.transcriber.lock().unwrap();
             match guard.as_ref() {
-                Some(t) => rec.stop(t, &language, &prompt),
+                Some(t) => rec.stop(t, &language, &prompt, &data_dir),
                 None => {
                     let _ = app.emit("error", serde_json::json!({ "message": "no_model" }));
                     let _ = app.emit("meeting_state", serde_json::json!({ "state": "idle" }));
@@ -1160,6 +1160,8 @@ pub fn run() {
             commands::delete_meeting,
             commands::rename_meeting,
             commands::export_meeting_file,
+            commands::meeting_audio_path,
+            commands::export_meeting_audio,
             commands::meeting_supported,
             commands::check_system_audio_permission,
             commands::request_system_audio_permission,
