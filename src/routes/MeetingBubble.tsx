@@ -35,11 +35,18 @@ export default function MeetingBubble() {
     Math.max(0, Math.round((Math.sqrt(level) - FLOOR) * 700)),
   );
 
+  // `data-tauri-drag-region` makes the bubble draggable (needs
+  // core:window:allow-start-dragging in the capability). The display children
+  // are `pointer-events-none` so a mousedown anywhere but the Stop button lands
+  // on the drag region; the button keeps pointer events so it stays clickable.
   return (
-    <div className="flex h-screen w-screen items-center gap-3 rounded-full bg-stone-900/95 px-4 text-stone-100 shadow-lg">
-      <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
-      <span className="font-mono text-sm tabular-nums">{`${mm}:${ss}`}</span>
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-stone-700">
+    <div
+      data-tauri-drag-region
+      className="flex h-screen w-screen cursor-grab select-none items-center gap-3 rounded-full bg-stone-900/95 px-4 text-stone-100 shadow-lg active:cursor-grabbing"
+    >
+      <span className="pointer-events-none h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
+      <span className="pointer-events-none font-mono text-sm tabular-nums">{`${mm}:${ss}`}</span>
+      <div className="pointer-events-none h-1.5 flex-1 overflow-hidden rounded-full bg-stone-700">
         <div
           className="h-full bg-emerald-400 transition-[width] duration-100"
           style={{ width: `${barWidth}%` }}
