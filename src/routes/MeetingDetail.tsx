@@ -3,9 +3,55 @@ import {
   getMeeting,
   renameMeeting,
   deleteMeeting,
+  generateSummary,
+  llmModelDownloaded,
+  downloadLlmModel,
+  onEvent,
   type Meeting,
+  type LlmDownloadProgressPayload,
 } from "../lib/api";
 import { useI18n } from "../lib/i18n";
+
+/// Tiny renderer for the LLM summary markdown: ## headings, "-"/"- [ ]" bullets,
+/// and paragraphs. Not a general markdown parser — just what build_prompt emits.
+function renderSummary(md: string) {
+  return md.split("\n").map((raw, i) => {
+    const line = raw.trimEnd();
+    if (line.startsWith("## ")) {
+      return (
+        <h3 key={i} className="mt-4 mb-1 text-sm font-semibold">
+          {line.slice(3)}
+        </h3>
+      );
+    }
+    if (line.startsWith("- [ ] ") || line.startsWith("- [x] ")) {
+      return (
+        <label key={i} className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            readOnly
+            checked={line.startsWith("- [x]")}
+            className="mt-1"
+          />
+          <span>{line.slice(6)}</span>
+        </label>
+      );
+    }
+    if (line.startsWith("- ")) {
+      return (
+        <li key={i} className="ml-5 list-disc text-sm">
+          {line.slice(2)}
+        </li>
+      );
+    }
+    if (line.trim() === "") return <div key={i} className="h-2" />;
+    return (
+      <p key={i} className="text-sm">
+        {line}
+      </p>
+    );
+  });
+}
 
 export default function MeetingDetail({
   id,
@@ -24,6 +70,55 @@ export default function MeetingDetail({
       setTitle(m?.title ?? "");
     });
   }, [id]);
+
+  const [hasModel, setHasModel] = useState<boolean | null>(null);
+  const [summaryBusy, setSummaryBusy] = useState(false);
+  const [dlPct, setDlPct] = useState<number | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  useEffect(() => {
+    llmModelDownloaded().then(setHasModel);
+    const un = onEvent<LlmDownloadProgressPayload>(
+      "llm_download_progress",
+      (p) => setDlPct(p.total ? Math.round((p.received / p.total) * 100) : 0),
+    );
+    return () => {
+      un.then((f) => f());
+    };
+  }, []);
+
+  const downloadModel = async () => {
+    setSummaryError(null);
+    setDlPct(0);
+    try {
+      await downloadLlmModel();
+      setHasModel(true);
+    } catch (e) {
+      setSummaryError(String(e));
+    } finally {
+      setDlPct(null);
+    }
+  };
+
+  const genSummary = async () => {
+    setSummaryError(null);
+    setSummaryBusy(true);
+    try {
+      const md = await generateSummary(id);
+      setMeeting((m) => (m ? { ...m, summary: md } : m));
+    } catch (e) {
+      const msg = String(e);
+      setSummaryError(
+        msg.includes("no_llm_model")
+          ? t("meetings.summaryNoModel")
+          : msg.includes("empty_transcript")
+            ? t("meetings.summaryEmpty")
+            : msg,
+      );
+    } finally {
+      setSummaryBusy(false);
+    }
+  };
 
   if (!meeting) return <p className="text-sm text-stone-500">…</p>;
 
@@ -109,6 +204,56 @@ export default function MeetingDetail({
           {t("meetings.delete")}
         </button>
       </div>
+
+      <section className="mb-6">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">
+            {t("meetings.summaryTitle")}
+          </h2>
+          {hasModel === false ? (
+            dlPct === null ? (
+              <button
+                type="button"
+                onClick={downloadModel}
+                className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+              >
+                {t("meetings.summaryDownloadModel")}
+              </button>
+            ) : (
+              <span className="text-sm text-stone-500">{`${t("meetings.summaryDownloading")} ${dlPct}%`}</span>
+            )
+          ) : (
+            <button
+              type="button"
+              disabled={summaryBusy}
+              onClick={genSummary}
+              className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 disabled:opacity-40 dark:border-stone-800 dark:hover:bg-stone-800"
+            >
+              {summaryBusy
+                ? t("meetings.summaryGenerating")
+                : meeting.summary
+                  ? t("meetings.summaryRegenerate")
+                  : t("meetings.summaryGenerate")}
+            </button>
+          )}
+        </div>
+        {summaryError && (
+          <p className="mb-2 rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-900">
+            {summaryError}
+          </p>
+        )}
+        {meeting.summary ? (
+          <div className="rounded-lg border border-stone-200 px-4 py-3 dark:border-stone-800">
+            {renderSummary(meeting.summary)}
+          </div>
+        ) : (
+          !summaryBusy && (
+            <p className="text-sm text-stone-500">
+              {t("meetings.summaryHint")}
+            </p>
+          )
+        )}
+      </section>
 
       <div className="flex flex-col gap-3">
         {meeting.segments.map((s, i) => (

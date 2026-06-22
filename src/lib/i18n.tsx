@@ -240,6 +240,15 @@ const en: Dict = {
   "meetings.partialNote": "System audio wasn't captured for this meeting.",
   "meetings.live": "Live meeting",
   "meetings.liveWaiting": "Listening…",
+  "meetings.summaryTitle": "Summary",
+  "meetings.summaryGenerate": "Generate summary",
+  "meetings.summaryRegenerate": "Regenerate",
+  "meetings.summaryGenerating": "Generating…",
+  "meetings.summaryHint": "No summary yet.",
+  "meetings.summaryDownloadModel": "Download summary model (~4.5GB)",
+  "meetings.summaryDownloading": "Downloading model",
+  "meetings.summaryNoModel": "Download the summary model first.",
+  "meetings.summaryEmpty": "This meeting has no speech to summarize.",
 };
 
 const pt: Dict = {
@@ -446,6 +455,15 @@ const pt: Dict = {
   "meetings.partialNote": "O áudio do sistema não foi capturado nesta reunião.",
   "meetings.live": "Reunião ao vivo",
   "meetings.liveWaiting": "Ouvindo…",
+  "meetings.summaryTitle": "Resumo",
+  "meetings.summaryGenerate": "Gerar resumo",
+  "meetings.summaryRegenerate": "Regerar",
+  "meetings.summaryGenerating": "Gerando…",
+  "meetings.summaryHint": "Sem resumo ainda.",
+  "meetings.summaryDownloadModel": "Baixar modelo de resumo (~4.5GB)",
+  "meetings.summaryDownloading": "Baixando modelo",
+  "meetings.summaryNoModel": "Baixe o modelo de resumo primeiro.",
+  "meetings.summaryEmpty": "Esta reunião não tem fala para resumir.",
 };
 
 const es: Dict = {
