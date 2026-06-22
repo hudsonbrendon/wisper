@@ -2,8 +2,7 @@
 //! llama.cpp ggml never clashes with the main app's whisper.cpp ggml. Reads the
 //! transcript from stdin; `--model <path>` and `--language <lang>` from args;
 //! writes the markdown summary to stdout. Non-zero exit + stderr on failure.
-//!
-//! Task 1: this prints the prompt. Task 2 replaces that with real generation.
+mod llm;
 mod prompt;
 
 use std::io::Read;
@@ -19,7 +18,6 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = std::env::args().collect();
     let model = arg_value(&args, "--model").ok_or("missing --model")?;
     let language = arg_value(&args, "--language").unwrap_or_else(|| "auto".to_string());
-    let _ = &model; // used in Task 2 (load the GGUF)
 
     let mut transcript = String::new();
     std::io::stdin()
@@ -29,9 +27,8 @@ fn run() -> Result<(), String> {
         return Err("empty transcript".to_string());
     }
 
-    // Task 2 will load the model and generate; for now emit the prompt so the
-    // CLI is end-to-end testable.
-    print!("{}", prompt::build_prompt(&transcript, &language));
+    let markdown = llm::summarize(&model, &transcript, &language)?;
+    print!("{markdown}");
     Ok(())
 }
 
