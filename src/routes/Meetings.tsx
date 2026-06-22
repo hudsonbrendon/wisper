@@ -18,6 +18,7 @@ export default function Meetings({ onOpen }: { onOpen: (id: string) => void }) {
   const [items, setItems] = useState<MeetingSummary[]>([]);
   const [supported, setSupported] = useState(true);
   const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,12 +26,16 @@ export default function Meetings({ onOpen }: { onOpen: (id: string) => void }) {
 
   useEffect(() => {
     meetingSupported().then(setSupported);
-    getMeetingState().then((s) => setRecording(s === "recording"));
+    getMeetingState().then((s) => {
+      setRecording(s === "recording");
+      setTranscribing(s === "transcribing");
+    });
     refresh();
     const saved = onEvent<{ id: string }>("meeting_saved", () => refresh());
-    const state = onEvent<{ state: string }>("meeting_state", (p) =>
-      setRecording(p.state === "recording"),
-    );
+    const state = onEvent<{ state: string }>("meeting_state", (p) => {
+      setRecording(p.state === "recording");
+      setTranscribing(p.state === "transcribing");
+    });
     return () => {
       saved.then((f) => f());
       state.then((f) => f());
@@ -99,7 +104,16 @@ export default function Meetings({ onOpen }: { onOpen: (id: string) => void }) {
       )}
       <p className="mb-6 text-sm text-stone-500">{t("meetings.consentNote")}</p>
 
-      {items.length === 0 ? (
+      {transcribing && (
+        <div className="mb-2 flex items-center gap-3 rounded-lg border border-stone-200 px-4 py-3 dark:border-stone-800">
+          <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-stone-300 border-t-stone-700 dark:border-stone-700 dark:border-t-stone-200" />
+          <span className="text-sm text-stone-600 dark:text-stone-400">
+            {t("meetings.transcribing")}
+          </span>
+        </div>
+      )}
+
+      {items.length === 0 && !transcribing ? (
         <p className="text-sm text-stone-500">{t("meetings.empty")}</p>
       ) : (
         <ul className="flex flex-col gap-2">

@@ -120,7 +120,9 @@ impl MeetingRecorder {
 
         Meeting {
             id: id.clone(),
-            title: meetings::default_title(self.started_ms),
+            // Filled in by stop_meeting (it has the interface language + meeting
+            // count needed for a localized, sequential title).
+            title: String::new(),
             started_ms: self.started_ms,
             duration_ms,
             language: language.to_string(),

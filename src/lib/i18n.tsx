@@ -257,6 +257,8 @@ const en: Dict = {
     "Choose where to save the full transcript as a .txt file?",
   "meetings.exportedTo": "Saved to:",
   "meetings.loadMore": "Load older messages",
+  "meetings.transcribing": "Generating transcript…",
+  "meetings.copySummary": "Copy summary",
   "meetings.confirmDeleteTitle": "Delete meeting?",
   "meetings.confirmDeleteMsg":
     "This permanently deletes the meeting and its transcript. This can't be undone.",
@@ -486,6 +488,8 @@ const pt: Dict = {
     "Escolher onde salvar a transcrição completa como arquivo .txt?",
   "meetings.exportedTo": "Salvo em:",
   "meetings.loadMore": "Carregar mensagens antigas",
+  "meetings.transcribing": "Gerando transcrição…",
+  "meetings.copySummary": "Copiar resumo",
   "meetings.confirmDeleteTitle": "Excluir reunião?",
   "meetings.confirmDeleteMsg":
     "Isto exclui a reunião e a transcrição permanentemente. Não pode ser desfeito.",

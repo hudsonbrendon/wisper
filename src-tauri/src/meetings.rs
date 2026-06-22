@@ -49,11 +49,40 @@ fn meeting_path(data_dir: &Path, id: &str) -> PathBuf {
     meetings_dir(data_dir).join(format!("{id}.json"))
 }
 
-/// Human title from the start time, e.g. "Meeting 1750000000000". The frontend
-/// formats the timestamp for display; this is only the stored default the user
-/// can rename. Kept timezone-free (epoch ms) so it never depends on locale here.
-pub fn default_title(started_ms: u64) -> String {
-    format!("Meeting {started_ms}")
+/// Number of stored meetings — used to pick the next sequential title number.
+pub fn count(data_dir: &Path) -> usize {
+    match std::fs::read_dir(meetings_dir(data_dir)) {
+        Ok(entries) => entries
+            .filter_map(|e| e.ok())
+            .filter(|e| e.path().extension().map(|x| x == "json").unwrap_or(false))
+            .count(),
+        Err(_) => 0,
+    }
+}
+
+/// Localized, sequential default title, e.g. "Meeting 1" / "Reunião 1". `n` is
+/// 1-based. Generated once at save time from the interface language; the user
+/// can rename afterwards. We localize here (not on the frontend) so the stored
+/// title is a concrete string that rename and export can round-trip.
+pub fn default_title(ui_language: &str, n: usize) -> String {
+    let word = match ui_language {
+        "pt" => "Reunião",
+        "es" => "Reunión",
+        "fr" => "Réunion",
+        "de" => "Besprechung",
+        "it" => "Riunione",
+        "nl" => "Vergadering",
+        "ru" => "Встреча",
+        "pl" => "Spotkanie",
+        "tr" => "Toplantı",
+        "ja" => "会議",
+        "ko" => "회의",
+        "zh" => "会议",
+        "ar" => "اجتماع",
+        "hi" => "मीटिंग",
+        _ => "Meeting",
+    };
+    format!("{word} {n}")
 }
 
 /// Write the meeting as pretty JSON. Creates the meetings dir if missing.
@@ -272,8 +301,11 @@ mod tests {
     }
 
     #[test]
-    fn default_title_is_nonempty() {
-        assert!(!default_title(0).is_empty());
+    fn default_title_is_localized_and_numbered() {
+        assert_eq!(default_title("en", 1), "Meeting 1");
+        assert_eq!(default_title("pt", 3), "Reunião 3");
+        // Unknown language falls back to English.
+        assert_eq!(default_title("xx", 2), "Meeting 2");
     }
 
     #[test]

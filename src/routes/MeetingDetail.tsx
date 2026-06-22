@@ -79,6 +79,7 @@ export default function MeetingDetail({
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmOpts | null>(null);
   const [copied, setCopied] = useState(false);
+  const [summaryCopied, setSummaryCopied] = useState(false);
   const [exported, setExported] = useState<{
     ok: boolean;
     msg: string;
@@ -146,6 +147,13 @@ export default function MeetingDetail({
     await navigator.clipboard.writeText(asText());
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  };
+
+  const copySummary = async () => {
+    if (!meeting.summary) return;
+    await navigator.clipboard.writeText(meeting.summary);
+    setSummaryCopied(true);
+    setTimeout(() => setSummaryCopied(false), 1500);
   };
 
   const exportMd = async () => {
@@ -263,39 +271,57 @@ export default function MeetingDetail({
           <h2 className="text-lg font-semibold">
             {t("meetings.summaryTitle")}
           </h2>
-          {hasModel === false ? (
-            dlPct === null ? (
+          <div className="flex items-center gap-2">
+            {meeting.summary && (
               <button
                 type="button"
-                onClick={downloadModel}
-                className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+                onClick={copySummary}
+                className={
+                  "rounded-lg border px-3 py-1.5 text-sm transition-colors duration-200 " +
+                  (summaryCopied
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                    : "border-stone-200 hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800")
+                }
               >
-                {t("meetings.summaryDownloadModel")}
+                {summaryCopied
+                  ? `✓ ${t("meetings.copied")}`
+                  : t("meetings.copySummary")}
               </button>
+            )}
+            {hasModel === false ? (
+              dlPct === null ? (
+                <button
+                  type="button"
+                  onClick={downloadModel}
+                  className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+                >
+                  {t("meetings.summaryDownloadModel")}
+                </button>
+              ) : (
+                <span className="text-sm text-stone-500">{`${t("meetings.summaryDownloading")} ${dlPct}%`}</span>
+              )
             ) : (
-              <span className="text-sm text-stone-500">{`${t("meetings.summaryDownloading")} ${dlPct}%`}</span>
-            )
-          ) : (
-            <button
-              type="button"
-              disabled={summaryBusy}
-              onClick={() =>
-                setConfirm({
-                  title: t("meetings.confirmSummaryTitle"),
-                  message: t("meetings.confirmSummaryMsg"),
-                  confirmLabel: t("meetings.summaryGenerate"),
-                  onConfirm: genSummary,
-                })
-              }
-              className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 disabled:opacity-40 dark:border-stone-800 dark:hover:bg-stone-800"
-            >
-              {summaryBusy
-                ? t("meetings.summaryGenerating")
-                : meeting.summary
-                  ? t("meetings.summaryRegenerate")
-                  : t("meetings.summaryGenerate")}
-            </button>
-          )}
+              <button
+                type="button"
+                disabled={summaryBusy}
+                onClick={() =>
+                  setConfirm({
+                    title: t("meetings.confirmSummaryTitle"),
+                    message: t("meetings.confirmSummaryMsg"),
+                    confirmLabel: t("meetings.summaryGenerate"),
+                    onConfirm: genSummary,
+                  })
+                }
+                className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 disabled:opacity-40 dark:border-stone-800 dark:hover:bg-stone-800"
+              >
+                {summaryBusy
+                  ? t("meetings.summaryGenerating")
+                  : meeting.summary
+                    ? t("meetings.summaryRegenerate")
+                    : t("meetings.summaryGenerate")}
+              </button>
+            )}
+          </div>
         </div>
         {summaryError && (
           <p className="mb-2 rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-900">
