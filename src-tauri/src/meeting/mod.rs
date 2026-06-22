@@ -125,6 +125,7 @@ impl MeetingRecorder {
             duration_ms,
             language: language.to_string(),
             partial: !had_system,
+            summary: None,
             segments,
         }
     }

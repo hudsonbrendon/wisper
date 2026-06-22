@@ -82,6 +82,21 @@ pub fn find(id: &str) -> Option<&'static ModelInfo> {
     catalog().iter().find(|m| m.id == id)
 }
 
+/// The local summarization model (Qwen2.5-7B-Instruct, Q4_K_M GGUF, single
+/// file). Downloaded/verified with the same infra as the Whisper models.
+/// sha256 sourced from the HuggingFace LFS pointer (raw/main endpoint) — NOT
+/// invented; verify with:
+///   curl -sL "https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF/raw/main/Qwen2.5-7B-Instruct-Q4_K_M.gguf"
+pub fn llm_model_info() -> &'static ModelInfo {
+    static INFO: ModelInfo = ModelInfo {
+        id: "summary-qwen2.5-7b",
+        filename: "qwen2.5-7b-instruct-q4_k_m.gguf",
+        url: "https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF/resolve/main/Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+        sha256: "65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423",
+    };
+    &INFO
+}
+
 /// True if `bytes` hashes to `expected` (case-insensitive hex).
 pub fn verify_sha256(bytes: &[u8], expected: &str) -> bool {
     let mut hasher = Sha256::new();
@@ -110,6 +125,15 @@ pub fn is_downloaded(app_data_dir: &Path, info: &ModelInfo) -> bool {
     }
 }
 
+/// Lightweight "is this model present?" check: the file exists and is non-empty.
+/// Use for large models where re-hashing on every check is too expensive — the
+/// `download` path already verifies the sha256 before finalizing the file.
+pub fn is_present(app_data_dir: &Path, info: &ModelInfo) -> bool {
+    std::fs::metadata(model_path(app_data_dir, info))
+        .map(|m| m.len() > 0)
+        .unwrap_or(false)
+}
+
 /// Delete a model's file from the app-data dir. Succeeds (no-op) if the file is
 /// already gone; also clears any leftover `.part` from an interrupted download.
 pub fn remove(app_data_dir: &Path, info: &ModelInfo) -> Result<(), String> {
@@ -119,7 +143,9 @@ pub fn remove(app_data_dir: &Path, info: &ModelInfo) -> Result<(), String> {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
         Err(e) => return Err(format!("remove model: {e}")),
     }
-    let part = path.with_extension("bin.part");
+    let part = app_data_dir
+        .join("models")
+        .join(format!("{}.part", info.filename));
     let _ = std::fs::remove_file(part);
     Ok(())
 }
@@ -191,6 +217,14 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn llm_model_info_is_a_single_gguf() {
+        let m = llm_model_info();
+        assert!(m.filename.ends_with(".gguf"));
+        assert!(m.url.starts_with("https://"));
+        assert_eq!(m.sha256.len(), 64); // pinned hex sha-256
+    }
 
     #[test]
     fn verify_matches_known_hash() {
@@ -269,17 +303,33 @@ mod tests {
     }
 
     #[test]
+    fn is_present_true_only_when_file_is_nonempty() {
+        let dir = fresh_dir("ispresent");
+        let info = fake_model();
+        assert!(!is_present(&dir, &info), "absent file");
+
+        let path = model_path(&dir, &info);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, b"").unwrap();
+        assert!(!is_present(&dir, &info), "empty file");
+
+        std::fs::write(&path, b"some bytes").unwrap();
+        assert!(is_present(&dir, &info), "non-empty file");
+    }
+
+    #[test]
     fn remove_deletes_model_and_part_and_is_idempotent() {
         let dir = fresh_dir("remove");
         let info = fake_model();
         let path = model_path(&dir, &info);
+        let part = dir.join("models").join(format!("{}.part", info.filename));
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(&path, b"hello").unwrap();
-        std::fs::write(path.with_extension("bin.part"), b"partial").unwrap();
+        std::fs::write(&part, b"partial").unwrap();
 
         remove(&dir, &info).unwrap();
         assert!(!path.exists());
-        assert!(!path.with_extension("bin.part").exists());
+        assert!(!part.exists());
         // Removing again (already gone) is a no-op success.
         remove(&dir, &info).unwrap();
     }

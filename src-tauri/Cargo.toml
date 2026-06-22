@@ -1,3 +1,6 @@
+[workspace]
+members = ["wisper-summarize"]
+
 [package]
 name = "wisper"
 version = "1.0.8"

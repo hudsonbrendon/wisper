@@ -1145,6 +1145,9 @@ pub fn run() {
             commands::check_system_audio_permission,
             commands::request_system_audio_permission,
             commands::open_system_audio_settings,
+            commands::llm_model_downloaded,
+            commands::download_llm_model,
+            commands::generate_summary,
             set_ui_language,
         ])
         .build(tauri::generate_context!())

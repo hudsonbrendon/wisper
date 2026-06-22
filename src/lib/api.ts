@@ -99,6 +99,7 @@ export interface Meeting {
   language: string;
   partial: boolean;
   segments: MeetingSegment[];
+  summary?: string;
 }
 
 export interface MeetingSummary {
@@ -142,3 +143,10 @@ export const onEvent = <T>(
   name: string,
   handler: (payload: T) => void,
 ): Promise<UnlistenFn> => listen<T>(name, (e) => handler(e.payload));
+
+export const generateSummary = (id: string) =>
+  invoke<string>("generate_summary", { id });
+export const llmModelDownloaded = () => invoke<boolean>("llm_model_downloaded");
+export const downloadLlmModel = () => invoke<void>("download_llm_model");
+
+export type LlmDownloadProgressPayload = { received: number; total: number };
