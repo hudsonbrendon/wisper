@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "bash scripts/before-build.sh",
     "frontendDist": "../dist"
   },
   "app": {
@@ -66,6 +66,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "externalBin": ["binaries/wisper-summarize"],
     "macOS": {
       "minimumSystemVersion": "11.0",
       "signingIdentity": "OpenWispr Dev",
