@@ -26,8 +26,7 @@ export default function Meetings({
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Filter + pagination over the saved meetings.
-  const [query, setQuery] = useState("");
+  // Date filter + pagination over the saved meetings.
   const [dateFilter, setDateFilter] = useState("");
   const [page, setPage] = useState(0);
   const PER_PAGE = 10;
@@ -81,11 +80,9 @@ export default function Meetings({
     return `${d.getFullYear()}-${mo}-${day}`;
   };
 
-  const filtered = items.filter((m) => {
-    const okName = m.title.toLowerCase().includes(query.trim().toLowerCase());
-    const okDate = !dateFilter || localDay(m.started_ms) === dateFilter;
-    return okName && okDate;
-  });
+  const filtered = items.filter(
+    (m) => !dateFilter || localDay(m.started_ms) === dateFilter,
+  );
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const pageClamped = Math.min(page, totalPages - 1);
   const pageItems = filtered.slice(
@@ -141,16 +138,6 @@ export default function Meetings({
       {items.length > 0 && (
         <div className="mb-3 flex gap-2">
           <input
-            type="text"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setPage(0);
-            }}
-            placeholder={t("meetings.searchPlaceholder")}
-            className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-transparent px-3 py-2 text-sm outline-none focus:border-stone-400 dark:border-stone-800 dark:focus:border-stone-600"
-          />
-          <input
             type="date"
             value={dateFilter}
             onChange={(e) => {
@@ -159,11 +146,10 @@ export default function Meetings({
             }}
             className="rounded-lg border border-stone-200 bg-transparent px-3 py-2 text-sm outline-none focus:border-stone-400 dark:border-stone-800 dark:focus:border-stone-600"
           />
-          {(query || dateFilter) && (
+          {dateFilter && (
             <button
               type="button"
               onClick={() => {
-                setQuery("");
                 setDateFilter("");
                 setPage(0);
               }}

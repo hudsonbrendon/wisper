@@ -66,7 +66,7 @@ export default function Dashboard() {
         }}
       />
       <main className="min-w-0 flex-1 py-3 pr-3">
-        <div className="h-full overflow-y-auto rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 px-8 py-7">
+        <div className="no-scrollbar h-full overflow-y-auto rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 px-8 py-7">
           <div className="mb-4 empty:mb-0">
             <UpdateBanner />
           </div>
