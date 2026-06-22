@@ -80,7 +80,7 @@ export default function Meetings({
   );
 
   return (
-    <div>
+    <div className="flex h-full flex-col">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t("meetings.title")}</h1>
         {recording ? (
@@ -128,7 +128,7 @@ export default function Meetings({
         <p className="text-sm text-stone-500">{t("meetings.empty")}</p>
       ) : (
         <>
-          <ul className="flex flex-col gap-2">
+          <ul className="no-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
             {pageItems.map((m) => (
               <li key={m.id}>
                 <button
@@ -154,7 +154,7 @@ export default function Meetings({
           </ul>
 
           {totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-center gap-4 text-sm">
+            <div className="mt-4 flex shrink-0 items-center justify-center gap-4 border-t border-stone-200 pt-4 text-sm dark:border-stone-800">
               <button
                 type="button"
                 disabled={pageClamped === 0}
