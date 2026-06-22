@@ -129,13 +129,13 @@ export default function MeetingBubble() {
       </div>
 
       {expanded && (
-        <div className="flex min-h-0 flex-1 select-text flex-col overflow-hidden rounded-2xl bg-stone-50/95 p-3 text-stone-900 shadow-lg dark:bg-stone-900/95 dark:text-stone-100">
+        <div className="flex min-h-0 flex-1 select-text flex-col overflow-hidden rounded-2xl bg-stone-900/55 p-3 text-stone-100 shadow-lg transition-colors duration-200 hover:bg-stone-900/95">
           <div className="mb-2 flex shrink-0 items-center gap-2">
             <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
             <span className="text-sm font-semibold">{t("meetings.live")}</span>
           </div>
           {segments.length === 0 ? (
-            <p className="text-xs text-stone-500">
+            <p className="text-xs text-stone-400">
               {t("meetings.liveWaiting")}
             </p>
           ) : (
@@ -144,7 +144,7 @@ export default function MeetingBubble() {
                 <button
                   type="button"
                   onClick={() => setVisibleCount((c) => c + 10)}
-                  className="absolute left-1/2 top-0 z-10 -translate-x-1/2 rounded-full border border-stone-200 bg-stone-50/90 px-2 py-0.5 text-[10px] text-stone-600 shadow-sm backdrop-blur hover:bg-stone-100 dark:border-stone-700 dark:bg-stone-900/90 dark:text-stone-300 dark:hover:bg-stone-800"
+                  className="absolute left-1/2 top-0 z-10 -translate-x-1/2 rounded-full border border-stone-600 bg-stone-800/90 px-2 py-0.5 text-[10px] text-stone-200 shadow-sm backdrop-blur hover:bg-stone-700"
                 >
                   {t("meetings.loadMore")} ({segments.length - visibleCount})
                 </button>
@@ -163,8 +163,8 @@ export default function MeetingBubble() {
                       className={
                         "shrink-0 text-[10px] font-medium " +
                         (s.speaker === "me"
-                          ? "text-emerald-600"
-                          : "text-sky-600")
+                          ? "text-emerald-400"
+                          : "text-sky-400")
                       }
                     >
                       {label(s.speaker)}
