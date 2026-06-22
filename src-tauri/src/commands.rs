@@ -28,8 +28,6 @@ pub struct AppState {
     pub cancels: Mutex<std::collections::HashSet<String>>,
     /// Hotkey gesture detector (hold vs double-tap).
     pub hotkey: Mutex<crate::hotkey::Controller>,
-    /// Lazy-loaded local summarization model; None until first summary.
-    pub summarizer: Mutex<Option<crate::summarizer::Summarizer>>,
 }
 
 /// Metadata sent to the frontend for each catalog model.
@@ -449,19 +447,21 @@ pub async fn generate_summary(app: AppHandle, id: String) -> Result<String, Stri
     }
     let language = meeting.language.clone();
 
-    // Heavy: load (if needed) + run off the async runtime's worker via spawn_blocking.
-    let app_for_blocking = app.clone();
+    // Heavy: load + run off the async runtime's worker via spawn_blocking. The
+    // model is loaded for THIS call and dropped at the end of the closure — it is
+    // NOT kept resident. Two ggml/Metal backends (whisper.cpp for dictation/live
+    // transcription + llama.cpp here) cannot coexist resident on the GPU: keeping
+    // the 4.5GB LLM loaded breaks the live Whisper Metal context, so live meeting
+    // transcription silently stops after the first summary. Loading per-summary
+    // and freeing it restores Whisper. Cost: a few seconds of model load per
+    // summary, acceptable for an on-demand action.
     let markdown = tauri::async_runtime::spawn_blocking(move || -> Result<String, String> {
-        let app_state = app_for_blocking.state::<AppState>();
-        let mut guard = app_state.summarizer.lock().unwrap();
-        if guard.is_none() {
-            let path = model_manager::model_path(&data_dir, model_manager::llm_model_info());
-            *guard = Some(crate::summarizer::Summarizer::load(
-                path.to_str().ok_or("bad model path")?,
-            )?);
-        }
-        let summarizer = guard.as_ref().unwrap();
-        summarizer.summarize(&transcript, &language)
+        let path = model_manager::model_path(&data_dir, model_manager::llm_model_info());
+        let summarizer =
+            crate::summarizer::Summarizer::load(path.to_str().ok_or("bad model path")?)?;
+        let out = summarizer.summarize(&transcript, &language);
+        drop(summarizer); // free the llama Metal backend before returning
+        out
     })
     .await
     .map_err(|e| format!("summary task: {e}"))??;

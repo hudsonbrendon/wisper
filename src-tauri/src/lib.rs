@@ -1014,7 +1014,6 @@ pub fn run() {
                 data_dir,
                 cancels: Mutex::new(std::collections::HashSet::new()),
                 hotkey: Mutex::new(hotkey::Controller::new()),
-                summarizer: Mutex::new(None),
             });
 
             // Tray menu: Home, updates, paste-last, Microphone submenu, Quit.
