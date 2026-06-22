@@ -251,6 +251,16 @@ const en: Dict = {
   "meetings.summaryEmpty": "This meeting has no speech to summarize.",
   "meetings.summaryUnavailable":
     "Couldn't generate the summary. Please try again.",
+  "meetings.copied": "Copied!",
+  "meetings.confirmExportTitle": "Export meeting?",
+  "meetings.confirmExportMsg":
+    "Download the full transcript as a Markdown file?",
+  "meetings.confirmDeleteTitle": "Delete meeting?",
+  "meetings.confirmDeleteMsg":
+    "This permanently deletes the meeting and its transcript. This can't be undone.",
+  "meetings.confirmSummaryTitle": "Generate summary?",
+  "meetings.confirmSummaryMsg":
+    "This runs the local model over the transcript and may take a little while.",
 };
 
 const pt: Dict = {
@@ -468,6 +478,16 @@ const pt: Dict = {
   "meetings.summaryEmpty": "Esta reunião não tem fala para resumir.",
   "meetings.summaryUnavailable":
     "Não foi possível gerar o resumo. Tente novamente.",
+  "meetings.copied": "Copiado!",
+  "meetings.confirmExportTitle": "Exportar reunião?",
+  "meetings.confirmExportMsg":
+    "Baixar a transcrição completa como um arquivo Markdown?",
+  "meetings.confirmDeleteTitle": "Excluir reunião?",
+  "meetings.confirmDeleteMsg":
+    "Isto exclui a reunião e a transcrição permanentemente. Não pode ser desfeito.",
+  "meetings.confirmSummaryTitle": "Gerar resumo?",
+  "meetings.confirmSummaryMsg":
+    "Isto roda o modelo local sobre a transcrição e pode levar um tempo.",
 };
 
 const es: Dict = {

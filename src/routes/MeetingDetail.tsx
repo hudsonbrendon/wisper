@@ -11,6 +11,7 @@ import {
   type LlmDownloadProgressPayload,
 } from "../lib/api";
 import { useI18n } from "../lib/i18n";
+import ConfirmModal, { type ConfirmOpts } from "../components/ConfirmModal";
 
 /// Tiny renderer for the LLM summary markdown: ## headings, "-"/"- [ ]" bullets,
 /// and paragraphs. Not a general markdown parser — just what build_prompt emits.
@@ -75,6 +76,8 @@ export default function MeetingDetail({
   const [summaryBusy, setSummaryBusy] = useState(false);
   const [dlPct, setDlPct] = useState<number | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<ConfirmOpts | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     llmModelDownloaded().then(setHasModel);
@@ -132,7 +135,11 @@ export default function MeetingDetail({
       .map((s) => `${speakerLabel(s.speaker)}: ${s.text}`)
       .join("\n");
 
-  const copy = () => navigator.clipboard.writeText(asText());
+  const copy = async () => {
+    await navigator.clipboard.writeText(asText());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   const exportMd = () => {
     const md = `# ${meeting.title}\n\n` + asText();
@@ -183,24 +190,44 @@ export default function MeetingDetail({
         </p>
       )}
 
-      <div className="mb-4 flex gap-2">
+      <div className="mb-4 flex justify-end gap-2">
         <button
           type="button"
           onClick={copy}
-          className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+          className={
+            "rounded-lg border px-3 py-1.5 text-sm transition-colors duration-200 " +
+            (copied
+              ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+              : "border-stone-200 hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800")
+          }
         >
-          {t("meetings.copy")}
+          {copied ? `✓ ${t("meetings.copied")}` : t("meetings.copy")}
         </button>
         <button
           type="button"
-          onClick={exportMd}
+          onClick={() =>
+            setConfirm({
+              title: t("meetings.confirmExportTitle"),
+              message: t("meetings.confirmExportMsg"),
+              confirmLabel: t("meetings.export"),
+              onConfirm: exportMd,
+            })
+          }
           className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
         >
           {t("meetings.export")}
         </button>
         <button
           type="button"
-          onClick={remove}
+          onClick={() =>
+            setConfirm({
+              title: t("meetings.confirmDeleteTitle"),
+              message: t("meetings.confirmDeleteMsg"),
+              confirmLabel: t("meetings.delete"),
+              danger: true,
+              onConfirm: remove,
+            })
+          }
           className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
         >
           {t("meetings.delete")}
@@ -228,7 +255,14 @@ export default function MeetingDetail({
             <button
               type="button"
               disabled={summaryBusy}
-              onClick={genSummary}
+              onClick={() =>
+                setConfirm({
+                  title: t("meetings.confirmSummaryTitle"),
+                  message: t("meetings.confirmSummaryMsg"),
+                  confirmLabel: t("meetings.summaryGenerate"),
+                  onConfirm: genSummary,
+                })
+              }
               className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 disabled:opacity-40 dark:border-stone-800 dark:hover:bg-stone-800"
             >
               {summaryBusy
@@ -272,6 +306,8 @@ export default function MeetingDetail({
           </div>
         ))}
       </div>
+
+      <ConfirmModal opts={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }
