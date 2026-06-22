@@ -24,15 +24,29 @@ export default function MeetingBubble() {
 
   const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
   const ss = String(seconds % 60).padStart(2, "0");
-  // Perceptual scaling: speech RMS is small (~0.01–0.1), so sqrt expands the low
-  // end where the meter would otherwise look frozen.
-  const barWidth = Math.min(100, Math.round(Math.sqrt(level) * 160));
+  // Perceptual scaling with a noise floor. Mic RMS is often quiet (measured
+  // ~0.003–0.025 for normal speech on low-gain mics), so a plain linear meter
+  // barely moves. Take sqrt to expand the low end, subtract a small floor so
+  // room tone reads as empty, then apply gain so quiet speech fills a visible
+  // chunk and louder speech saturates. Clamped to [0, 100].
+  const FLOOR = 0.025; // sqrt-space; ≈ RMS 0.0006, below typical speech
+  const barWidth = Math.min(
+    100,
+    Math.max(0, Math.round((Math.sqrt(level) - FLOOR) * 700)),
+  );
 
+  // `data-tauri-drag-region` makes the bubble draggable (needs
+  // core:window:allow-start-dragging in the capability). The display children
+  // are `pointer-events-none` so a mousedown anywhere but the Stop button lands
+  // on the drag region; the button keeps pointer events so it stays clickable.
   return (
-    <div className="flex h-screen w-screen items-center gap-3 rounded-full bg-stone-900/95 px-4 text-stone-100 shadow-lg">
-      <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
-      <span className="font-mono text-sm tabular-nums">{`${mm}:${ss}`}</span>
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-stone-700">
+    <div
+      data-tauri-drag-region
+      className="flex h-screen w-screen cursor-grab select-none items-center gap-3 rounded-full bg-stone-900/95 px-4 text-stone-100 shadow-lg active:cursor-grabbing"
+    >
+      <span className="pointer-events-none h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
+      <span className="pointer-events-none font-mono text-sm tabular-nums">{`${mm}:${ss}`}</span>
+      <div className="pointer-events-none h-1.5 flex-1 overflow-hidden rounded-full bg-stone-700">
         <div
           className="h-full bg-emerald-400 transition-[width] duration-100"
           style={{ width: `${barWidth}%` }}
