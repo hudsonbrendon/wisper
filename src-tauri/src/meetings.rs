@@ -25,6 +25,10 @@ pub struct Meeting {
     pub language: String,
     pub partial: bool,
     pub segments: Vec<Segment>,
+    /// Markdown AI summary, None until generated. `serde(default)` keeps
+    /// meetings saved before this field existed loadable.
+    #[serde(default)]
+    pub summary: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -134,6 +138,24 @@ pub fn merge_segments(me: &[SttSegment], them: &[SttSegment]) -> Vec<Segment> {
     all
 }
 
+/// Flatten the segments into speaker-labelled lines for the summary prompt.
+/// "me" → "Você", anything else → "Participantes". One line per segment, in
+/// order, joined by newlines. Empty when there are no segments.
+pub fn transcript_text(m: &Meeting) -> String {
+    m.segments
+        .iter()
+        .map(|s| {
+            let who = if s.speaker == "me" {
+                "Você"
+            } else {
+                "Participantes"
+            };
+            format!("{who}: {}", s.text)
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -153,6 +175,7 @@ mod tests {
             duration_ms: 1000,
             language: "en".to_string(),
             partial: false,
+            summary: None,
             segments: vec![Segment {
                 speaker: "me".to_string(),
                 start_ms: 0,
@@ -251,5 +274,81 @@ mod tests {
     #[test]
     fn default_title_is_nonempty() {
         assert!(!default_title(0).is_empty());
+    }
+
+    #[test]
+    fn old_meeting_without_summary_deserializes_to_none() {
+        // A JSON from before the summary field existed must still load.
+        let json = r#"{
+            "id":"1","title":"m","started_ms":0,"duration_ms":0,
+            "language":"pt","partial":false,
+            "segments":[{"speaker":"me","start_ms":0,"end_ms":1,"text":"oi"}]
+        }"#;
+        let m: Meeting = serde_json::from_str(json).unwrap();
+        assert_eq!(m.summary, None);
+    }
+
+    #[test]
+    fn summary_roundtrips() {
+        let dir = fresh_dir("summary_roundtrip");
+        let mut m = meeting("5", 5, "hello");
+        m.summary = Some("## Resumo\nok".to_string());
+        save(&dir, &m).unwrap();
+        assert_eq!(
+            get(&dir, "5").unwrap().summary,
+            Some("## Resumo\nok".to_string())
+        );
+    }
+
+    #[test]
+    fn transcript_text_labels_by_speaker_in_order() {
+        let m = Meeting {
+            id: "1".into(),
+            title: "m".into(),
+            started_ms: 0,
+            duration_ms: 0,
+            language: "pt".into(),
+            partial: false,
+            summary: None,
+            segments: vec![
+                Segment {
+                    speaker: "me".into(),
+                    start_ms: 0,
+                    end_ms: 1,
+                    text: "bom dia".into(),
+                },
+                Segment {
+                    speaker: "them".into(),
+                    start_ms: 1,
+                    end_ms: 2,
+                    text: "oi".into(),
+                },
+                Segment {
+                    speaker: "me".into(),
+                    start_ms: 2,
+                    end_ms: 3,
+                    text: "vamos".into(),
+                },
+            ],
+        };
+        assert_eq!(
+            transcript_text(&m),
+            "Você: bom dia\nParticipantes: oi\nVocê: vamos"
+        );
+    }
+
+    #[test]
+    fn transcript_text_empty_when_no_segments() {
+        let m = Meeting {
+            id: "1".into(),
+            title: "m".into(),
+            started_ms: 0,
+            duration_ms: 0,
+            language: "pt".into(),
+            partial: false,
+            summary: None,
+            segments: vec![],
+        };
+        assert_eq!(transcript_text(&m), "");
     }
 }
