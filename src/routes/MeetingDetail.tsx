@@ -3,6 +3,7 @@ import {
   getMeeting,
   renameMeeting,
   deleteMeeting,
+  exportMeetingFile,
   generateSummary,
   llmModelDownloaded,
   downloadLlmModel,
@@ -78,6 +79,10 @@ export default function MeetingDetail({
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmOpts | null>(null);
   const [copied, setCopied] = useState(false);
+  const [exported, setExported] = useState<{
+    ok: boolean;
+    msg: string;
+  } | null>(null);
 
   useEffect(() => {
     llmModelDownloaded().then(setHasModel);
@@ -141,15 +146,17 @@ export default function MeetingDetail({
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const exportMd = () => {
-    const md = `# ${meeting.title}\n\n` + asText();
-    const blob = new Blob([md], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${meeting.title}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const exportMd = async () => {
+    setExported(null);
+    const safe =
+      meeting.title.replace(/[/\\?%*:|"<>]/g, "-").trim() || "meeting";
+    const content = `${meeting.title}\n\n${asText()}`;
+    try {
+      const path = await exportMeetingFile(`${safe}.txt`, content);
+      if (path) setExported({ ok: true, msg: path });
+    } catch (e) {
+      setExported({ ok: false, msg: String(e) });
+    }
   };
 
   const saveTitle = () => {
@@ -233,6 +240,21 @@ export default function MeetingDetail({
           {t("meetings.delete")}
         </button>
       </div>
+
+      {exported && (
+        <p
+          className={
+            "mb-4 rounded-lg px-3 py-2 text-sm " +
+            (exported.ok
+              ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
+              : "bg-amber-100 text-amber-900")
+          }
+        >
+          {exported.ok
+            ? `${t("meetings.exportedTo")} ${exported.msg}`
+            : exported.msg}
+        </p>
+      )}
 
       <section className="mb-6">
         <div className="mb-2 flex items-center justify-between">

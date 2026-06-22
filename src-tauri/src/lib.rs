@@ -950,6 +950,7 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
@@ -1141,6 +1142,7 @@ pub fn run() {
             commands::get_meeting,
             commands::delete_meeting,
             commands::rename_meeting,
+            commands::export_meeting_file,
             commands::meeting_supported,
             commands::check_system_audio_permission,
             commands::request_system_audio_permission,

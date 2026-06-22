@@ -254,7 +254,8 @@ const en: Dict = {
   "meetings.copied": "Copied!",
   "meetings.confirmExportTitle": "Export meeting?",
   "meetings.confirmExportMsg":
-    "Download the full transcript as a Markdown file?",
+    "Choose where to save the full transcript as a .txt file?",
+  "meetings.exportedTo": "Saved to:",
   "meetings.confirmDeleteTitle": "Delete meeting?",
   "meetings.confirmDeleteMsg":
     "This permanently deletes the meeting and its transcript. This can't be undone.",
@@ -481,7 +482,8 @@ const pt: Dict = {
   "meetings.copied": "Copiado!",
   "meetings.confirmExportTitle": "Exportar reunião?",
   "meetings.confirmExportMsg":
-    "Baixar a transcrição completa como um arquivo Markdown?",
+    "Escolher onde salvar a transcrição completa como arquivo .txt?",
+  "meetings.exportedTo": "Salvo em:",
   "meetings.confirmDeleteTitle": "Excluir reunião?",
   "meetings.confirmDeleteMsg":
     "Isto exclui a reunião e a transcrição permanentemente. Não pode ser desfeito.",
