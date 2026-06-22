@@ -99,6 +99,17 @@ jobs:
           pnpm install
           pnpm build
 
+      # tauri-build validates that every `externalBin` exists for the target
+      # triple at compile time — even for `cargo clippy`/`cargo test`, which don't
+      # bundle. CI doesn't build the real `wisper-summarize` sidecar (that happens
+      # only in `pnpm tauri build` via before-build.sh, and we keep llama.cpp out
+      # of CI), so stage an empty placeholder to satisfy the existence check.
+      - name: Stage summarize sidecar placeholder
+        run: |
+          TRIPLE=$(rustc -Vv | sed -n 's/^host: //p')
+          mkdir -p src-tauri/binaries
+          touch "src-tauri/binaries/wisper-summarize-${TRIPLE}"
+
       - name: rustfmt
         run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
 
