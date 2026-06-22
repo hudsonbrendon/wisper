@@ -82,7 +82,7 @@ pub fn default_title(ui_language: &str, n: usize) -> String {
         "hi" => "मीटिंग",
         _ => "Meeting",
     };
-    format!("{word} {n}")
+    format!("{word} #{n}")
 }
 
 /// Write the meeting as pretty JSON. Creates the meetings dir if missing.
@@ -302,10 +302,10 @@ mod tests {
 
     #[test]
     fn default_title_is_localized_and_numbered() {
-        assert_eq!(default_title("en", 1), "Meeting 1");
-        assert_eq!(default_title("pt", 3), "Reunião 3");
+        assert_eq!(default_title("en", 1), "Meeting #1");
+        assert_eq!(default_title("pt", 3), "Reunião #3");
         // Unknown language falls back to English.
-        assert_eq!(default_title("xx", 2), "Meeting 2");
+        assert_eq!(default_title("xx", 2), "Meeting #2");
     }
 
     #[test]
