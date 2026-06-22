@@ -103,6 +103,16 @@ impl Transcriber {
         if !prompt.is_empty() {
             params.set_initial_prompt(prompt);
         }
+        // Anti-hallucination: the live meeting loop feeds short, often quiet
+        // VAD chunks; Whisper otherwise emits canned fillers ("e aí", "obrigado")
+        // on near-silent audio. Suppress blank/non-speech tokens, raise the
+        // no-speech threshold so quiet chunks are dropped instead of invented,
+        // and pin temperature to 0 (deterministic, no multi-temperature fallback
+        // — also a touch faster).
+        params.set_suppress_blank(true);
+        params.set_suppress_nst(true);
+        params.set_no_speech_thold(0.6);
+        params.set_temperature(0.0);
         params.set_print_progress(false);
         params.set_print_realtime(false);
         params.set_print_special(false);
