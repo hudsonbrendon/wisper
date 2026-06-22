@@ -312,6 +312,11 @@ pub(crate) fn start_meeting(app: &tauri::AppHandle) -> Result<(), String> {
     }
 
     place_and_show_meeting_bubble(app);
+    // Get the main window out of the way so only the bubble shows while
+    // recording; stop_meeting brings it back on the Meetings view.
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.hide();
+    }
     let _ = app.emit("meeting_state", serde_json::json!({ "state": "recording" }));
 
     // Live level ticker for the bubble meter.
