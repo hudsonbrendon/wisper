@@ -26,6 +26,9 @@ export default function Meetings({
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Pagination over the saved meetings.
+  const [page, setPage] = useState(0);
+  const PER_PAGE = 10;
 
   const refresh = () => listMeetings().then(setItems);
 
@@ -69,8 +72,15 @@ export default function Meetings({
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
 
+  const totalPages = Math.max(1, Math.ceil(items.length / PER_PAGE));
+  const pageClamped = Math.min(page, totalPages - 1);
+  const pageItems = items.slice(
+    pageClamped * PER_PAGE,
+    pageClamped * PER_PAGE + PER_PAGE,
+  );
+
   return (
-    <div>
+    <div className="flex h-full flex-col">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t("meetings.title")}</h1>
         {recording ? (
@@ -117,28 +127,56 @@ export default function Meetings({
       {items.length === 0 && !transcribing ? (
         <p className="text-sm text-stone-500">{t("meetings.empty")}</p>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {items.map((m) => (
-            <li key={m.id}>
+        <>
+          <ul className="no-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+            {pageItems.map((m) => (
+              <li key={m.id}>
+                <button
+                  type="button"
+                  onClick={() => onOpen(m.id)}
+                  className="flex w-full items-center justify-between rounded-lg border border-stone-200 px-4 py-3 text-left hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">
+                      {m.title}
+                    </span>
+                    <span className="block text-xs text-stone-500">
+                      {fmtDate(m.started_ms)}
+                    </span>
+                  </span>
+                  <span className="ml-3 shrink-0 text-xs text-stone-500">
+                    {fmtDur(m.duration_ms)}
+                    {m.partial ? ` · ${t("meetings.partial")}` : ""}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          {totalPages > 1 && (
+            <div className="mt-4 flex shrink-0 items-center justify-center gap-4 border-t border-stone-200 pt-4 text-sm dark:border-stone-800">
               <button
                 type="button"
-                onClick={() => onOpen(m.id)}
-                className="flex w-full items-center justify-between rounded-lg border border-stone-200 px-4 py-3 text-left hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+                disabled={pageClamped === 0}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                className="rounded-lg border border-stone-200 px-3 py-1.5 hover:bg-stone-100 disabled:opacity-40 dark:border-stone-800 dark:hover:bg-stone-800"
               >
-                <span className="min-w-0">
-                  <span className="block truncate font-medium">{m.title}</span>
-                  <span className="block text-xs text-stone-500">
-                    {fmtDate(m.started_ms)}
-                  </span>
-                </span>
-                <span className="ml-3 shrink-0 text-xs text-stone-500">
-                  {fmtDur(m.duration_ms)}
-                  {m.partial ? ` · ${t("meetings.partial")}` : ""}
-                </span>
+                ‹ {t("meetings.prev")}
               </button>
-            </li>
-          ))}
-        </ul>
+              <span className="tabular-nums text-stone-500">
+                {pageClamped + 1} / {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={pageClamped >= totalPages - 1}
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                className="rounded-lg border border-stone-200 px-3 py-1.5 hover:bg-stone-100 disabled:opacity-40 dark:border-stone-800 dark:hover:bg-stone-800"
+              >
+                {t("meetings.next")} ›
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

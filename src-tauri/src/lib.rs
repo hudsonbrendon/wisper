@@ -312,6 +312,11 @@ pub(crate) fn start_meeting(app: &tauri::AppHandle) -> Result<(), String> {
     }
 
     place_and_show_meeting_bubble(app);
+    // Get the main window out of the way so only the bubble shows while
+    // recording; stop_meeting brings it back on the Meetings view.
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.hide();
+    }
     let _ = app.emit("meeting_state", serde_json::json!({ "state": "recording" }));
 
     // Live level ticker for the bubble meter.
@@ -340,6 +345,14 @@ pub(crate) fn stop_meeting(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("meeting-bubble") {
         let _ = w.hide();
     }
+    // Surface the main window on the Meetings view so the user sees the
+    // "transcribing" loader and the saved meeting appear.
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.show();
+        let _ = w.unminimize();
+        let _ = w.set_focus();
+    }
+    let _ = app.emit("tray_navigate", "meetings");
     let _ = app.emit(
         "meeting_state",
         serde_json::json!({ "state": "transcribing" }),
@@ -368,7 +381,7 @@ pub(crate) fn stop_meeting(app: &tauri::AppHandle) {
             let st = app.state::<AppState>();
             let guard = st.transcriber.lock().unwrap();
             match guard.as_ref() {
-                Some(t) => rec.stop(t, &language, &prompt),
+                Some(t) => rec.stop(t, &language, &prompt, &data_dir),
                 None => {
                     let _ = app.emit("error", serde_json::json!({ "message": "no_model" }));
                     let _ = app.emit("meeting_state", serde_json::json!({ "state": "idle" }));
@@ -1147,6 +1160,8 @@ pub fn run() {
             commands::delete_meeting,
             commands::rename_meeting,
             commands::export_meeting_file,
+            commands::meeting_audio_path,
+            commands::export_meeting_audio,
             commands::meeting_supported,
             commands::check_system_audio_permission,
             commands::request_system_audio_permission,

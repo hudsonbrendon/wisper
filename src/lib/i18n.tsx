@@ -223,6 +223,11 @@ const en: Dict = {
   "meetings.start": "Start meeting",
   "meetings.stop": "Stop",
   "meetings.empty": "No meetings yet.",
+  "meetings.searchPlaceholder": "Search by name…",
+  "meetings.noResults": "No meetings match your filters.",
+  "meetings.clearFilters": "Clear",
+  "meetings.prev": "Previous",
+  "meetings.next": "Next",
   "meetings.consentNote":
     "Let participants know you're recording. Audio stays on this Mac.",
   "meetings.unsupported": "Meeting capture needs macOS 13 or later.",
@@ -259,6 +264,8 @@ const en: Dict = {
   "meetings.loadMore": "Load older messages",
   "meetings.transcribing": "Generating transcript…",
   "meetings.copySummary": "Copy summary",
+  "meetings.liveToggle": "Live transcript",
+  "meetings.downloadAudio": "Download audio",
   "meetings.confirmDeleteTitle": "Delete meeting?",
   "meetings.confirmDeleteMsg":
     "This permanently deletes the meeting and its transcript. This can't be undone.",
@@ -452,6 +459,11 @@ const pt: Dict = {
   "meetings.start": "Iniciar reunião",
   "meetings.stop": "Parar",
   "meetings.empty": "Nenhuma reunião ainda.",
+  "meetings.searchPlaceholder": "Buscar por nome…",
+  "meetings.noResults": "Nenhuma reunião corresponde aos filtros.",
+  "meetings.clearFilters": "Limpar",
+  "meetings.prev": "Anterior",
+  "meetings.next": "Próxima",
   "meetings.consentNote":
     "Avise os participantes que está gravando. O áudio fica neste Mac.",
   "meetings.unsupported":
@@ -490,6 +502,8 @@ const pt: Dict = {
   "meetings.loadMore": "Carregar mensagens antigas",
   "meetings.transcribing": "Gerando transcrição…",
   "meetings.copySummary": "Copiar resumo",
+  "meetings.liveToggle": "Transcrição ao vivo",
+  "meetings.downloadAudio": "Baixar áudio",
   "meetings.confirmDeleteTitle": "Excluir reunião?",
   "meetings.confirmDeleteMsg":
     "Isto exclui a reunião e a transcrição permanentemente. Não pode ser desfeito.",
