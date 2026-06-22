@@ -43,10 +43,6 @@ tauri-plugin-autostart = "2"
 # though meetings only run on macOS. The crate vendors libfvad and builds it with
 # `cc`, so it compiles on Linux/Windows CI too.
 webrtc-vad = "0.4"
-# Stateful UTF-8 decoder for turning generated llama tokens back into text
-# (`LlamaModel::token_to_piece` takes an `encoding_rs::Decoder`). Cross-platform,
-# so it lives in the shared dependency block alongside the summarizer wiring.
-encoding_rs = "0.8"
 
 [target."cfg(target_os = \"macos\")".dependencies]
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2" }
@@ -78,15 +74,9 @@ objc2-foundation = { version = "0.3", default-features = false, features = ["std
 # callback only `push_slice`es into the producer (no lock, no alloc); a consumer
 # off the RT thread drains it into the full-take accumulator.
 ringbuf = "0.4"
-# Local GGUF instruct model for on-device meeting summaries. Mirrors the
-# whisper-rs split: the `metal` feature offloads generation to the Apple Silicon
-# GPU. This compiles llama.cpp from source (slow first build).
-llama-cpp-2 = { version = "0.1.150", features = ["metal"] }
 
 [target."cfg(not(target_os = \"macos\"))".dependencies]
 whisper-rs = "0.16.0"
-# CPU build of the GGUF summarizer model so CI's Linux Rust build still compiles.
-llama-cpp-2 = "0.1.150"
 
 [dev-dependencies]
 hound = "3.5.1"

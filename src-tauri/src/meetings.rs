@@ -141,6 +141,8 @@ pub fn merge_segments(me: &[SttSegment], them: &[SttSegment]) -> Vec<Segment> {
 /// Flatten the segments into speaker-labelled lines for the summary prompt.
 /// "me" → "Você", anything else → "Participantes". One line per segment, in
 /// order, joined by newlines. Empty when there are no segments.
+// Used by the wisper-summarize sidecar helper (Task 5); keep until wired.
+#[allow(dead_code)]
 pub fn transcript_text(m: &Meeting) -> String {
     m.segments
         .iter()

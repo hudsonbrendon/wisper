@@ -431,46 +431,9 @@ pub async fn download_llm_model(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// Generate (or regenerate) the structured AI summary for a meeting, save it,
-/// and return the markdown. Lazy-loads the model on first use. Errors:
-/// "no_llm_model" if not downloaded, "empty_transcript" if no speech.
+/// Generate the AI summary for a meeting. (Sidecar spawn wired in Task 5.)
 #[tauri::command]
 pub async fn generate_summary(app: AppHandle, id: String) -> Result<String, String> {
-    let data_dir = app.state::<AppState>().data_dir.clone();
-    let mut meeting = crate::meetings::get(&data_dir, &id).ok_or("meeting not found")?;
-    let transcript = crate::meetings::transcript_text(&meeting);
-    if transcript.trim().is_empty() {
-        return Err("empty_transcript".to_string());
-    }
-    if !model_manager::is_present(&data_dir, model_manager::llm_model_info()) {
-        return Err("no_llm_model".to_string());
-    }
-    let language = meeting.language.clone();
-
-    // Heavy: load + run off the async runtime's worker via spawn_blocking. The
-    // model is loaded for THIS call and dropped at the end of the closure — it is
-    // NOT kept resident. Two ggml/Metal backends (whisper.cpp for dictation/live
-    // transcription + llama.cpp here) cannot coexist resident on the GPU: keeping
-    // the 4.5GB LLM loaded breaks the live Whisper Metal context, so live meeting
-    // transcription silently stops after the first summary. Loading per-summary
-    // and freeing it restores Whisper. Cost: a few seconds of model load per
-    // summary, acceptable for an on-demand action.
-    let markdown = tauri::async_runtime::spawn_blocking(move || -> Result<String, String> {
-        let path = model_manager::model_path(&data_dir, model_manager::llm_model_info());
-        let summarizer =
-            crate::summarizer::Summarizer::load(path.to_str().ok_or("bad model path")?)?;
-        let out = summarizer.summarize(&transcript, &language);
-        drop(summarizer); // free the llama Metal backend before returning
-        out
-    })
-    .await
-    .map_err(|e| format!("summary task: {e}"))??;
-
-    // Persist; best-effort (still return the markdown if save fails).
-    meeting.summary = Some(markdown.clone());
-    let data_dir2 = app.state::<AppState>().data_dir.clone();
-    if let Err(e) = crate::meetings::save(&data_dir2, &meeting) {
-        eprintln!("save summary failed: {e}");
-    }
-    Ok(markdown)
+    let _ = (&app, &id);
+    Err("summary_unavailable".to_string())
 }
