@@ -347,11 +347,12 @@ pub(crate) fn stop_meeting(app: &tauri::AppHandle) {
 
     let app = app.clone();
     std::thread::spawn(move || {
-        let (language, prompt, data_dir) = {
+        let (language, ui_language, prompt, data_dir) = {
             let st = app.state::<AppState>();
             let c = st.config.lock().unwrap();
             (
                 c.language.clone(),
+                c.ui_language.clone(),
                 text::dictionary_prompt(&c.dictionary),
                 st.data_dir.clone(),
             )
@@ -363,7 +364,7 @@ pub(crate) fn stop_meeting(app: &tauri::AppHandle) {
         // can finish and release the lock before the join returns.
         let mut rec = rec;
         rec.end_live();
-        let meeting = {
+        let mut meeting = {
             let st = app.state::<AppState>();
             let guard = st.transcriber.lock().unwrap();
             match guard.as_ref() {
@@ -375,6 +376,9 @@ pub(crate) fn stop_meeting(app: &tauri::AppHandle) {
                 }
             }
         };
+        // Sequential, localized title ("Meeting 1" / "Reunião 1"). Count is taken
+        // before this meeting is written, so the first save gets index 1.
+        meeting.title = meetings::default_title(&ui_language, meetings::count(&data_dir) + 1);
         match meetings::save(&data_dir, &meeting) {
             Ok(()) => {
                 let _ = app.emit("meeting_state", serde_json::json!({ "state": "idle" }));
@@ -950,6 +954,7 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
@@ -1141,6 +1146,7 @@ pub fn run() {
             commands::get_meeting,
             commands::delete_meeting,
             commands::rename_meeting,
+            commands::export_meeting_file,
             commands::meeting_supported,
             commands::check_system_audio_permission,
             commands::request_system_audio_permission,

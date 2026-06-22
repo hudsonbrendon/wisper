@@ -3,6 +3,7 @@ import {
   getMeeting,
   renameMeeting,
   deleteMeeting,
+  exportMeetingFile,
   generateSummary,
   llmModelDownloaded,
   downloadLlmModel,
@@ -11,6 +12,7 @@ import {
   type LlmDownloadProgressPayload,
 } from "../lib/api";
 import { useI18n } from "../lib/i18n";
+import ConfirmModal, { type ConfirmOpts } from "../components/ConfirmModal";
 
 /// Tiny renderer for the LLM summary markdown: ## headings, "-"/"- [ ]" bullets,
 /// and paragraphs. Not a general markdown parser — just what build_prompt emits.
@@ -75,6 +77,15 @@ export default function MeetingDetail({
   const [summaryBusy, setSummaryBusy] = useState(false);
   const [dlPct, setDlPct] = useState<number | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<ConfirmOpts | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [summaryCopied, setSummaryCopied] = useState(false);
+  const [exported, setExported] = useState<{
+    ok: boolean;
+    msg: string;
+  } | null>(null);
+  // Show only the most recent messages; "load more" reveals 10 older at a time.
+  const [visibleCount, setVisibleCount] = useState(10);
 
   useEffect(() => {
     llmModelDownloaded().then(setHasModel);
@@ -132,17 +143,30 @@ export default function MeetingDetail({
       .map((s) => `${speakerLabel(s.speaker)}: ${s.text}`)
       .join("\n");
 
-  const copy = () => navigator.clipboard.writeText(asText());
+  const copy = async () => {
+    await navigator.clipboard.writeText(asText());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
-  const exportMd = () => {
-    const md = `# ${meeting.title}\n\n` + asText();
-    const blob = new Blob([md], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${meeting.title}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const copySummary = async () => {
+    if (!meeting.summary) return;
+    await navigator.clipboard.writeText(meeting.summary);
+    setSummaryCopied(true);
+    setTimeout(() => setSummaryCopied(false), 1500);
+  };
+
+  const exportMd = async () => {
+    setExported(null);
+    const safe =
+      meeting.title.replace(/[/\\?%*:|"<>]/g, "-").trim() || "meeting";
+    const content = `${meeting.title}\n\n${asText()}`;
+    try {
+      const path = await exportMeetingFile(`${safe}.txt`, content);
+      if (path) setExported({ ok: true, msg: path });
+    } catch (e) {
+      setExported({ ok: false, msg: String(e) });
+    }
   };
 
   const saveTitle = () => {
@@ -183,61 +207,121 @@ export default function MeetingDetail({
         </p>
       )}
 
-      <div className="mb-4 flex gap-2">
+      <div className="mb-4 flex justify-end gap-2">
         <button
           type="button"
           onClick={copy}
-          className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+          className={
+            "rounded-lg border px-3 py-1.5 text-sm transition-colors duration-200 " +
+            (copied
+              ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+              : "border-stone-200 hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800")
+          }
         >
-          {t("meetings.copy")}
+          {copied ? `✓ ${t("meetings.copied")}` : t("meetings.copy")}
         </button>
         <button
           type="button"
-          onClick={exportMd}
+          onClick={() =>
+            setConfirm({
+              title: t("meetings.confirmExportTitle"),
+              message: t("meetings.confirmExportMsg"),
+              confirmLabel: t("meetings.export"),
+              onConfirm: exportMd,
+            })
+          }
           className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
         >
           {t("meetings.export")}
         </button>
         <button
           type="button"
-          onClick={remove}
+          onClick={() =>
+            setConfirm({
+              title: t("meetings.confirmDeleteTitle"),
+              message: t("meetings.confirmDeleteMsg"),
+              confirmLabel: t("meetings.delete"),
+              danger: true,
+              onConfirm: remove,
+            })
+          }
           className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
         >
           {t("meetings.delete")}
         </button>
       </div>
 
+      {exported && (
+        <p
+          className={
+            "mb-4 rounded-lg px-3 py-2 text-sm " +
+            (exported.ok
+              ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
+              : "bg-amber-100 text-amber-900")
+          }
+        >
+          {exported.ok
+            ? `${t("meetings.exportedTo")} ${exported.msg}`
+            : exported.msg}
+        </p>
+      )}
+
       <section className="mb-6">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
             {t("meetings.summaryTitle")}
           </h2>
-          {hasModel === false ? (
-            dlPct === null ? (
+          <div className="flex items-center gap-2">
+            {meeting.summary && (
               <button
                 type="button"
-                onClick={downloadModel}
-                className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+                onClick={copySummary}
+                className={
+                  "rounded-lg border px-3 py-1.5 text-sm transition-colors duration-200 " +
+                  (summaryCopied
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                    : "border-stone-200 hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800")
+                }
               >
-                {t("meetings.summaryDownloadModel")}
+                {summaryCopied
+                  ? `✓ ${t("meetings.copied")}`
+                  : t("meetings.copySummary")}
               </button>
+            )}
+            {hasModel === false ? (
+              dlPct === null ? (
+                <button
+                  type="button"
+                  onClick={downloadModel}
+                  className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+                >
+                  {t("meetings.summaryDownloadModel")}
+                </button>
+              ) : (
+                <span className="text-sm text-stone-500">{`${t("meetings.summaryDownloading")} ${dlPct}%`}</span>
+              )
             ) : (
-              <span className="text-sm text-stone-500">{`${t("meetings.summaryDownloading")} ${dlPct}%`}</span>
-            )
-          ) : (
-            <button
-              type="button"
-              disabled={summaryBusy}
-              onClick={genSummary}
-              className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 disabled:opacity-40 dark:border-stone-800 dark:hover:bg-stone-800"
-            >
-              {summaryBusy
-                ? t("meetings.summaryGenerating")
-                : meeting.summary
-                  ? t("meetings.summaryRegenerate")
-                  : t("meetings.summaryGenerate")}
-            </button>
-          )}
+              <button
+                type="button"
+                disabled={summaryBusy}
+                onClick={() =>
+                  setConfirm({
+                    title: t("meetings.confirmSummaryTitle"),
+                    message: t("meetings.confirmSummaryMsg"),
+                    confirmLabel: t("meetings.summaryGenerate"),
+                    onConfirm: genSummary,
+                  })
+                }
+                className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-100 disabled:opacity-40 dark:border-stone-800 dark:hover:bg-stone-800"
+              >
+                {summaryBusy
+                  ? t("meetings.summaryGenerating")
+                  : meeting.summary
+                    ? t("meetings.summaryRegenerate")
+                    : t("meetings.summaryGenerate")}
+              </button>
+            )}
+          </div>
         </div>
         {summaryError && (
           <p className="mb-2 rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-900">
@@ -257,9 +341,21 @@ export default function MeetingDetail({
         )}
       </section>
 
-      <div className="flex flex-col gap-3">
-        {meeting.segments.map((s, i) => (
-          <div key={i} className="flex gap-3">
+      <div className="flex flex-col gap-1.5">
+        {meeting.segments.length > visibleCount && (
+          <button
+            type="button"
+            onClick={() => setVisibleCount((c) => c + 10)}
+            className="mb-1 self-center rounded-lg border border-stone-200 px-3 py-1 text-xs text-stone-600 transition-colors hover:bg-stone-100 dark:border-stone-800 dark:text-stone-400 dark:hover:bg-stone-800"
+          >
+            {t("meetings.loadMore")} ({meeting.segments.length - visibleCount})
+          </button>
+        )}
+        {meeting.segments.slice(-visibleCount).map((s, i) => (
+          <div
+            key={meeting.segments.length - visibleCount + i}
+            className="flex gap-2"
+          >
             <span
               className={
                 "shrink-0 text-xs font-medium " +
@@ -268,10 +364,12 @@ export default function MeetingDetail({
             >
               {speakerLabel(s.speaker)}
             </span>
-            <p className="min-w-0 text-sm">{s.text}</p>
+            <p className="min-w-0 text-sm leading-snug">{s.text}</p>
           </div>
         ))}
       </div>
+
+      <ConfirmModal opts={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }

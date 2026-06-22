@@ -13,7 +13,13 @@ import {
 } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 
-export default function Meetings({ onOpen }: { onOpen: (id: string) => void }) {
+export default function Meetings({
+  transcribing,
+  onOpen,
+}: {
+  transcribing: boolean;
+  onOpen: (id: string) => void;
+}) {
   const { t } = useI18n();
   const [items, setItems] = useState<MeetingSummary[]>([]);
   const [supported, setSupported] = useState(true);
@@ -78,7 +84,7 @@ export default function Meetings({ onOpen }: { onOpen: (id: string) => void }) {
         ) : (
           <button
             type="button"
-            disabled={!supported || busy}
+            disabled={!supported || busy || transcribing}
             onClick={start}
             className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-40 dark:bg-stone-100 dark:text-stone-900"
           >
@@ -99,7 +105,16 @@ export default function Meetings({ onOpen }: { onOpen: (id: string) => void }) {
       )}
       <p className="mb-6 text-sm text-stone-500">{t("meetings.consentNote")}</p>
 
-      {items.length === 0 ? (
+      {transcribing && (
+        <div className="mb-2 flex items-center gap-3 rounded-lg border border-stone-200 px-4 py-3 dark:border-stone-800">
+          <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-stone-300 border-t-stone-700 dark:border-stone-700 dark:border-t-stone-200" />
+          <span className="text-sm text-stone-600 dark:text-stone-400">
+            {t("meetings.transcribing")}
+          </span>
+        </div>
+      )}
+
+      {items.length === 0 && !transcribing ? (
         <p className="text-sm text-stone-500">{t("meetings.empty")}</p>
       ) : (
         <ul className="flex flex-col gap-2">

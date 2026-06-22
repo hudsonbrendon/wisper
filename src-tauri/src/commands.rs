@@ -365,6 +365,35 @@ pub fn rename_meeting(
         .map_err(|e| format!("rename meeting: {e}"))
 }
 
+/// Open a native "save file" dialog and write `contents` to the chosen path.
+/// Returns the saved absolute path, or `None` if the user cancelled. The
+/// transcript text is built on the frontend (it owns the localized speaker
+/// labels); this command only handles the picker + write.
+#[tauri::command]
+pub async fn export_meeting_file(
+    app: AppHandle,
+    default_name: String,
+    contents: String,
+) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let path = app
+        .dialog()
+        .file()
+        .set_file_name(&default_name)
+        .add_filter("Text", &["txt"])
+        .blocking_save_file();
+    match path {
+        Some(p) => {
+            let pb = p
+                .into_path()
+                .map_err(|e| format!("resolve export path: {e}"))?;
+            std::fs::write(&pb, contents).map_err(|e| format!("write export file: {e}"))?;
+            Ok(Some(pb.to_string_lossy().to_string()))
+        }
+        None => Ok(None),
+    }
+}
+
 /// Whether this OS can capture system audio at all (macOS 13+).
 #[tauri::command]
 pub fn meeting_supported() -> bool {

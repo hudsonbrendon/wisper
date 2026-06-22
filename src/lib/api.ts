@@ -122,6 +122,10 @@ export const deleteMeeting = (id: string) =>
   invoke<void>("delete_meeting", { id });
 export const renameMeeting = (id: string, title: string) =>
   invoke<void>("rename_meeting", { id, title });
+// Opens a native save dialog and writes `contents`. Resolves to the saved path,
+// or null if the user cancelled.
+export const exportMeetingFile = (defaultName: string, contents: string) =>
+  invoke<string | null>("export_meeting_file", { defaultName, contents });
 export const meetingSupported = () => invoke<boolean>("meeting_supported");
 export const checkSystemAudioPermission = () =>
   invoke<boolean>("check_system_audio_permission");
