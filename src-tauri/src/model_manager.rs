@@ -82,6 +82,21 @@ pub fn find(id: &str) -> Option<&'static ModelInfo> {
     catalog().iter().find(|m| m.id == id)
 }
 
+/// The local summarization model (Qwen2.5-7B-Instruct, Q4_K_M GGUF, single
+/// file). Downloaded/verified with the same infra as the Whisper models.
+/// sha256 sourced from the HuggingFace LFS pointer (raw/main endpoint) — NOT
+/// invented; verify with:
+///   curl -sL "https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF/raw/main/Qwen2.5-7B-Instruct-Q4_K_M.gguf"
+pub fn llm_model_info() -> &'static ModelInfo {
+    static INFO: ModelInfo = ModelInfo {
+        id: "summary-qwen2.5-7b",
+        filename: "qwen2.5-7b-instruct-q4_k_m.gguf",
+        url: "https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF/resolve/main/Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+        sha256: "65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423",
+    };
+    &INFO
+}
+
 /// True if `bytes` hashes to `expected` (case-insensitive hex).
 pub fn verify_sha256(bytes: &[u8], expected: &str) -> bool {
     let mut hasher = Sha256::new();
@@ -191,6 +206,14 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn llm_model_info_is_a_single_gguf() {
+        let m = llm_model_info();
+        assert!(m.filename.ends_with(".gguf"));
+        assert!(m.url.starts_with("https://"));
+        assert_eq!(m.sha256.len(), 64); // pinned hex sha-256
+    }
 
     #[test]
     fn verify_matches_known_hash() {
