@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LogicalSize } from "@tauri-apps/api/dpi";
@@ -23,9 +23,9 @@ export default function MeetingBubble() {
   const [seconds, setSeconds] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [segments, setSegments] = useState<MeetingLiveSegmentPayload[]>([]);
-  // Show only the most recent messages; "load more" reveals 10 older at a time.
+  // Most recent messages only, pinned to the bottom: new ones push the oldest
+  // off the top (clipped, no scrollbar). "Load more" reveals 10 older at a time.
   const [visibleCount, setVisibleCount] = useState(10);
-  const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const un = onEvent<{ level: number }>("meeting_level", (p) =>
@@ -59,10 +59,6 @@ export default function MeetingBubble() {
       .setSize(new LogicalSize(WIDTH, expanded ? EXPANDED_H : COLLAPSED_H))
       .catch(() => {});
   }, [expanded]);
-
-  useEffect(() => {
-    if (expanded) endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [segments, expanded]);
 
   const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
   const ss = String(seconds % 60).padStart(2, "0");
@@ -117,8 +113,8 @@ export default function MeetingBubble() {
       </div>
 
       {expanded && (
-        <div className="flex-1 select-text overflow-y-auto rounded-2xl bg-stone-50/95 p-3 text-stone-900 shadow-lg dark:bg-stone-900/95 dark:text-stone-100">
-          <div className="mb-2 flex items-center gap-2">
+        <div className="flex min-h-0 flex-1 select-text flex-col overflow-hidden rounded-2xl bg-stone-50/95 p-3 text-stone-900 shadow-lg dark:bg-stone-900/95 dark:text-stone-100">
+          <div className="mb-2 flex shrink-0 items-center gap-2">
             <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
             <span className="text-sm font-semibold">{t("meetings.live")}</span>
           </div>
@@ -127,33 +123,36 @@ export default function MeetingBubble() {
               {t("meetings.liveWaiting")}
             </p>
           ) : (
-            <div className="flex flex-col gap-1.5">
+            <div className="relative min-h-0 flex-1 overflow-hidden">
               {segments.length > visibleCount && (
                 <button
                   type="button"
                   onClick={() => setVisibleCount((c) => c + 10)}
-                  className="mb-1 self-center rounded-lg border border-stone-200 px-2 py-0.5 text-[10px] text-stone-600 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800"
+                  className="absolute left-1/2 top-0 z-10 -translate-x-1/2 rounded-full border border-stone-200 bg-stone-50/90 px-2 py-0.5 text-[10px] text-stone-600 shadow-sm backdrop-blur hover:bg-stone-100 dark:border-stone-700 dark:bg-stone-900/90 dark:text-stone-300 dark:hover:bg-stone-800"
                 >
                   {t("meetings.loadMore")} ({segments.length - visibleCount})
                 </button>
               )}
-              {segments.slice(-visibleCount).map((s, i) => (
-                <div
-                  key={segments.length - visibleCount + i}
-                  className="flex gap-2"
-                >
-                  <span
-                    className={
-                      "shrink-0 text-[10px] font-medium " +
-                      (s.speaker === "me" ? "text-emerald-600" : "text-sky-600")
-                    }
+              <div className="flex h-full flex-col justify-end gap-1.5">
+                {segments.slice(-visibleCount).map((s, i) => (
+                  <div
+                    key={segments.length - visibleCount + i}
+                    className="flex gap-2"
                   >
-                    {label(s.speaker)}
-                  </span>
-                  <p className="min-w-0 text-xs leading-snug">{s.text}</p>
-                </div>
-              ))}
-              <div ref={endRef} />
+                    <span
+                      className={
+                        "shrink-0 text-[10px] font-medium " +
+                        (s.speaker === "me"
+                          ? "text-emerald-600"
+                          : "text-sky-600")
+                      }
+                    >
+                      {label(s.speaker)}
+                    </span>
+                    <p className="min-w-0 text-xs leading-snug">{s.text}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

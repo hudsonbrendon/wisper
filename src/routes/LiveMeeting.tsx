@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { type MeetingLiveSegmentPayload } from "../lib/api";
 import { useI18n } from "../lib/i18n";
@@ -12,13 +12,10 @@ export default function LiveMeeting({
   segments: MeetingLiveSegmentPayload[];
 }) {
   const { t } = useI18n();
-  // Show only the most recent messages; "load more" reveals 10 older at a time.
+  // Show only the most recent messages, pinned to the bottom: as new ones
+  // arrive the oldest scroll off the top and are clipped (no scrollbar). The
+  // floating "load more" button reveals 10 older at a time.
   const [visibleCount, setVisibleCount] = useState(10);
-  const endRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [segments]);
 
   const label = (s: "me" | "them") =>
     s === "me" ? t("meetings.you") : t("meetings.them");
@@ -42,33 +39,34 @@ export default function LiveMeeting({
       {segments.length === 0 ? (
         <p className="text-sm text-stone-500">{t("meetings.liveWaiting")}</p>
       ) : (
-        <div className="flex flex-col gap-1.5">
+        <div className="relative min-h-0 flex-1 overflow-hidden">
           {segments.length > visibleCount && (
             <button
               type="button"
               onClick={() => setVisibleCount((c) => c + 10)}
-              className="mb-1 self-center rounded-lg border border-stone-200 px-3 py-1 text-xs text-stone-600 transition-colors hover:bg-stone-100 dark:border-stone-800 dark:text-stone-400 dark:hover:bg-stone-800"
+              className="absolute left-1/2 top-0 z-10 -translate-x-1/2 rounded-full border border-stone-200 bg-stone-50/90 px-3 py-1 text-xs text-stone-600 shadow-sm backdrop-blur transition-colors hover:bg-stone-100 dark:border-stone-700 dark:bg-stone-900/90 dark:text-stone-300 dark:hover:bg-stone-800"
             >
               {t("meetings.loadMore")} ({segments.length - visibleCount})
             </button>
           )}
-          {segments.slice(-visibleCount).map((s, i) => (
-            <div
-              key={segments.length - visibleCount + i}
-              className="flex gap-2"
-            >
-              <span
-                className={
-                  "shrink-0 text-xs font-medium " +
-                  (s.speaker === "me" ? "text-emerald-600" : "text-sky-600")
-                }
+          <div className="flex h-full flex-col justify-end gap-1.5">
+            {segments.slice(-visibleCount).map((s, i) => (
+              <div
+                key={segments.length - visibleCount + i}
+                className="flex gap-2"
               >
-                {label(s.speaker)}
-              </span>
-              <p className="min-w-0 text-sm leading-snug">{s.text}</p>
-            </div>
-          ))}
-          <div ref={endRef} />
+                <span
+                  className={
+                    "shrink-0 text-xs font-medium " +
+                    (s.speaker === "me" ? "text-emerald-600" : "text-sky-600")
+                  }
+                >
+                  {label(s.speaker)}
+                </span>
+                <p className="min-w-0 text-sm leading-snug">{s.text}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
