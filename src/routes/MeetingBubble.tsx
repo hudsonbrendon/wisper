@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LogicalSize } from "@tauri-apps/api/dpi";
@@ -23,9 +23,25 @@ export default function MeetingBubble() {
   const [seconds, setSeconds] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [segments, setSegments] = useState<MeetingLiveSegmentPayload[]>([]);
-  // Most recent messages only, pinned to the bottom: new ones push the oldest
-  // off the top (clipped, no scrollbar). "Load more" reveals 10 older at a time.
+  // Render the most recent messages; the floating "load more" reveals 10 older
+  // at a time. The list scrolls (so you can navigate) but the scrollbar is
+  // hidden via `no-scrollbar`.
   const [visibleCount, setVisibleCount] = useState(10);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Stick to the bottom for new messages, but don't yank the user down while
+  // they're scrolled up reading history.
+  const stick = useRef(true);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el && stick.current) el.scrollTop = el.scrollHeight;
+  }, [segments, expanded]);
+
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (el)
+      stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+  };
 
   useEffect(() => {
     const un = onEvent<{ level: number }>("meeting_level", (p) =>
@@ -123,7 +139,7 @@ export default function MeetingBubble() {
               {t("meetings.liveWaiting")}
             </p>
           ) : (
-            <div className="relative min-h-0 flex-1 overflow-hidden">
+            <div className="relative min-h-0 flex-1">
               {segments.length > visibleCount && (
                 <button
                   type="button"
@@ -133,7 +149,11 @@ export default function MeetingBubble() {
                   {t("meetings.loadMore")} ({segments.length - visibleCount})
                 </button>
               )}
-              <div className="flex h-full flex-col justify-end gap-1.5">
+              <div
+                ref={scrollRef}
+                onScroll={onScroll}
+                className="no-scrollbar flex h-full flex-col gap-1.5 overflow-y-auto"
+              >
                 {segments.slice(-visibleCount).map((s, i) => (
                   <div
                     key={segments.length - visibleCount + i}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { type MeetingLiveSegmentPayload } from "../lib/api";
 import { useI18n } from "../lib/i18n";
@@ -12,10 +12,25 @@ export default function LiveMeeting({
   segments: MeetingLiveSegmentPayload[];
 }) {
   const { t } = useI18n();
-  // Show only the most recent messages, pinned to the bottom: as new ones
-  // arrive the oldest scroll off the top and are clipped (no scrollbar). The
-  // floating "load more" button reveals 10 older at a time.
+  // Render the most recent messages; the floating "load more" reveals 10 older
+  // at a time. The list scrolls (so you can navigate the conversation) but the
+  // scrollbar is hidden via `no-scrollbar`.
   const [visibleCount, setVisibleCount] = useState(10);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Stick to the bottom for new messages, but don't yank the user down while
+  // they're scrolled up reading history.
+  const stick = useRef(true);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el && stick.current) el.scrollTop = el.scrollHeight;
+  }, [segments]);
+
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (el)
+      stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+  };
 
   const label = (s: "me" | "them") =>
     s === "me" ? t("meetings.you") : t("meetings.them");
@@ -39,7 +54,7 @@ export default function LiveMeeting({
       {segments.length === 0 ? (
         <p className="text-sm text-stone-500">{t("meetings.liveWaiting")}</p>
       ) : (
-        <div className="relative min-h-0 flex-1 overflow-hidden">
+        <div className="relative min-h-0 flex-1">
           {segments.length > visibleCount && (
             <button
               type="button"
@@ -49,7 +64,11 @@ export default function LiveMeeting({
               {t("meetings.loadMore")} ({segments.length - visibleCount})
             </button>
           )}
-          <div className="flex h-full flex-col justify-end gap-1.5">
+          <div
+            ref={scrollRef}
+            onScroll={onScroll}
+            className="no-scrollbar flex h-full flex-col gap-1.5 overflow-y-auto"
+          >
             {segments.slice(-visibleCount).map((s, i) => (
               <div
                 key={segments.length - visibleCount + i}
