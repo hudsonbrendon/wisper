@@ -249,6 +249,8 @@ const en: Dict = {
   "meetings.summaryDownloading": "Downloading model",
   "meetings.summaryNoModel": "Download the summary model first.",
   "meetings.summaryEmpty": "This meeting has no speech to summarize.",
+  "meetings.summaryUnavailable":
+    "Couldn't generate the summary. Please try again.",
 };
 
 const pt: Dict = {
@@ -464,6 +466,8 @@ const pt: Dict = {
   "meetings.summaryDownloading": "Baixando modelo",
   "meetings.summaryNoModel": "Baixe o modelo de resumo primeiro.",
   "meetings.summaryEmpty": "Esta reunião não tem fala para resumir.",
+  "meetings.summaryUnavailable":
+    "Não foi possível gerar o resumo. Tente novamente.",
 };
 
 const es: Dict = {

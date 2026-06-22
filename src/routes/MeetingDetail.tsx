@@ -113,7 +113,9 @@ export default function MeetingDetail({
           ? t("meetings.summaryNoModel")
           : msg.includes("empty_transcript")
             ? t("meetings.summaryEmpty")
-            : msg,
+            : msg.includes("summary_unavailable")
+              ? t("meetings.summaryUnavailable")
+              : msg,
       );
     } finally {
       setSummaryBusy(false);

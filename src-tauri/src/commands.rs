@@ -466,7 +466,10 @@ pub async fn generate_summary(app: AppHandle, id: String) -> Result<String, Stri
     }
     let language = meeting.language.clone();
     let model_path = model_manager::model_path(&data_dir, model_manager::llm_model_info());
-    let sidecar = summarize_sidecar_path()?;
+    let sidecar = summarize_sidecar_path().map_err(|e| {
+        eprintln!("generate_summary: {e}");
+        "summary_unavailable".to_string()
+    })?;
 
     // Run the sidecar off the async runtime (it's CPU/GPU heavy + blocking I/O).
     let markdown = tauri::async_runtime::spawn_blocking(move || -> Result<String, String> {
@@ -500,7 +503,16 @@ pub async fn generate_summary(app: AppHandle, id: String) -> Result<String, Stri
         Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
     })
     .await
-    .map_err(|e| format!("summary task: {e}"))??;
+    .map_err(|e| {
+        eprintln!("generate_summary: {e}");
+        "summary_unavailable".to_string()
+    })
+    .and_then(|inner| {
+        inner.map_err(|e| {
+            eprintln!("generate_summary: {e}");
+            "summary_unavailable".to_string()
+        })
+    })?;
 
     if markdown.is_empty() {
         return Err("summary_unavailable".to_string());
