@@ -27,7 +27,7 @@ export default function ConfirmModal({
       role="presentation"
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl"
+        className="w-full max-w-sm transform-gpu rounded-2xl bg-white p-6 shadow-xl transition-colors duration-200 dark:bg-stone-900"
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
@@ -42,7 +42,7 @@ export default function ConfirmModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-stone-300 dark:border-stone-700 px-4 py-2 text-sm font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800"
+            className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 transition-colors duration-200 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
           >
             {t("btn.cancel")}
           </button>
@@ -53,10 +53,10 @@ export default function ConfirmModal({
               onClose();
             }}
             className={
-              "rounded-lg px-4 py-2 text-sm font-medium text-white " +
+              "rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors duration-200 " +
               (opts.danger
                 ? "bg-rose-600 hover:bg-rose-500"
-                : "bg-stone-900 hover:bg-stone-800")
+                : "bg-stone-900 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200")
             }
           >
             {opts.confirmLabel}

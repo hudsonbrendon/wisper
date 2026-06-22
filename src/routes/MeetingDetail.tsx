@@ -83,6 +83,8 @@ export default function MeetingDetail({
     ok: boolean;
     msg: string;
   } | null>(null);
+  // Show only the most recent messages; "load more" reveals 10 older at a time.
+  const [visibleCount, setVisibleCount] = useState(10);
 
   useEffect(() => {
     llmModelDownloaded().then(setHasModel);
@@ -313,9 +315,21 @@ export default function MeetingDetail({
         )}
       </section>
 
-      <div className="flex flex-col gap-3">
-        {meeting.segments.map((s, i) => (
-          <div key={i} className="flex gap-3">
+      <div className="flex flex-col gap-1.5">
+        {meeting.segments.length > visibleCount && (
+          <button
+            type="button"
+            onClick={() => setVisibleCount((c) => c + 10)}
+            className="mb-1 self-center rounded-lg border border-stone-200 px-3 py-1 text-xs text-stone-600 transition-colors hover:bg-stone-100 dark:border-stone-800 dark:text-stone-400 dark:hover:bg-stone-800"
+          >
+            {t("meetings.loadMore")} ({meeting.segments.length - visibleCount})
+          </button>
+        )}
+        {meeting.segments.slice(-visibleCount).map((s, i) => (
+          <div
+            key={meeting.segments.length - visibleCount + i}
+            className="flex gap-2"
+          >
             <span
               className={
                 "shrink-0 text-xs font-medium " +
@@ -324,7 +338,7 @@ export default function MeetingDetail({
             >
               {speakerLabel(s.speaker)}
             </span>
-            <p className="min-w-0 text-sm">{s.text}</p>
+            <p className="min-w-0 text-sm leading-snug">{s.text}</p>
           </div>
         ))}
       </div>
