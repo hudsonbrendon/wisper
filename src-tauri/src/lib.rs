@@ -340,6 +340,14 @@ pub(crate) fn stop_meeting(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("meeting-bubble") {
         let _ = w.hide();
     }
+    // Surface the main window on the Meetings view so the user sees the
+    // "transcribing" loader and the saved meeting appear.
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.show();
+        let _ = w.unminimize();
+        let _ = w.set_focus();
+    }
+    let _ = app.emit("tray_navigate", "meetings");
     let _ = app.emit(
         "meeting_state",
         serde_json::json!({ "state": "transcribing" }),
