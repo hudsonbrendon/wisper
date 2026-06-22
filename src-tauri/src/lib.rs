@@ -1014,6 +1014,7 @@ pub fn run() {
                 data_dir,
                 cancels: Mutex::new(std::collections::HashSet::new()),
                 hotkey: Mutex::new(hotkey::Controller::new()),
+                summarizer: Mutex::new(None),
             });
 
             // Tray menu: Home, updates, paste-last, Microphone submenu, Quit.
@@ -1146,6 +1147,9 @@ pub fn run() {
             commands::check_system_audio_permission,
             commands::request_system_audio_permission,
             commands::open_system_audio_settings,
+            commands::llm_model_downloaded,
+            commands::download_llm_model,
+            commands::generate_summary,
             set_ui_language,
         ])
         .build(tauri::generate_context!())

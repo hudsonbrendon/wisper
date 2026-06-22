@@ -141,9 +141,6 @@ pub fn merge_segments(me: &[SttSegment], them: &[SttSegment]) -> Vec<Segment> {
 /// Flatten the segments into speaker-labelled lines for the summary prompt.
 /// "me" → "Você", anything else → "Participantes". One line per segment, in
 /// order, joined by newlines. Empty when there are no segments.
-// Exercised by tests; the production caller (the summary command feeding this
-// into `Summarizer`) lands in a later task, so allow it dead until then.
-#[allow(dead_code)]
 pub fn transcript_text(m: &Meeting) -> String {
     m.segments
         .iter()

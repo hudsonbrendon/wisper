@@ -1,12 +1,6 @@
 //! Local AI summary of a meeting transcript via llama.cpp (Metal on macOS).
 //! `build_prompt`/`truncate_transcript` are pure; `Summarizer` loads a GGUF
 //! instruct model and runs the summary. Everything stays on-device.
-//!
-//! The whole module is implemented ahead of the Tauri command + UI that drive
-//! it (a later task), so nothing in the binary calls it yet. `allow(dead_code)`
-//! keeps `cargo clippy -D warnings` green in the interim; the attribute comes
-//! off once the summary command is wired up.
-#![allow(dead_code)]
 
 use llama_cpp_2::context::params::LlamaContextParams;
 use llama_cpp_2::llama_backend::LlamaBackend;

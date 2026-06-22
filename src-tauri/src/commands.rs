@@ -28,6 +28,8 @@ pub struct AppState {
     pub cancels: Mutex<std::collections::HashSet<String>>,
     /// Hotkey gesture detector (hold vs double-tap).
     pub hotkey: Mutex<crate::hotkey::Controller>,
+    /// Lazy-loaded local summarization model; None until first summary.
+    pub summarizer: Mutex<Option<crate::summarizer::Summarizer>>,
 }
 
 /// Metadata sent to the frontend for each catalog model.
@@ -405,4 +407,70 @@ pub fn open_system_audio_settings() {
         let url = "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture";
         let _ = std::process::Command::new("open").arg(url).spawn();
     }
+}
+
+/// Whether the local summary LLM is downloaded.
+#[tauri::command]
+pub fn llm_model_downloaded(state: tauri::State<AppState>) -> bool {
+    model_manager::is_downloaded(&state.data_dir, model_manager::llm_model_info())
+}
+
+/// Download the summary LLM, emitting "llm_download_progress" {received,total}.
+#[tauri::command]
+pub async fn download_llm_model(app: AppHandle) -> Result<(), String> {
+    let info = model_manager::llm_model_info();
+    let data_dir = app.state::<AppState>().data_dir.clone();
+    let app_for_progress = app.clone();
+    model_manager::download(&data_dir, info, move |received, total| {
+        let _ = app_for_progress.emit(
+            "llm_download_progress",
+            serde_json::json!({ "received": received, "total": total }),
+        );
+        true // no cancel for the summary model in v1
+    })
+    .await?;
+    let _ = app.emit("llm_model_ready", serde_json::json!({}));
+    Ok(())
+}
+
+/// Generate (or regenerate) the structured AI summary for a meeting, save it,
+/// and return the markdown. Lazy-loads the model on first use. Errors:
+/// "no_llm_model" if not downloaded, "empty_transcript" if no speech.
+#[tauri::command]
+pub async fn generate_summary(app: AppHandle, id: String) -> Result<String, String> {
+    let data_dir = app.state::<AppState>().data_dir.clone();
+    let mut meeting = crate::meetings::get(&data_dir, &id).ok_or("meeting not found")?;
+    let transcript = crate::meetings::transcript_text(&meeting);
+    if transcript.trim().is_empty() {
+        return Err("empty_transcript".to_string());
+    }
+    if !model_manager::is_downloaded(&data_dir, model_manager::llm_model_info()) {
+        return Err("no_llm_model".to_string());
+    }
+    let language = meeting.language.clone();
+
+    // Heavy: load (if needed) + run off the async runtime's worker via spawn_blocking.
+    let app_for_blocking = app.clone();
+    let markdown = tauri::async_runtime::spawn_blocking(move || -> Result<String, String> {
+        let app_state = app_for_blocking.state::<AppState>();
+        let mut guard = app_state.summarizer.lock().unwrap();
+        if guard.is_none() {
+            let path = model_manager::model_path(&data_dir, model_manager::llm_model_info());
+            *guard = Some(crate::summarizer::Summarizer::load(
+                path.to_str().ok_or("bad model path")?,
+            )?);
+        }
+        let summarizer = guard.as_ref().unwrap();
+        summarizer.summarize(&transcript, &language)
+    })
+    .await
+    .map_err(|e| format!("summary task: {e}"))??;
+
+    // Persist; best-effort (still return the markdown if save fails).
+    meeting.summary = Some(markdown.clone());
+    let data_dir2 = app.state::<AppState>().data_dir.clone();
+    if let Err(e) = crate::meetings::save(&data_dir2, &meeting) {
+        eprintln!("save summary failed: {e}");
+    }
+    Ok(markdown)
 }
