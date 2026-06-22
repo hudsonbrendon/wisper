@@ -431,9 +431,83 @@ pub async fn download_llm_model(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// Generate the AI summary for a meeting. (Sidecar spawn wired in Task 5.)
+/// Path to the bundled `wisper-summarize` sidecar (next to the main binary in
+/// the .app). In dev (`tauri dev`) it falls back to the workspace debug build.
+fn summarize_sidecar_path() -> Result<std::path::PathBuf, String> {
+    let exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
+    let dir = exe.parent().ok_or("no exe dir")?;
+    let bundled = dir.join("wisper-summarize");
+    if bundled.exists() {
+        return Ok(bundled);
+    }
+    // dev fallback: target/{debug,release}/wisper-summarize
+    for profile in ["debug", "release"] {
+        let p = dir.join("..").join(profile).join("wisper-summarize");
+        if p.exists() {
+            return Ok(p);
+        }
+    }
+    Err("summarize sidecar not found".to_string())
+}
+
+/// Generate (or regenerate) the structured AI summary for a meeting by running
+/// the isolated `wisper-summarize` sidecar, save it, and return the markdown.
+/// Errors: "no_llm_model", "empty_transcript", "summary_unavailable".
 #[tauri::command]
 pub async fn generate_summary(app: AppHandle, id: String) -> Result<String, String> {
-    let _ = (&app, &id);
-    Err("summary_unavailable".to_string())
+    let data_dir = app.state::<AppState>().data_dir.clone();
+    let mut meeting = crate::meetings::get(&data_dir, &id).ok_or("meeting not found")?;
+    let transcript = crate::meetings::transcript_text(&meeting);
+    if transcript.trim().is_empty() {
+        return Err("empty_transcript".to_string());
+    }
+    if !model_manager::is_present(&data_dir, model_manager::llm_model_info()) {
+        return Err("no_llm_model".to_string());
+    }
+    let language = meeting.language.clone();
+    let model_path = model_manager::model_path(&data_dir, model_manager::llm_model_info());
+    let sidecar = summarize_sidecar_path()?;
+
+    // Run the sidecar off the async runtime (it's CPU/GPU heavy + blocking I/O).
+    let markdown = tauri::async_runtime::spawn_blocking(move || -> Result<String, String> {
+        use std::io::Write;
+        use std::process::{Command, Stdio};
+        let mut child = Command::new(&sidecar)
+            .arg("--model")
+            .arg(&model_path)
+            .arg("--language")
+            .arg(&language)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| format!("spawn summarize: {e}"))?;
+        child
+            .stdin
+            .take()
+            .ok_or("no child stdin")?
+            .write_all(transcript.as_bytes())
+            .map_err(|e| format!("write transcript: {e}"))?;
+        let out = child
+            .wait_with_output()
+            .map_err(|e| format!("wait summarize: {e}"))?;
+        if !out.status.success() {
+            return Err(format!(
+                "summarize failed: {}",
+                String::from_utf8_lossy(&out.stderr).trim()
+            ));
+        }
+        Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+    })
+    .await
+    .map_err(|e| format!("summary task: {e}"))??;
+
+    if markdown.is_empty() {
+        return Err("summary_unavailable".to_string());
+    }
+    meeting.summary = Some(markdown.clone());
+    if let Err(e) = crate::meetings::save(&data_dir, &meeting) {
+        eprintln!("save summary failed: {e}");
+    }
+    Ok(markdown)
 }
