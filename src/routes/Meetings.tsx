@@ -26,6 +26,11 @@ export default function Meetings({
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Filter + pagination over the saved meetings.
+  const [query, setQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+  const [page, setPage] = useState(0);
+  const PER_PAGE = 10;
 
   const refresh = () => listMeetings().then(setItems);
 
@@ -68,6 +73,25 @@ export default function Meetings({
     const s = Math.round(ms / 1000);
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
+  // Local YYYY-MM-DD for comparing against the <input type="date"> value.
+  const localDay = (ms: number) => {
+    const d = new Date(ms);
+    const mo = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${mo}-${day}`;
+  };
+
+  const filtered = items.filter((m) => {
+    const okName = m.title.toLowerCase().includes(query.trim().toLowerCase());
+    const okDate = !dateFilter || localDay(m.started_ms) === dateFilter;
+    return okName && okDate;
+  });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const pageClamped = Math.min(page, totalPages - 1);
+  const pageItems = filtered.slice(
+    pageClamped * PER_PAGE,
+    pageClamped * PER_PAGE + PER_PAGE,
+  );
 
   return (
     <div>
@@ -114,31 +138,98 @@ export default function Meetings({
         </div>
       )}
 
+      {items.length > 0 && (
+        <div className="mb-3 flex gap-2">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(0);
+            }}
+            placeholder={t("meetings.searchPlaceholder")}
+            className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-transparent px-3 py-2 text-sm outline-none focus:border-stone-400 dark:border-stone-800 dark:focus:border-stone-600"
+          />
+          <input
+            type="date"
+            value={dateFilter}
+            onChange={(e) => {
+              setDateFilter(e.target.value);
+              setPage(0);
+            }}
+            className="rounded-lg border border-stone-200 bg-transparent px-3 py-2 text-sm outline-none focus:border-stone-400 dark:border-stone-800 dark:focus:border-stone-600"
+          />
+          {(query || dateFilter) && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setDateFilter("");
+                setPage(0);
+              }}
+              className="shrink-0 rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-600 hover:bg-stone-100 dark:border-stone-800 dark:text-stone-400 dark:hover:bg-stone-800"
+            >
+              {t("meetings.clearFilters")}
+            </button>
+          )}
+        </div>
+      )}
+
       {items.length === 0 && !transcribing ? (
         <p className="text-sm text-stone-500">{t("meetings.empty")}</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-stone-500">{t("meetings.noResults")}</p>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {items.map((m) => (
-            <li key={m.id}>
+        <>
+          <ul className="flex flex-col gap-2">
+            {pageItems.map((m) => (
+              <li key={m.id}>
+                <button
+                  type="button"
+                  onClick={() => onOpen(m.id)}
+                  className="flex w-full items-center justify-between rounded-lg border border-stone-200 px-4 py-3 text-left hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">
+                      {m.title}
+                    </span>
+                    <span className="block text-xs text-stone-500">
+                      {fmtDate(m.started_ms)}
+                    </span>
+                  </span>
+                  <span className="ml-3 shrink-0 text-xs text-stone-500">
+                    {fmtDur(m.duration_ms)}
+                    {m.partial ? ` · ${t("meetings.partial")}` : ""}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          {totalPages > 1 && (
+            <div className="mt-4 flex items-center justify-center gap-4 text-sm">
               <button
                 type="button"
-                onClick={() => onOpen(m.id)}
-                className="flex w-full items-center justify-between rounded-lg border border-stone-200 px-4 py-3 text-left hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+                disabled={pageClamped === 0}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                className="rounded-lg border border-stone-200 px-3 py-1.5 hover:bg-stone-100 disabled:opacity-40 dark:border-stone-800 dark:hover:bg-stone-800"
               >
-                <span className="min-w-0">
-                  <span className="block truncate font-medium">{m.title}</span>
-                  <span className="block text-xs text-stone-500">
-                    {fmtDate(m.started_ms)}
-                  </span>
-                </span>
-                <span className="ml-3 shrink-0 text-xs text-stone-500">
-                  {fmtDur(m.duration_ms)}
-                  {m.partial ? ` · ${t("meetings.partial")}` : ""}
-                </span>
+                ‹ {t("meetings.prev")}
               </button>
-            </li>
-          ))}
-        </ul>
+              <span className="tabular-nums text-stone-500">
+                {pageClamped + 1} / {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={pageClamped >= totalPages - 1}
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                className="rounded-lg border border-stone-200 px-3 py-1.5 hover:bg-stone-100 disabled:opacity-40 dark:border-stone-800 dark:hover:bg-stone-800"
+              >
+                {t("meetings.next")} ›
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

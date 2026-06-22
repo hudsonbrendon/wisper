@@ -223,6 +223,11 @@ const en: Dict = {
   "meetings.start": "Start meeting",
   "meetings.stop": "Stop",
   "meetings.empty": "No meetings yet.",
+  "meetings.searchPlaceholder": "Search by name…",
+  "meetings.noResults": "No meetings match your filters.",
+  "meetings.clearFilters": "Clear",
+  "meetings.prev": "Previous",
+  "meetings.next": "Next",
   "meetings.consentNote":
     "Let participants know you're recording. Audio stays on this Mac.",
   "meetings.unsupported": "Meeting capture needs macOS 13 or later.",
@@ -453,6 +458,11 @@ const pt: Dict = {
   "meetings.start": "Iniciar reunião",
   "meetings.stop": "Parar",
   "meetings.empty": "Nenhuma reunião ainda.",
+  "meetings.searchPlaceholder": "Buscar por nome…",
+  "meetings.noResults": "Nenhuma reunião corresponde aos filtros.",
+  "meetings.clearFilters": "Limpar",
+  "meetings.prev": "Anterior",
+  "meetings.next": "Próxima",
   "meetings.consentNote":
     "Avise os participantes que está gravando. O áudio fica neste Mac.",
   "meetings.unsupported":
