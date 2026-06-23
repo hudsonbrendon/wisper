@@ -13,8 +13,10 @@ use llama_cpp_2::model::{AddBos, LlamaChatMessage, LlamaModel};
 use llama_cpp_2::sampling::LlamaSampler;
 use std::num::NonZeroU32;
 
-/// Context window (in tokens) for a summary run.
-const N_CTX: u32 = 8192;
+/// Context window (in tokens) for a summary run. Must hold the (truncated)
+/// transcript prompt plus the generated summary; a 24k-char transcript is ~8k
+/// tokens, leaving room for MAX_NEW_TOKENS.
+const N_CTX: u32 = 16384;
 
 /// Hard cap on generated tokens so a runaway model can't loop forever.
 const MAX_NEW_TOKENS: usize = 1024;
@@ -35,8 +37,12 @@ pub fn summarize(model_path: &str, transcript: &str, language: &str) -> Result<S
     let formatted = format_with_chat_template(&model, &prompt).unwrap_or(prompt);
 
     // --- context ---
-    let ctx_params =
-        LlamaContextParams::default().with_n_ctx(Some(NonZeroU32::new(N_CTX).unwrap()));
+    // `n_batch` MUST cover the whole prompt: we feed it in a single decode and
+    // llama.cpp asserts `n_tokens_all <= n_batch`. The default (512) crashes on
+    // any transcript longer than a few sentences, so pin it to the context size.
+    let ctx_params = LlamaContextParams::default()
+        .with_n_ctx(Some(NonZeroU32::new(N_CTX).unwrap()))
+        .with_n_batch(N_CTX);
     let mut ctx = model
         .new_context(&backend, ctx_params)
         .map_err(|e| format!("llm context: {e}"))?;
