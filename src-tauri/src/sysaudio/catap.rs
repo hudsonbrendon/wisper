@@ -25,23 +25,7 @@
 use super::{SysReader, SystemAudioCapturer};
 use crate::audio::{resample_to_16k, rms_window, to_mono};
 use std::cell::RefCell;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
-
-/// Temporary capture diagnostics: append a line to /tmp/wisper-sysaudio.log so we
-/// can see where system-audio capture fails on a user's machine (esp. macOS 15+
-/// permission gates). Best-effort; never panics.
-fn dbg_log(msg: &str) {
-    use std::io::Write;
-    eprintln!("[sysaudio] {msg}");
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open("/tmp/wisper-sysaudio.log")
-    {
-        let _ = writeln!(f, "{msg}");
-    }
-}
 
 use block2::RcBlock;
 use core_foundation::array::CFArray;
@@ -119,9 +103,6 @@ pub struct CatapCapturer {
     tap_id: AudioObjectID,
     aggregate_id: AudioObjectID,
     io_proc: AudioDeviceIOProcID,
-    /// Diagnostic: total f32 samples the IO proc has pushed. Zero on stop means
-    /// the callback never delivered audio (e.g. missing system-audio permission).
-    pushed: Arc<AtomicUsize>,
     /// The IO block must outlive the IO proc that references it, so we keep it
     /// alive here for the whole capture. The block matches `AudioDeviceIOBlock`'s
     /// C ABI: five pointer args, returns void. We type the args as opaque
@@ -271,13 +252,17 @@ pub fn start() -> Result<Box<dyn SystemAudioCapturer>, String> {
 }
 
 unsafe fn start_inner() -> Result<Box<dyn SystemAudioCapturer>, String> {
-    // 1. CATapDescription with an EMPTY process list → whole-system mix.
-    //    `[[CATapDescription alloc] initStereoMixdownOfProcesses:@[]]`.
+    // 1. CATapDescription as a GLOBAL tap that excludes NO processes → the whole
+    //    system mix. On macOS 15+/26 `initStereoMixdownOfProcesses:@[]` (an empty
+    //    INCLUDE list) means "no processes" → silence; the global-tap initializer
+    //    with an empty EXCLUDE list is the right way to capture everything.
+    //    `[[CATapDescription alloc] initStereoGlobalTapButExcludeProcesses:@[]]`.
     let class = AnyClass::get(c"CATapDescription")
         .ok_or("CATapDescription unavailable (needs macOS 14.4+)")?;
     let empty: Retained<NSArray<AnyObject>> = NSArray::new();
     let alloc: *mut AnyObject = msg_send![class, alloc];
-    let tap_desc: *mut AnyObject = msg_send![alloc, initStereoMixdownOfProcesses: &*empty];
+    let tap_desc: *mut AnyObject =
+        msg_send![alloc, initStereoGlobalTapButExcludeProcesses: &*empty];
     if tap_desc.is_null() {
         return Err("CATapDescription init failed".to_string());
     }
@@ -320,13 +305,6 @@ unsafe fn start_inner() -> Result<Box<dyn SystemAudioCapturer>, String> {
     };
     let sample_rate = asbd.mSampleRate as u32;
     let channels = asbd.mChannelsPerFrame as u16;
-    dbg_log(&format!(
-        "tap created (id {tap_id}); format sample_rate={sample_rate} channels={channels}"
-    ));
-    if let Ok(dev) = read_default_system_output_device() {
-        let uid = read_device_uid(dev).unwrap_or_else(|e| format!("<{e}>"));
-        dbg_log(&format!("default system output device id={dev} uid={uid}"));
-    }
 
     // 4. Build the private aggregate device that includes the tap. We anchor it on
     //    the default system output device (like AudioCap) so the tap has a clock.
@@ -356,8 +334,6 @@ unsafe fn start_inner() -> Result<Box<dyn SystemAudioCapturer>, String> {
     let rb = HeapRb::<f32>::new(RING_CAPACITY);
     let (producer, consumer_rx) = rb.split();
     let producer = RefCell::new(producer);
-    let pushed = Arc::new(AtomicUsize::new(0));
-    let pushed_io = pushed.clone();
     let io_block = RcBlock::new(
         move |_in_now: *const std::ffi::c_void,
               in_input: *const std::ffi::c_void,
@@ -389,7 +365,6 @@ unsafe fn start_inner() -> Result<Box<dyn SystemAudioCapturer>, String> {
                 // Lock-free push into the ring. On overflow `push_slice` writes
                 // what fits and drops the rest (acceptable for real-time audio).
                 prod.push_slice(samples);
-                pushed_io.fetch_add(count, Ordering::Relaxed);
             }
         },
     );
@@ -408,17 +383,12 @@ unsafe fn start_inner() -> Result<Box<dyn SystemAudioCapturer>, String> {
         ));
     }
 
-    dbg_log(&format!(
-        "aggregate id={aggregate_id}; io proc created (status {status})"
-    ));
-
     // 6. Start the device.
     let status = AudioDeviceStart(aggregate_id, io_proc);
     if status != 0 {
         teardown(aggregate_id, io_proc, tap_id);
         return Err(format!("AudioDeviceStart failed (status {status})"));
     }
-    dbg_log("AudioDeviceStart ok — capture running");
 
     Ok(Box::new(CatapCapturer {
         shared,
@@ -430,7 +400,6 @@ unsafe fn start_inner() -> Result<Box<dyn SystemAudioCapturer>, String> {
         tap_id,
         aggregate_id,
         io_proc,
-        pushed,
         _io_block: io_block,
     }))
 }
@@ -587,11 +556,6 @@ impl SystemAudioCapturer for CatapCapturer {
             .unwrap_or_default();
         let sr = *self.shared.sample_rate.lock().unwrap();
         let ch = *self.shared.channels.lock().unwrap();
-        dbg_log(&format!(
-            "stop: io-proc pushed {} samples, drained {} samples (sr={sr} ch={ch})",
-            self.pushed.load(Ordering::Relaxed),
-            raw.len()
-        ));
         // `_io_block` drops with the box, releasing the block after the IO proc
         // is destroyed.
         (raw, sr.max(16_000), ch.max(1))
