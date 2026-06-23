@@ -109,13 +109,19 @@ impl MeetingRecorder {
             None => (Vec::new(), false),
         };
 
-        let me_segs = transcriber
-            .transcribe_segments(&me_samples, language, prompt)
-            .unwrap_or_default();
-        let them_segs = if them_samples.len() >= 1600 {
+        // VAD-gate each track before Whisper so long silences (e.g. while the
+        // other person speaks) don't get filled with hallucinated boilerplate.
+        let me_segs = live::transcribe_voiced(&me_samples, |chunk| {
             transcriber
-                .transcribe_segments(&them_samples, language, prompt)
+                .transcribe_segments(chunk, language, prompt)
                 .unwrap_or_default()
+        });
+        let them_segs = if them_samples.len() >= 1600 {
+            live::transcribe_voiced(&them_samples, |chunk| {
+                transcriber
+                    .transcribe_segments(chunk, language, prompt)
+                    .unwrap_or_default()
+            })
         } else {
             Vec::new()
         };
