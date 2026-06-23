@@ -197,6 +197,50 @@ fn process_source(
     buf.drain(..consumed);
 }
 
+/// Batch counterpart to the live loop: VAD-segment a whole 16 kHz mono track and
+/// transcribe only the voiced spans, dropping silence and too-quiet/too-short
+/// bits. Without this the saved transcript re-transcribes raw silence and
+/// Whisper fills it with canned hallucinations ("se inscreva no canal", …). Times
+/// are ms from the start of `samples`. `transcribe` is called per voiced chunk.
+pub fn transcribe_voiced(
+    samples: &[f32],
+    transcribe: impl Fn(&[f32]) -> Vec<crate::stt::SttSegment>,
+) -> Vec<crate::stt::SttSegment> {
+    let mut vad = webrtc_vad::Vad::new_with_rate_and_mode(
+        webrtc_vad::SampleRate::Rate16kHz,
+        webrtc_vad::VadMode::VeryAggressive,
+    );
+    let n_frames = samples.len() / VAD_FRAME;
+    let mut flags = Vec::with_capacity(n_frames);
+    for f in 0..n_frames {
+        let frame = &samples[f * VAD_FRAME..(f + 1) * VAD_FRAME];
+        flags.push(vad.is_voice_segment(&to_i16(frame)).unwrap_or(false));
+    }
+
+    let mut out = Vec::new();
+    for (start_ms, end_ms) in segment_closed_speech(&flags, FRAME_MS, MIN_SILENCE_FRAMES) {
+        let s = (start_ms / FRAME_MS) as usize * VAD_FRAME;
+        let e = ((end_ms / FRAME_MS) as usize * VAD_FRAME).min(samples.len());
+        let chunk = &samples[s..e];
+        if chunk.len() < MIN_SEG_SAMPLES || crate::audio::rms_level(chunk) < MIN_RMS {
+            continue;
+        }
+        let base_ms = crate::meeting::samples_to_ms(s);
+        for seg in transcribe(chunk) {
+            let text = seg.text.trim().to_string();
+            if text.is_empty() {
+                continue;
+            }
+            out.push(crate::stt::SttSegment {
+                start_ms: base_ms + seg.start_ms,
+                end_ms: base_ms + seg.end_ms,
+                text,
+            });
+        }
+    }
+    out
+}
+
 /// Turn a per-frame VAD flag stream into closed speech segments. A segment opens
 /// on the first speech frame and closes once `min_silence_frames` consecutive
 /// non-speech frames are seen — short gaps below that threshold are bridged so a

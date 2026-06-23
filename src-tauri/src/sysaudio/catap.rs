@@ -252,13 +252,17 @@ pub fn start() -> Result<Box<dyn SystemAudioCapturer>, String> {
 }
 
 unsafe fn start_inner() -> Result<Box<dyn SystemAudioCapturer>, String> {
-    // 1. CATapDescription with an EMPTY process list → whole-system mix.
-    //    `[[CATapDescription alloc] initStereoMixdownOfProcesses:@[]]`.
+    // 1. CATapDescription as a GLOBAL tap that excludes NO processes → the whole
+    //    system mix. On macOS 15+/26 `initStereoMixdownOfProcesses:@[]` (an empty
+    //    INCLUDE list) means "no processes" → silence; the global-tap initializer
+    //    with an empty EXCLUDE list is the right way to capture everything.
+    //    `[[CATapDescription alloc] initStereoGlobalTapButExcludeProcesses:@[]]`.
     let class = AnyClass::get(c"CATapDescription")
         .ok_or("CATapDescription unavailable (needs macOS 14.4+)")?;
     let empty: Retained<NSArray<AnyObject>> = NSArray::new();
     let alloc: *mut AnyObject = msg_send![class, alloc];
-    let tap_desc: *mut AnyObject = msg_send![alloc, initStereoMixdownOfProcesses: &*empty];
+    let tap_desc: *mut AnyObject =
+        msg_send![alloc, initStereoGlobalTapButExcludeProcesses: &*empty];
     if tap_desc.is_null() {
         return Err("CATapDescription init failed".to_string());
     }
