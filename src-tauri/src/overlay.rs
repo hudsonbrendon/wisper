@@ -41,7 +41,6 @@ pub fn top_center(
 /// stays within the monitor at `mon_pos`/`mon_size`, keeping `margin` px from
 /// each edge. If the window is larger than the monitor the top-left margin wins
 /// (so it can't be pushed off the top-left while trying to fit the bottom-right).
-#[allow(dead_code)]
 pub fn clamp_to_monitor(
     pos: (i32, i32),
     win: (u32, u32),

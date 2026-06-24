@@ -505,7 +505,8 @@ fn return_key_to_target(app: &tauri::AppHandle) {
 #[cfg(not(target_os = "macos"))]
 fn return_key_to_target(_app: &tauri::AppHandle) {}
 
-/// Anchor the pill bottom-center above the Dock/taskbar, then show it.
+/// Anchor the pill at its saved position (clamped on-screen) if the user has
+/// dragged it, else bottom-center above the Dock/taskbar, then show it.
 fn place_and_show_overlay(app: &tauri::AppHandle) {
     if let Some(overlay) = app.get_webview_window("overlay") {
         let monitor = overlay
@@ -519,12 +520,29 @@ fn place_and_show_overlay(app: &tauri::AppHandle) {
             let win = overlay
                 .outer_size()
                 .unwrap_or(tauri::PhysicalSize::new(360, 340));
-            let (x, y) = overlay::bottom_center(
-                (pos.x, pos.y),
-                (size.width, size.height),
-                (win.width, win.height),
-                90,
-            );
+
+            let saved = {
+                let state = app.state::<AppState>();
+                let cfg = state.config.lock().unwrap();
+                cfg.overlay_x.zip(cfg.overlay_y)
+            };
+            let (x, y) = match saved {
+                // Keep a previously-dragged position visible on the current
+                // monitor (guards against resolution changes / unplugged displays).
+                Some((sx, sy)) => overlay::clamp_to_monitor(
+                    (sx, sy),
+                    (win.width, win.height),
+                    (pos.x, pos.y),
+                    (size.width, size.height),
+                    16,
+                ),
+                None => overlay::bottom_center(
+                    (pos.x, pos.y),
+                    (size.width, size.height),
+                    (win.width, win.height),
+                    90,
+                ),
+            };
             let _ = overlay.set_position(tauri::PhysicalPosition::new(x, y));
         }
         // Only pin it on screen if the user wants the pill always visible;
@@ -560,6 +578,35 @@ static PILL_EXPANDED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicB
 /// thread) setter when it actually changes. Starts true: a fresh overlay is
 /// fully click-through until the cursor reaches the pill.
 static OVERLAY_IGNORING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
+
+/// Generation counter for debounced overlay-position saves: each `Moved` bumps
+/// it; a save only lands if its generation is still current after the delay.
+static OVERLAY_MOVE_GEN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Persist the pill's new top-left (physical px) to config, debounced 400 ms so
+/// a drag writes once. Called from the overlay's `WindowEvent::Moved` handler.
+fn persist_overlay_position(app: &tauri::AppHandle, x: i32, y: i32) {
+    let gen = OVERLAY_MOVE_GEN.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(400));
+        // A newer move superseded this one — let that one write instead.
+        if OVERLAY_MOVE_GEN.load(std::sync::atomic::Ordering::SeqCst) != gen {
+            return;
+        }
+        let state = app.state::<AppState>();
+        let config_dir = state.config_dir.clone();
+        let cfg = {
+            let mut cfg = state.config.lock().unwrap();
+            cfg.overlay_x = Some(x);
+            cfg.overlay_y = Some(y);
+            cfg.clone()
+        };
+        if let Err(e) = crate::config::save(&config_dir, &cfg) {
+            eprintln!("persist overlay position: {e}");
+        }
+    });
+}
 
 /// Mark the menu open/closed and re-evaluate click-through immediately so the
 /// menu is interactive the instant it appears (rather than on the next poll).
@@ -1099,6 +1146,15 @@ pub fn run() {
                         apply_tray_theme(&theme_handle, *theme);
                     }
                     _ => {}
+                });
+            }
+
+            if let Some(overlay) = handle.get_webview_window("overlay") {
+                let app_for_move = handle.clone();
+                overlay.on_window_event(move |event| {
+                    if let tauri::WindowEvent::Moved(pos) = event {
+                        persist_overlay_position(&app_for_move, pos.x, pos.y);
+                    }
                 });
             }
 
