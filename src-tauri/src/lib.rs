@@ -543,6 +543,7 @@ fn place_and_show_overlay(app: &tauri::AppHandle) {
                     90,
                 ),
             };
+            *LAST_PLACED_OVERLAY_POS.lock().unwrap() = Some((x, y));
             let _ = overlay.set_position(tauri::PhysicalPosition::new(x, y));
         }
         // Only pin it on screen if the user wants the pill always visible;
@@ -583,6 +584,12 @@ static OVERLAY_IGNORING: std::sync::atomic::AtomicBool = std::sync::atomic::Atom
 /// it; a save only lands if its generation is still current after the delay.
 static OVERLAY_MOVE_GEN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
+/// The last position `place_and_show_overlay` set programmatically. A `Moved`
+/// event matching it is our own placement (startup center / clamped restore),
+/// not a user drag, so it must NOT be persisted — persisting a clamped value
+/// would overwrite the user's saved position on a monitor/resolution change.
+static LAST_PLACED_OVERLAY_POS: std::sync::Mutex<Option<(i32, i32)>> = std::sync::Mutex::new(None);
+
 /// Persist the pill's new top-left (physical px) to config, debounced 400 ms so
 /// a drag writes once. Called from the overlay's `WindowEvent::Moved` handler.
 fn persist_overlay_position(app: &tauri::AppHandle, x: i32, y: i32) {
@@ -592,6 +599,11 @@ fn persist_overlay_position(app: &tauri::AppHandle, x: i32, y: i32) {
         std::thread::sleep(std::time::Duration::from_millis(400));
         // A newer move superseded this one — let that one write instead.
         if OVERLAY_MOVE_GEN.load(std::sync::atomic::Ordering::SeqCst) != gen {
+            return;
+        }
+        // Skip our own programmatic placements (startup center / clamped
+        // restore); only real user drags should be persisted.
+        if *LAST_PLACED_OVERLAY_POS.lock().unwrap() == Some((x, y)) {
             return;
         }
         let state = app.state::<AppState>();
