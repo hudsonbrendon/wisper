@@ -58,6 +58,26 @@ function StopIcon() {
   );
 }
 
+// Six-dot grip: the dedicated "drag me" handle at the pill's left edge. It's
+// `pointer-events-none` so a mousedown falls through to the drag-region shell.
+function GripIcon() {
+  return (
+    <svg
+      className="pointer-events-none h-4 w-4 shrink-0 text-zinc-500"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+    >
+      <circle cx="9" cy="6" r="1.4" />
+      <circle cx="15" cy="6" r="1.4" />
+      <circle cx="9" cy="12" r="1.4" />
+      <circle cx="15" cy="12" r="1.4" />
+      <circle cx="9" cy="18" r="1.4" />
+      <circle cx="15" cy="18" r="1.4" />
+    </svg>
+  );
+}
+
 export default function Overlay() {
   const { t } = useI18n();
   const [state, setState] = useState("idle");
@@ -138,7 +158,7 @@ export default function Overlay() {
   };
 
   const shell =
-    "relative flex items-center gap-3 rounded-full bg-zinc-900/90 px-4 py-2.5 text-zinc-100 shadow-xl backdrop-blur select-none";
+    "relative flex cursor-grab items-center gap-2.5 rounded-full bg-zinc-900/90 py-2.5 pl-2.5 pr-4 text-zinc-100 shadow-xl backdrop-blur select-none active:cursor-grabbing";
 
   // Pill sits at the window's bottom edge; the window grows upward for the menu.
   const wrapper =
@@ -148,6 +168,7 @@ export default function Overlay() {
     return (
       <div className={wrapper}>
         <div className={shell} data-tauri-drag-region>
+          <GripIcon />
           <span className="pointer-events-none h-3 w-3 shrink-0 rounded-full bg-rose-500" />
           <span className="pointer-events-none max-w-[260px] text-sm text-rose-300">
             {error}
@@ -163,6 +184,7 @@ export default function Overlay() {
         <div className="absolute inset-0" onClick={closeMenu} aria-hidden />
       )}
       <div className={shell} data-tauri-drag-region>
+        <GripIcon />
         {state === "idle" && (
           <>
             <button
