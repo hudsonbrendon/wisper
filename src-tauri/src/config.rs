@@ -55,6 +55,14 @@ pub struct Config {
     /// interface-language choice.
     #[serde(default = "default_ui_language")]
     pub ui_language: String,
+    /// Saved top-left position (physical px) of the dictation pill window, set
+    /// when the user drags it. `None` until the first drag, in which case the
+    /// pill is anchored bottom-center on show. `serde(default)` keeps older
+    /// config files (without these keys) loadable.
+    #[serde(default)]
+    pub overlay_x: Option<i32>,
+    #[serde(default)]
+    pub overlay_y: Option<i32>,
 }
 
 /// serde default for the boolean fields that default to `true`.
@@ -90,6 +98,8 @@ impl Default for Config {
             dictionary: Vec::new(),
             replacements: Vec::new(),
             ui_language: "en".to_string(),
+            overlay_x: None,
+            overlay_y: None,
         }
     }
 }
@@ -155,6 +165,8 @@ mod tests {
                 to: "me@example.com".to_string(),
             }],
             ui_language: "pt".to_string(),
+            overlay_x: None,
+            overlay_y: None,
         };
         let text = cfg.to_toml().expect("serialize");
         let parsed = Config::from_toml(&text);
@@ -185,5 +197,25 @@ mod tests {
         save(&dir, &cfg).expect("save");
         assert_eq!(load(&dir), cfg);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn overlay_position_roundtrips_and_defaults_to_none() {
+        // A fresh config has no saved pill position.
+        let mut cfg = Config::default();
+        assert_eq!(cfg.overlay_x, None);
+        assert_eq!(cfg.overlay_y, None);
+
+        // Set + round-trip through TOML.
+        cfg.overlay_x = Some(640);
+        cfg.overlay_y = Some(480);
+        let back = Config::from_toml(&cfg.to_toml().unwrap());
+        assert_eq!(back.overlay_x, Some(640));
+        assert_eq!(back.overlay_y, Some(480));
+
+        // An old config that predates the fields still parses, with None.
+        let legacy = Config::from_toml("hotkey = \"Alt+Space\"\nmodel_id = \"base\"\nlanguage = \"auto\"\ninject_method = \"paste\"");
+        assert_eq!(legacy.overlay_x, None);
+        assert_eq!(legacy.overlay_y, None);
     }
 }
