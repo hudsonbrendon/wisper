@@ -12,6 +12,7 @@ import {
 } from "../lib/api";
 import { LANGUAGES, langLabel } from "../lib/languages";
 import { useI18n } from "../lib/i18n";
+import DragHandle from "../components/DragHandle";
 
 // Sober line icons matching the app's Feather-style set (stroke="currentColor").
 function MicIcon() {
@@ -54,26 +55,6 @@ function StopIcon() {
   return (
     <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="currentColor">
       <rect x="6" y="6" width="12" height="12" rx="2" />
-    </svg>
-  );
-}
-
-// Six-dot grip: the dedicated "drag me" handle at the pill's left edge. It's
-// `pointer-events-none` so a mousedown falls through to the drag-region shell.
-function GripIcon() {
-  return (
-    <svg
-      className="pointer-events-none h-4 w-4 shrink-0 text-zinc-500"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden
-    >
-      <circle cx="9" cy="6" r="1.4" />
-      <circle cx="15" cy="6" r="1.4" />
-      <circle cx="9" cy="12" r="1.4" />
-      <circle cx="15" cy="12" r="1.4" />
-      <circle cx="9" cy="18" r="1.4" />
-      <circle cx="15" cy="18" r="1.4" />
     </svg>
   );
 }
@@ -158,7 +139,7 @@ export default function Overlay() {
   };
 
   const shell =
-    "relative flex cursor-grab items-center gap-2.5 rounded-full bg-zinc-900/90 py-2.5 pl-2.5 pr-4 text-zinc-100 shadow-xl backdrop-blur select-none active:cursor-grabbing";
+    "relative flex items-center gap-2.5 rounded-full bg-zinc-900/90 py-2.5 pl-2.5 pr-4 text-zinc-100 shadow-xl backdrop-blur select-none";
 
   // Pill sits at the window's bottom edge; the window grows upward for the menu.
   const wrapper =
@@ -167,8 +148,8 @@ export default function Overlay() {
   if (error) {
     return (
       <div className={wrapper}>
-        <div className={shell} data-tauri-drag-region>
-          <GripIcon />
+        <div className={shell}>
+          <DragHandle className="text-zinc-500" />
           <span className="pointer-events-none h-3 w-3 shrink-0 rounded-full bg-rose-500" />
           <span className="pointer-events-none max-w-[260px] text-sm text-rose-300">
             {error}
@@ -183,8 +164,8 @@ export default function Overlay() {
       {menuOpen && (
         <div className="absolute inset-0" onClick={closeMenu} aria-hidden />
       )}
-      <div className={shell} data-tauri-drag-region>
-        <GripIcon />
+      <div className={shell}>
+        <DragHandle className="text-zinc-500" />
         {state === "idle" && (
           <>
             <button

@@ -4,6 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import { onEvent, type MeetingLiveSegmentPayload } from "../lib/api";
 import { useI18n } from "../lib/i18n";
+import DragHandle from "../components/DragHandle";
 
 // The window grows downward to reveal the transcript panel; the pill keeps its
 // height and stays anchored at the top.
@@ -92,16 +93,14 @@ export default function MeetingBubble() {
   const label = (s: "me" | "them") =>
     s === "me" ? t("meetings.you") : t("meetings.them");
 
-  // `data-tauri-drag-region` makes the pill draggable (needs
-  // core:window:allow-start-dragging). The non-interactive children are
-  // `pointer-events-none` so a mousedown lands on the drag region; the eye and
-  // Stop buttons keep pointer events so they stay clickable.
+  // Only the DragHandle (grip dots) carries `data-tauri-drag-region` (needs
+  // core:window:allow-start-dragging), so the bubble drags — and shows the grab
+  // cursor — only over the dots, not the rest of the pill. The eye and Stop
+  // buttons keep pointer events so they stay clickable.
   return (
     <div className="flex h-screen w-screen flex-col gap-2">
-      <div
-        data-tauri-drag-region
-        className="flex h-16 shrink-0 cursor-grab select-none items-center gap-3 rounded-full bg-stone-900/95 px-4 text-stone-100 shadow-lg active:cursor-grabbing"
-      >
+      <div className="flex h-16 shrink-0 select-none items-center gap-3 rounded-full bg-stone-900/95 px-4 text-stone-100 shadow-lg">
+        <DragHandle className="text-stone-400" />
         <span className="pointer-events-none h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
         <span className="pointer-events-none font-mono text-sm tabular-nums">{`${mm}:${ss}`}</span>
         <div className="pointer-events-none h-1.5 flex-1 overflow-hidden rounded-full bg-stone-700">
