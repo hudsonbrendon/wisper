@@ -760,31 +760,48 @@ pub(crate) fn on_shortcut(app: &tauri::AppHandle, pressed: bool) {
     dispatch(app, action);
 }
 
-/// Reset the macOS Microphone AND Accessibility TCC grants when the app binary
-/// has changed since last launch (a fresh install or update). Without a paid
-/// Apple Developer identity the signature isn't stable across builds, so the OS
-/// keys each grant on the code hash and leaves a stale "granted" record for the
-/// previous build: microphone capture silently yields silence, and synthesized
-/// keystrokes (text injection) are silently dropped — so audio transcribes but
-/// the text never lands. Resetting both forces the startup prompts to
-/// re-register THIS binary and show the dialogs, so the user re-allows once per
-/// update. Runs at most once per build (guarded by a marker file). macOS only.
+/// Reset the macOS Microphone AND Accessibility TCC grants when the app's
+/// *code-signing identity* changes (so the OS would otherwise keep a stale
+/// "granted" record for a binary it no longer recognizes — microphone capture
+/// silently yields silence and synthesized keystrokes are dropped). Resetting
+/// forces the startup prompts to re-register THIS binary and re-prompt.
+///
+/// The check keys on the code-signing **designated requirement**, NOT the binary
+/// mtime. TCC grants are pinned to that requirement. The stable self-signed cert
+/// ("OpenWispr Dev") used for local builds yields a CONSTANT requirement across
+/// rebuilds (`… certificate leaf = H"…"`), so the grants stay valid and we must
+/// NOT reset them — keying on mtime used to nuke them on every local reinstall,
+/// forcing a needless re-grant (esp. painful for the lone-modifier hotkey, which
+/// needs Accessibility). Ad-hoc / OTA builds carry a `cdhash`-based requirement
+/// that changes per build, so there the requirement differs and the reset still
+/// fires. Runs at most once per identity change (guarded by a marker file).
 #[cfg(target_os = "macos")]
 fn heal_permissions_if_updated(data_dir: &std::path::Path) {
     let marker = data_dir.join("mic_build_marker");
-    let current = std::env::current_exe()
+    // The designated-requirement line (`designated => …`) from `codesign -d -r-`.
+    // Constant for a cert-signed build, cdhash-based (per-build) for ad-hoc.
+    let current = std::process::Command::new("codesign")
+        .args(["-d", "-r-"])
+        .arg(std::env::current_exe().unwrap_or_default())
+        .output()
         .ok()
-        .and_then(|p| std::fs::metadata(p).ok())
-        .and_then(|m| m.modified().ok())
-        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-        .map(|d| d.as_secs().to_string())
+        .map(|o| {
+            let mut s = String::from_utf8_lossy(&o.stdout).into_owned();
+            s.push_str(&String::from_utf8_lossy(&o.stderr));
+            s.lines()
+                .find(|l| l.trim_start().starts_with("designated =>"))
+                .map(|l| l.trim().to_string())
+                .unwrap_or_default()
+        })
         .unwrap_or_default();
+    // Couldn't read the requirement → leave existing grants alone (resetting on a
+    // false signal is worse than skipping a genuine reset).
     if current.is_empty() {
         return;
     }
     let previous = std::fs::read_to_string(&marker).unwrap_or_default();
     if current == previous {
-        return; // same build — leave the existing grants alone
+        return; // same signing identity — leave the existing grants alone
     }
     for service in ["Microphone", "Accessibility"] {
         let _ = std::process::Command::new("tccutil")
