@@ -12,6 +12,7 @@ import {
 } from "../lib/api";
 import { LANGUAGES, langLabel } from "../lib/languages";
 import { useI18n } from "../lib/i18n";
+import DragHandle from "../components/DragHandle";
 
 // Sober line icons matching the app's Feather-style set (stroke="currentColor").
 function MicIcon() {
@@ -138,7 +139,7 @@ export default function Overlay() {
   };
 
   const shell =
-    "relative flex items-center gap-3 rounded-full bg-zinc-900/90 px-4 py-2.5 text-zinc-100 shadow-xl backdrop-blur select-none";
+    "relative flex items-center gap-2.5 rounded-full bg-zinc-900/90 py-2.5 pl-2.5 pr-4 text-zinc-100 shadow-xl backdrop-blur select-none";
 
   // Pill sits at the window's bottom edge; the window grows upward for the menu.
   const wrapper =
@@ -148,8 +149,11 @@ export default function Overlay() {
     return (
       <div className={wrapper}>
         <div className={shell}>
-          <span className="h-3 w-3 shrink-0 rounded-full bg-rose-500" />
-          <span className="max-w-[260px] text-sm text-rose-300">{error}</span>
+          <DragHandle className="text-zinc-500" />
+          <span className="pointer-events-none h-3 w-3 shrink-0 rounded-full bg-rose-500" />
+          <span className="pointer-events-none max-w-[260px] text-sm text-rose-300">
+            {error}
+          </span>
         </div>
       </div>
     );
@@ -161,6 +165,7 @@ export default function Overlay() {
         <div className="absolute inset-0" onClick={closeMenu} aria-hidden />
       )}
       <div className={shell}>
+        <DragHandle className="text-zinc-500" />
         {state === "idle" && (
           <>
             <button
@@ -212,13 +217,13 @@ export default function Overlay() {
             >
               <XIcon />
             </button>
-            <div className="h-2 w-20 shrink-0 overflow-hidden rounded-full bg-zinc-700">
+            <div className="pointer-events-none h-2 w-20 shrink-0 overflow-hidden rounded-full bg-zinc-700">
               <div
                 className="h-full bg-emerald-400 transition-all"
                 style={{ width: `${meterWidth}%` }}
               />
             </div>
-            <span className="w-10 text-xs tabular-nums text-zinc-300">
+            <span className="pointer-events-none w-10 text-xs tabular-nums text-zinc-300">
               {mmss}
             </span>
             <button
