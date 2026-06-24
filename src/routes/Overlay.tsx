@@ -147,9 +147,11 @@ export default function Overlay() {
   if (error) {
     return (
       <div className={wrapper}>
-        <div className={shell}>
-          <span className="h-3 w-3 shrink-0 rounded-full bg-rose-500" />
-          <span className="max-w-[260px] text-sm text-rose-300">{error}</span>
+        <div className={shell} data-tauri-drag-region>
+          <span className="pointer-events-none h-3 w-3 shrink-0 rounded-full bg-rose-500" />
+          <span className="pointer-events-none max-w-[260px] text-sm text-rose-300">
+            {error}
+          </span>
         </div>
       </div>
     );
@@ -160,7 +162,7 @@ export default function Overlay() {
       {menuOpen && (
         <div className="absolute inset-0" onClick={closeMenu} aria-hidden />
       )}
-      <div className={shell}>
+      <div className={shell} data-tauri-drag-region>
         {state === "idle" && (
           <>
             <button
@@ -212,13 +214,13 @@ export default function Overlay() {
             >
               <XIcon />
             </button>
-            <div className="h-2 w-20 shrink-0 overflow-hidden rounded-full bg-zinc-700">
+            <div className="pointer-events-none h-2 w-20 shrink-0 overflow-hidden rounded-full bg-zinc-700">
               <div
                 className="h-full bg-emerald-400 transition-all"
                 style={{ width: `${meterWidth}%` }}
               />
             </div>
-            <span className="w-10 text-xs tabular-nums text-zinc-300">
+            <span className="pointer-events-none w-10 text-xs tabular-nums text-zinc-300">
               {mmss}
             </span>
             <button
