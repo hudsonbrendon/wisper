@@ -9,7 +9,7 @@ import {
 } from "react";
 import { useAuth } from "./authContext";
 import { loadUsage, recordUsage, type Usage } from "./usage";
-import { isUnlimited, remainingFor } from "./entitlements";
+import { isUnlimited, remainingFor, type Metric } from "./entitlements";
 import { isSupabaseConfigured } from "./supabase";
 import { setEntitlements, onEvent } from "./api";
 
@@ -70,24 +70,44 @@ export function UsageProvider({ children }: { children: ReactNode }) {
   }, [user, push]);
 
   // Re-load + re-push whenever identity or plan changes.
+  // A cancellation flag guards against stale in-flight resolves overwriting newer state.
   useEffect(() => {
-    void refresh();
-  }, [refresh, plan]);
+    let cancelled = false;
+    void (async () => {
+      if (!user || !isSupabaseConfigured()) {
+        setUsage(EMPTY);
+        push(EMPTY);
+        return;
+      }
+      const u = await loadUsage();
+      if (cancelled) return;
+      setUsage(u);
+      push(u);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, push]);
 
   // React to Rust events: record consumption to the server then re-sync; surface blocks.
+  // Unlisten refs are stored eagerly and called synchronously in cleanup to avoid
+  // a brief window where listeners are double-registered across effect cycles.
   useEffect(() => {
-    const consumed = onEvent<{ metric: "dictation_words"; amount: number }>(
-      "usage_consumed",
-      async (p) => {
-        const uid = userIdRef.current;
-        if (uid) await recordUsage(uid, p.metric, p.amount);
-        await refresh();
-      },
-    );
-    const blockedSub = onEvent<BlockedState>("quota_blocked", (p) => setBlocked(p));
+    let unlistenConsumed: (() => void) | undefined;
+    let unlistenBlocked: (() => void) | undefined;
+    onEvent<{ metric: Metric; amount: number }>("usage_consumed", async (p) => {
+      const uid = userIdRef.current;
+      if (uid) await recordUsage(uid, p.metric, p.amount);
+      await refresh();
+    }).then((f) => {
+      unlistenConsumed = f;
+    });
+    onEvent<BlockedState>("quota_blocked", (p) => setBlocked(p)).then((f) => {
+      unlistenBlocked = f;
+    });
     return () => {
-      consumed.then((f) => f());
-      blockedSub.then((f) => f());
+      unlistenConsumed?.();
+      unlistenBlocked?.();
     };
   }, [refresh]);
 
