@@ -43,6 +43,17 @@ vi.mock("./lib/authContext", () => ({
   useEntitlements: vi.fn(() => ({ can: () => true })),
 }));
 
+vi.mock("./lib/usageContext", () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  UsageProvider: ({ children }: { children: any }) => children,
+  useUsage: () => ({
+    usage: { dictation_words: 0, meetings: 0 },
+    refresh: vi.fn(),
+    blocked: null,
+    clearBlocked: vi.fn(),
+  }),
+}));
+
 vi.mock("./lib/api", () => ({
   onEvent: mockOnEvent,
   getHistory: mockGetHistory,
