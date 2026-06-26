@@ -10,15 +10,17 @@ import {
 } from "../lib/api";
 import { eventToAccelerator } from "../lib/hotkey";
 import { useI18n } from "../lib/i18n";
+import { useAuth } from "../lib/authContext";
 import { ChatGptMark, ClaudeMark, GmailMark } from "../components/BrandLogos";
 
-type StepId = "welcome" | "hotkey" | "model" | "practice" | "done";
-const STEPS: StepId[] = ["welcome", "hotkey", "model", "practice", "done"];
+type StepId = "welcome" | "login" | "hotkey" | "model" | "practice" | "done";
+const STEPS: StepId[] = ["welcome", "login", "hotkey", "model", "practice", "done"];
 
 /// First-run tutorial. Shown over the dashboard until the user finishes (or
 /// skips), which persists `onboarded: true`. Re-openable from Settings.
 export default function Onboarding({ onDone }: { onDone: () => void }) {
   const { t } = useI18n();
+  const { user, loading: authLoading, signIn } = useAuth();
   const [config, setConfig] = useState<Config | null>(null);
   const [stepIdx, setStepIdx] = useState(0);
   const step = STEPS[stepIdx];
@@ -58,7 +60,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
               />
             ))}
           </div>
-          {step !== "done" && (
+          {step !== "done" && step !== "login" && (
             <button
               type="button"
               onClick={finish}
@@ -72,6 +74,9 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-8 py-6">
           {step === "welcome" && <Welcome />}
+          {step === "login" && (
+            <LoginStep user={!!user} loading={authLoading} signIn={signIn} />
+          )}
           {step === "hotkey" && config && (
             <HotkeyStep config={config} onChange={setConfig} />
           )}
@@ -95,7 +100,8 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
           <button
             type="button"
             onClick={next}
-            className="rounded-lg bg-teal-600 px-5 py-2 text-sm font-medium text-white hover:bg-teal-500"
+            disabled={step === "login" && !user}
+            className="rounded-lg bg-teal-600 px-5 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-40"
           >
             {step === "done" ? t("onboarding.finish") : t("onboarding.next")}
           </button>
@@ -369,6 +375,52 @@ function Done() {
       <p className="mt-3 max-w-md text-sm text-stone-500 dark:text-stone-400">
         {t("onboarding.done.body")}
       </p>
+    </div>
+  );
+}
+
+function LoginStep({
+  user,
+  loading,
+  signIn,
+}: {
+  user: boolean;
+  loading: boolean;
+  signIn: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="flex h-full flex-col items-center justify-center text-center">
+      <h2 className="text-xl font-semibold text-stone-900 dark:text-stone-100">
+        Create your free account
+      </h2>
+      <p className="mt-2 max-w-md text-sm text-stone-500 dark:text-stone-400">
+        Wisper needs a free account to use dictation and meetings. Your audio and
+        transcripts stay 100% on your device — the account is just for sign-in.
+      </p>
+      {user ? (
+        <div className="mt-6 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          ✓ Signed in
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={busy || loading}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await signIn();
+            } catch {
+              /* surfaced by the auth layer */
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="mt-6 rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900"
+        >
+          {busy ? "Opening browser…" : "Continue with Google"}
+        </button>
+      )}
     </div>
   );
 }
