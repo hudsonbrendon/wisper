@@ -31,6 +31,7 @@ export default function Account() {
   }
 
   const free = !isUnlimited(plan);
+  const planName = t(plan === "pro" ? "account.plan.pro" : "account.plan.free");
 
   // Google populates the Supabase session's user_metadata with the profile
   // name and photo; fall back to the email/initial when absent.
@@ -69,7 +70,7 @@ export default function Account() {
                   </div>
                 )}
                 <span className="mt-1 inline-block rounded-full bg-stone-200 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                  {t("account.planBadge", { plan })}
+                  {t("account.planBadge", { plan: planName })}
                 </span>
               </div>
             </div>
