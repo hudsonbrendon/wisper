@@ -53,6 +53,7 @@ tauri-plugin-autostart = "2"
 # though meetings only run on macOS. The crate vendors libfvad and builds it with
 # `cc`, so it compiles on Linux/Windows CI too.
 webrtc-vad = "0.4"
+tauri-plugin-oauth = "2.0.0"
 
 [target."cfg(target_os = \"macos\")".dependencies]
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2" }

@@ -1,6 +1,7 @@
 mod audio;
 mod commands;
 mod config;
+mod oauth;
 mod secure_store;
 mod history;
 mod hotkey;
@@ -1258,6 +1259,7 @@ pub fn run() {
             secure_store::secure_set,
             secure_store::secure_get,
             secure_store::secure_delete,
+            oauth::start_oauth_server,
             set_ui_language,
         ])
         .build(tauri::generate_context!())
