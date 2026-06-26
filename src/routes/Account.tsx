@@ -32,6 +32,16 @@ export default function Account() {
 
   const free = !isUnlimited(plan);
 
+  // Google populates the Supabase session's user_metadata with the profile
+  // name and photo; fall back to the email/initial when absent.
+  const meta = (user?.user_metadata ?? {}) as Record<string, unknown>;
+  const fullName =
+    (meta.full_name as string) || (meta.name as string) || "";
+  const avatarUrl =
+    (meta.avatar_url as string) || (meta.picture as string) || "";
+  const email = user?.email ?? user?.id ?? "";
+  const displayName = fullName || email;
+
   return (
     <div className="mx-auto max-w-5xl">
       <header className="mb-6">
@@ -48,13 +58,16 @@ export default function Account() {
           {/* Identity + plan — full width */}
           <Card className="sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-600 text-lg font-semibold uppercase text-white">
-                {(user.email ?? user.id).charAt(0)}
-              </div>
+              <Avatar url={avatarUrl} fallback={displayName} />
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium text-stone-900 dark:text-stone-100">
-                  {user.email ?? user.id}
+                  {displayName}
                 </div>
+                {fullName && (
+                  <div className="truncate text-xs text-stone-500 dark:text-stone-400">
+                    {email}
+                  </div>
+                )}
                 <span className="mt-1 inline-block rounded-full bg-stone-200 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-stone-700 dark:bg-stone-800 dark:text-stone-300">
                   {t("account.planBadge", { plan })}
                 </span>
@@ -165,6 +178,26 @@ function Card({
       }
     >
       {children}
+    </div>
+  );
+}
+
+function Avatar({ url, fallback }: { url: string; fallback: string }) {
+  const [failed, setFailed] = useState(false);
+  if (url && !failed) {
+    return (
+      <img
+        src={url}
+        alt=""
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+        className="h-12 w-12 shrink-0 rounded-full object-cover"
+      />
+    );
+  }
+  return (
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-600 text-lg font-semibold uppercase text-white">
+      {(fallback || "?").charAt(0)}
     </div>
   );
 }
