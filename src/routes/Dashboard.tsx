@@ -8,6 +8,7 @@ import LiveMeeting from "./LiveMeeting";
 import Dictionary from "./Dictionary";
 import Snippets from "./Snippets";
 import Settings from "./Settings";
+import Account from "./Account";
 import Onboarding from "./Onboarding";
 import UpdateBanner from "../components/UpdateBanner";
 import { onEvent, getConfig, type MeetingLiveSegmentPayload } from "../lib/api";
@@ -89,6 +90,7 @@ export default function Dashboard() {
           {view === "dictionary" && <Dictionary />}
           {view === "snippets" && <Snippets />}
           {view === "settings" && <Settings />}
+          {view === "account" && <Account />}
         </div>
       </main>
       {onboarded === false && <Onboarding onDone={() => setOnboarded(true)} />}

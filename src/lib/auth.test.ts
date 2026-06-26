@@ -50,10 +50,10 @@ describe("signInWithGoogle", () => {
     mockInvoke.mockResolvedValueOnce(5123); // start_oauth_server -> port
     // once() resolves with the callback URL when the browser redirects.
     mockOnce.mockImplementationOnce(
-      (_event: string, handler: (e: { payload: string }) => void) => {
+      ((_event: string, handler: (e: { payload: string }) => void) => {
         handler({ payload: "http://127.0.0.1:5123/?code=abc123" });
         return Promise.resolve(() => {});
-      },
+      }) as never,
     );
     vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValueOnce({
       data: { url: "https://supabase.co/auth/v1/authorize?x=1", provider: "google" },
@@ -127,7 +127,7 @@ describe("onAuthChange", () => {
 
     // Get the handler passed to onAuthStateChange and call it
     const handler = vi.mocked(supabase.auth.onAuthStateChange).mock.calls[0][0];
-    handler("SIGNED_IN", { user: { id: "u1" } });
+    handler("SIGNED_IN", { user: { id: "u1" } } as never);
 
     // Verify the callback was invoked with the session
     expect(cb).toHaveBeenCalledWith({ user: { id: "u1" } });

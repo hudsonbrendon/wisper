@@ -9,6 +9,7 @@ export type View =
   | "meetings"
   | "dictionary"
   | "snippets"
+  | "account"
   | "settings";
 
 /// Inline SVGs keep the bundle dependency-free. Each takes the current text
@@ -44,6 +45,12 @@ const icons: Record<string, ReactNode> = {
   snippets: (
     <>
       <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" />
+    </>
+  ),
+  account: (
+    <>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
     </>
   ),
   settings: (
@@ -203,6 +210,12 @@ export default function Sidebar({
 
       {/* Bottom group */}
       <div className="mt-auto flex flex-col gap-1 border-t border-stone-200 pt-3 dark:border-stone-800">
+        <NavButton
+          icon="account"
+          label="Account"
+          active={view === "account"}
+          onClick={() => onNavigate("account")}
+        />
         <NavButton
           icon="settings"
           label={t("nav.settings")}

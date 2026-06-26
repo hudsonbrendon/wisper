@@ -55,6 +55,19 @@ vi.mock("../lib/updater", () => ({
   installUpdate: vi.fn(),
 }));
 
+vi.mock("../lib/authContext", () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  AuthProvider: ({ children }: { children: any }) => children,
+  useAuth: vi.fn(() => ({
+    user: null,
+    plan: "free",
+    loading: false,
+    signIn: vi.fn(),
+    signOut: vi.fn(),
+  })),
+  useEntitlements: vi.fn(() => ({ can: () => true })),
+}));
+
 vi.mock("@tauri-apps/api/app", () => ({
   getVersion: mockGetVersion,
 }));

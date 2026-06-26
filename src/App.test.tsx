@@ -30,6 +30,19 @@ vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: mockGetCurrentWindow,
 }));
 
+vi.mock("./lib/authContext", () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  AuthProvider: ({ children }: { children: any }) => children,
+  useAuth: vi.fn(() => ({
+    user: null,
+    plan: "free",
+    loading: false,
+    signIn: vi.fn(),
+    signOut: vi.fn(),
+  })),
+  useEntitlements: vi.fn(() => ({ can: () => true })),
+}));
+
 vi.mock("./lib/api", () => ({
   onEvent: mockOnEvent,
   getHistory: mockGetHistory,
