@@ -259,16 +259,17 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
                         }
                     }
                     match inject::insert(&text_inj, method) {
-                        Ok(()) => {}
+                        Ok(()) => {
+                            let _ = app_inj.emit(
+                                "usage_consumed",
+                                serde_json::json!({ "metric": "dictation_words", "amount": words }),
+                            );
+                        }
                         Err(e) => {
                             eprintln!("inject failed: {e}");
                             let _ = app_inj.emit("error", serde_json::json!({ "message": e }));
                         }
                     }
-                    let _ = app_inj.emit(
-                        "usage_consumed",
-                        serde_json::json!({ "metric": "dictation_words", "amount": words }),
-                    );
                     transition(&app_inj, SmEvent::InjectionDone); // -> Idle
                                                                   // Re-showing the pill above grabbed the key window back; hand
                                                                   // it to the dictation target so a trailing Enter goes there.
@@ -324,8 +325,20 @@ pub(crate) fn start_meeting(app: &tauri::AppHandle) -> Result<(), String> {
             crate::entitlements::decide_meeting(&ent)
         };
         match decision {
-            Decision::BlockAuth => return Err("auth_required".to_string()),
-            Decision::BlockQuota => return Err("quota_exhausted".to_string()),
+            Decision::BlockAuth => {
+                let _ = app.emit(
+                    "quota_blocked",
+                    serde_json::json!({ "reason": "auth", "metric": "meeting" }),
+                );
+                return Err("auth_required".to_string());
+            }
+            Decision::BlockQuota => {
+                let _ = app.emit(
+                    "quota_blocked",
+                    serde_json::json!({ "reason": "quota", "metric": "meeting" }),
+                );
+                return Err("quota_exhausted".to_string());
+            }
             Decision::Allow => {}
         }
     }

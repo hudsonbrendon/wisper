@@ -2,6 +2,7 @@
 //! by the dictation and meeting guards. The React webview owns Supabase and
 //! pushes a snapshot here via `set_entitlements`; Rust enforces from it.
 
+use crate::commands::AppState;
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -82,8 +83,6 @@ mod tests {
         assert_eq!(decide_meeting(&ent(true, false, 1, 0)), Decision::BlockQuota);
     }
 }
-
-use crate::commands::AppState;
 
 /// Frontend pushes the latest snapshot here whenever plan/usage changes.
 #[tauri::command]
