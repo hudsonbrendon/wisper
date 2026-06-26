@@ -4,8 +4,9 @@ import { useUsage } from "../lib/usageContext";
 import { WEEKLY_LIMITS, isUnlimited } from "../lib/entitlements";
 import { useI18n } from "../lib/i18n";
 
-/// Account screen. Login is OPTIONAL — the app works fully without it. When
-/// signed in we show identity + current plan (the monetization surface).
+/// Account screen: identity, the active plan, and weekly usage, laid out to
+/// fill the content area. Free users also see a Wisper Pro upsell (the plan
+/// buttons are inert until Stripe lands in Phase 2).
 export default function Account() {
   const { user, plan, loading, signIn, signOut } = useAuth();
   const { usage } = useUsage();
@@ -29,62 +30,119 @@ export default function Account() {
     return <div className="text-sm text-stone-500">{t("account.loading")}</div>;
   }
 
+  const free = !isUnlimited(plan);
+
   return (
-    <div className="max-w-md">
-      <h1 className="mb-1 text-xl font-semibold text-stone-900 dark:text-stone-100">
-        {t("account.title")}
-      </h1>
-      <p className="mb-6 text-sm text-stone-500 dark:text-stone-400">
-        {t("account.subtitle")}
-      </p>
+    <div className="mx-auto max-w-5xl">
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">
+          {t("account.title")}
+        </h1>
+        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+          {t("account.subtitle")}
+        </p>
+      </header>
 
       {user ? (
-        <div className="rounded-xl border border-stone-200 p-4 dark:border-stone-800">
-          <div className="text-sm font-medium text-stone-900 dark:text-stone-100">
-            {user.email ?? user.id}
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Identity + plan */}
+            <Card className="flex flex-col">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-teal-600 text-base font-semibold uppercase text-white">
+                  {(user.email ?? user.id).charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-stone-900 dark:text-stone-100">
+                    {user.email ?? user.id}
+                  </div>
+                  <span className="mt-1 inline-block rounded-full bg-stone-200 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-stone-700 dark:bg-stone-800 dark:text-stone-300">
+                    {t("account.planBadge", { plan })}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-auto pt-5">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => run(signOut)}
+                  className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-700 hover:bg-stone-100 disabled:opacity-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+                >
+                  {t("account.signOut")}
+                </button>
+              </div>
+            </Card>
+
+            {/* Usage */}
+            {free ? (
+              <>
+                <MetricCard
+                  label={t("account.wordsThisWeek")}
+                  used={usage.dictation_words}
+                  limit={WEEKLY_LIMITS.free.dictation_words}
+                />
+                <MetricCard
+                  label={t("account.meetingsThisWeek")}
+                  used={usage.meetings}
+                  limit={WEEKLY_LIMITS.free.meeting}
+                />
+              </>
+            ) : (
+              <Card className="items-center justify-center text-center sm:col-span-1 lg:col-span-2">
+                <div className="text-3xl">∞</div>
+                <div className="mt-2 text-sm text-stone-600 dark:text-stone-300">
+                  {t("account.unlimited")}
+                </div>
+              </Card>
+            )}
           </div>
-          <span className="mt-2 inline-block rounded-full bg-stone-200 px-2.5 py-0.5 text-xs font-medium uppercase tracking-wide text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-            {t("account.planBadge", { plan })}
-          </span>
-          {!isUnlimited(plan) && (
-            <div className="mt-4 space-y-2 text-xs text-stone-600 dark:text-stone-400">
-              <UsageRow
-                label={t("account.wordsThisWeek")}
-                used={usage.dictation_words}
-                limit={WEEKLY_LIMITS.free.dictation_words}
-              />
-              <UsageRow
-                label={t("account.meetingsThisWeek")}
-                used={usage.meetings}
-                limit={WEEKLY_LIMITS.free.meeting}
-              />
-            </div>
+
+          {/* Pro upsell (free only) — buttons inert until Phase 2 */}
+          {free && (
+            <Card className="border-teal-200 bg-gradient-to-br from-teal-50 to-stone-50 dark:border-teal-900/40 dark:from-teal-950/30 dark:to-stone-900">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <div className="text-lg font-semibold text-stone-900 dark:text-stone-100">
+                    Wisper Pro
+                  </div>
+                  <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+                    {t("account.unlimited")}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    disabled
+                    title={t("upgrade.comingSoon")}
+                    className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-600 disabled:opacity-60 dark:border-stone-700"
+                  >
+                    {t("upgrade.perMonth")}
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    title={t("upgrade.comingSoon")}
+                    className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white opacity-60 dark:bg-stone-100 dark:text-stone-900"
+                  >
+                    {t("upgrade.perYear")}
+                  </button>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-stone-400">{t("upgrade.comingSoon")}</p>
+            </Card>
           )}
-          {isUnlimited(plan) && (
-            <div className="mt-4 text-xs text-stone-500 dark:text-stone-400">
-              {t("account.unlimited")}
-            </div>
-          )}
-          <div className="mt-4">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => run(signOut)}
-              className="rounded-lg border border-stone-300 px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-100 disabled:opacity-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
-            >
-              {t("account.signOut")}
-            </button>
-          </div>
         </div>
       ) : (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => run(signIn)}
-          className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
-        >
-          {busy ? t("account.openingBrowser") : t("account.continueGoogle")}
-        </button>
+        <div className="max-w-md rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-800 dark:bg-stone-900/40">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => run(signIn)}
+            className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+          >
+            {busy ? t("account.openingBrowser") : t("account.continueGoogle")}
+          </button>
+        </div>
       )}
 
       {error && (
@@ -94,22 +152,58 @@ export default function Account() {
   );
 }
 
-function UsageRow({ label, used, limit }: { label: string; used: number; limit: number }) {
-  const pct = Math.min(100, Math.round((used / limit) * 100));
+function Card({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div>
-      <div className="mb-1 flex justify-between">
-        <span>{label}</span>
-        <span>
-          {used.toLocaleString()} / {limit.toLocaleString()}
+    <div
+      className={
+        "flex flex-col rounded-2xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900/40 " +
+        className
+      }
+    >
+      {children}
+    </div>
+  );
+}
+
+function MetricCard({
+  label,
+  used,
+  limit,
+}: {
+  label: string;
+  used: number;
+  limit: number;
+}) {
+  const pct = Math.min(100, Math.round((used / limit) * 100));
+  const hot = pct >= 80;
+  return (
+    <Card>
+      <div className="text-sm text-stone-500 dark:text-stone-400">{label}</div>
+      <div className="mt-2 flex items-baseline gap-1.5">
+        <span className="text-3xl font-semibold tabular-nums text-stone-900 dark:text-stone-100">
+          {used.toLocaleString()}
+        </span>
+        <span className="text-sm text-stone-400">
+          / {limit.toLocaleString()}
         </span>
       </div>
-      <div className="h-1.5 w-full rounded-full bg-stone-200 dark:bg-stone-800">
-        <div
-          className="h-1.5 rounded-full bg-teal-500"
-          style={{ width: `${pct}%` }}
-        />
+      <div className="mt-auto pt-4">
+        <div className="h-2 w-full rounded-full bg-stone-200 dark:bg-stone-800">
+          <div
+            className={
+              "h-2 rounded-full " + (hot ? "bg-amber-500" : "bg-teal-500")
+            }
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <div className="mt-1.5 text-xs text-stone-400">{pct}%</div>
       </div>
-    </div>
+    </Card>
   );
 }

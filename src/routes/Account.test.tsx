@@ -79,7 +79,10 @@ describe("Account", () => {
     render(<I18nProvider><Account /></I18nProvider>);
     expect(screen.getByText("Words this week")).toBeInTheDocument();
     expect(screen.getByText("Meetings this week")).toBeInTheDocument();
-    expect(screen.getByText(/1[.,]?200\s*\/\s*2[.,]?000/)).toBeInTheDocument();
+    // The metric card shows the used count and the limit in separate elements.
+    // Locale-tolerant (toLocaleString may render 1200 / 1,200 / 1.200).
+    expect(screen.getByText(/^1[.,]?200$/)).toBeInTheDocument();
+    expect(screen.getByText(/\/\s*2[.,]?000/)).toBeInTheDocument();
   });
 
   it("pro plan shows Unlimited", () => {
