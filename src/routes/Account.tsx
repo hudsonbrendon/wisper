@@ -212,7 +212,20 @@ function MetricCard({
   limit: number;
 }) {
   const pct = Math.min(100, Math.round((used / limit) * 100));
-  const hot = pct >= 80;
+  // Reached (at/over the cap) → red; halfway-or-more but not yet at the cap →
+  // amber; otherwise teal.
+  const reached = used >= limit;
+  const near = !reached && pct >= 50;
+  const barColor = reached
+    ? "bg-red-500"
+    : near
+      ? "bg-amber-500"
+      : "bg-teal-500";
+  const pctColor = reached
+    ? "text-red-500"
+    : near
+      ? "text-amber-500"
+      : "text-stone-400";
   return (
     <Card>
       <div className="text-sm text-stone-500 dark:text-stone-400">{label}</div>
@@ -227,13 +240,11 @@ function MetricCard({
       <div className="mt-auto pt-4">
         <div className="h-2 w-full rounded-full bg-stone-200 dark:bg-stone-800">
           <div
-            className={
-              "h-2 rounded-full " + (hot ? "bg-amber-500" : "bg-teal-500")
-            }
+            className={"h-2 rounded-full " + barColor}
             style={{ width: `${pct}%` }}
           />
         </div>
-        <div className="mt-1.5 text-xs text-stone-400">{pct}%</div>
+        <div className={"mt-1.5 text-xs " + pctColor}>{pct}%</div>
       </div>
     </Card>
   );
