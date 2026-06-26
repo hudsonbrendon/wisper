@@ -163,3 +163,13 @@ export const llmModelDownloaded = () => invoke<boolean>("llm_model_downloaded");
 export const downloadLlmModel = () => invoke<void>("download_llm_model");
 
 export type LlmDownloadProgressPayload = { received: number; total: number };
+
+export interface EntitlementsSnapshot {
+  loggedIn: boolean;
+  pro: boolean;
+  remainingWords: number;
+  remainingMeetings: number;
+}
+
+export const setEntitlements = (ent: EntitlementsSnapshot) =>
+  invoke<void>("set_entitlements", { ent });

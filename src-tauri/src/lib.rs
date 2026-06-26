@@ -1,6 +1,7 @@
 mod audio;
 mod commands;
 mod config;
+mod entitlements;
 mod oauth;
 mod secure_store;
 mod history;
@@ -216,6 +217,47 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
                 let app_inj = app.clone();
                 let text_inj = text.clone();
                 let dispatched = app.run_on_main_thread(move || {
+                    let words = text_inj.split_whitespace().count();
+                    // Quota gate: a logged-out user is blocked (sign-in prompt); a free
+                    // user over the weekly word cap is blocked (upgrade prompt). The
+                    // already-transcribed text is dropped — we do not inject it.
+                    {
+                        let st = app_inj.state::<AppState>();
+                        let decision = {
+                            let ent = st.entitlements.lock().unwrap();
+                            crate::entitlements::decide_dictation(&ent)
+                        };
+                        use crate::entitlements::Decision;
+                        match decision {
+                            Decision::BlockAuth => {
+                                let _ = app_inj.emit(
+                                    "quota_blocked",
+                                    serde_json::json!({ "reason": "auth", "metric": "dictation" }),
+                                );
+                                transition(&app_inj, SmEvent::InjectionDone);
+                                return_key_to_target(&app_inj);
+                                return;
+                            }
+                            Decision::BlockQuota => {
+                                let _ = app_inj.emit(
+                                    "quota_blocked",
+                                    serde_json::json!({ "reason": "quota", "metric": "dictation" }),
+                                );
+                                transition(&app_inj, SmEvent::InjectionDone);
+                                return_key_to_target(&app_inj);
+                                return;
+                            }
+                            Decision::Allow => {
+                                // Decrement the local cache so the NEXT dictation is
+                                // blocked once the cap is reached; the frontend records
+                                // the event to Supabase and re-pushes the true total.
+                                let mut ent = st.entitlements.lock().unwrap();
+                                if !ent.pro {
+                                    ent.remaining_words -= words as i64;
+                                }
+                            }
+                        }
+                    }
                     match inject::insert(&text_inj, method) {
                         Ok(()) => {}
                         Err(e) => {
@@ -223,6 +265,10 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
                             let _ = app_inj.emit("error", serde_json::json!({ "message": e }));
                         }
                     }
+                    let _ = app_inj.emit(
+                        "usage_consumed",
+                        serde_json::json!({ "metric": "dictation_words", "amount": words }),
+                    );
                     transition(&app_inj, SmEvent::InjectionDone); // -> Idle
                                                                   // Re-showing the pill above grabbed the key window back; hand
                                                                   // it to the dictation target so a trailing Enter goes there.
@@ -268,6 +314,20 @@ pub(crate) fn start_meeting(app: &tauri::AppHandle) -> Result<(), String> {
     }
     if st.meeting.lock().unwrap().is_some() {
         return Err("already_recording".to_string());
+    }
+    // Quota gate: block before recording starts. The frontend pre-checks too
+    // (to show the right prompt), but this is the real enforcement.
+    {
+        use crate::entitlements::Decision;
+        let decision = {
+            let ent = st.entitlements.lock().unwrap();
+            crate::entitlements::decide_meeting(&ent)
+        };
+        match decision {
+            Decision::BlockAuth => return Err("auth_required".to_string()),
+            Decision::BlockQuota => return Err("quota_exhausted".to_string()),
+            Decision::Allow => {}
+        }
     }
     let mic_device = st.config.lock().unwrap().mic_device.clone();
     let started_ms = now_ms();
@@ -1110,6 +1170,7 @@ pub fn run() {
                 data_dir,
                 cancels: Mutex::new(std::collections::HashSet::new()),
                 hotkey: Mutex::new(hotkey::Controller::new()),
+                entitlements: Mutex::new(crate::entitlements::Entitlements::default()),
             });
 
             // Tray menu: Home, updates, paste-last, Microphone submenu, Quit.
@@ -1261,6 +1322,7 @@ pub fn run() {
             secure_store::secure_get,
             secure_store::secure_delete,
             oauth::start_oauth_server,
+            entitlements::set_entitlements,
             set_ui_language,
         ])
         .build(tauri::generate_context!())

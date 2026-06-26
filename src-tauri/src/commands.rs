@@ -28,6 +28,9 @@ pub struct AppState {
     pub cancels: Mutex<std::collections::HashSet<String>>,
     /// Hotkey gesture detector (hold vs double-tap).
     pub hotkey: Mutex<crate::hotkey::Controller>,
+    /// Latest entitlements/quota snapshot pushed by the frontend. Enforced by
+    /// the dictation and meeting guards.
+    pub entitlements: Mutex<crate::entitlements::Entitlements>,
 }
 
 /// Metadata sent to the frontend for each catalog model.
