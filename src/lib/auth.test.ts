@@ -10,6 +10,7 @@ vi.mock("./supabase", () => ({
       exchangeCodeForSession: vi.fn(),
       signOut: vi.fn(),
       getSession: vi.fn(),
+      onAuthStateChange: vi.fn(),
     },
     from: vi.fn(),
   },
@@ -24,6 +25,7 @@ import {
   signInWithGoogle,
   signOut,
   fetchPlan,
+  onAuthChange,
 } from "./auth";
 
 const mockInvoke = vi.mocked(invoke);
@@ -108,5 +110,31 @@ describe("fetchPlan", () => {
     vi.mocked(supabase.from).mockReturnValueOnce({ select } as never);
 
     expect(await fetchPlan("u1")).toBe("free");
+  });
+});
+
+describe("onAuthChange", () => {
+  it("subscribes to auth state changes and returns an unsubscribe function", () => {
+    const cb = vi.fn();
+    const unsubscribe = vi.fn();
+    vi.mocked(supabase.auth.onAuthStateChange).mockReturnValue({
+      data: { subscription: { unsubscribe } },
+    } as never);
+
+    const off = onAuthChange(cb);
+
+    expect(supabase.auth.onAuthStateChange).toHaveBeenCalledTimes(1);
+
+    // Get the handler passed to onAuthStateChange and call it
+    const handler = vi.mocked(supabase.auth.onAuthStateChange).mock.calls[0][0];
+    handler("SIGNED_IN", { user: { id: "u1" } });
+
+    // Verify the callback was invoked with the session
+    expect(cb).toHaveBeenCalledWith({ user: { id: "u1" } });
+
+    // Verify the returned function is callable and invokes unsubscribe
+    expect(off).toBeInstanceOf(Function);
+    off();
+    expect(unsubscribe).toHaveBeenCalledOnce();
   });
 });
