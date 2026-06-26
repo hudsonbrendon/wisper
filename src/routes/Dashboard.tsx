@@ -11,6 +11,7 @@ import Settings from "./Settings";
 import Account from "./Account";
 import Onboarding from "./Onboarding";
 import UpdateBanner from "../components/UpdateBanner";
+import UsageBanner from "../components/UsageBanner";
 import UpgradeModal from "../components/UpgradeModal";
 import { onEvent, getConfig, type MeetingLiveSegmentPayload } from "../lib/api";
 
@@ -72,7 +73,14 @@ export default function Dashboard() {
           <div className="mb-4 empty:mb-0">
             <UpdateBanner />
           </div>
-          {view === "home" && <Home />}
+          {view === "home" && (
+            <>
+              <div className="mb-4 empty:mb-0">
+                <UsageBanner />
+              </div>
+              <Home />
+            </>
+          )}
           {view === "insights" && <Insights />}
           {view === "meetings" &&
             (recording ? (

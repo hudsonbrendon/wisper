@@ -9,6 +9,15 @@ vi.mock("../lib/authContext", () => ({
   useAuth: vi.fn(),
 }));
 
+vi.mock("../lib/usageContext", () => ({
+  useUsage: () => ({
+    usage: { dictation_words: 0, meetings: 0 },
+    refresh: vi.fn(),
+    blocked: null,
+    clearBlocked: vi.fn(),
+  }),
+}));
+
 import { useAuth } from "../lib/authContext";
 import Account from "./Account";
 
