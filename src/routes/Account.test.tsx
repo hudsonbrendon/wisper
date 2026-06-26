@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { I18nProvider } from "../lib/i18n";
 
 const signIn = vi.fn();
 const signOut = vi.fn();
@@ -22,6 +23,7 @@ const mockUseUsage = vi.mocked(useUsage);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.setItem("ui_lang", "en");
   mockUseUsage.mockReturnValue({
     usage: { dictation_words: 0, meetings: 0 },
     refresh: vi.fn(),
@@ -39,7 +41,7 @@ describe("Account", () => {
       signIn,
       signOut,
     });
-    render(<Account />);
+    render(<I18nProvider><Account /></I18nProvider>);
     const btn = screen.getByRole("button", { name: /continue with google/i });
     await userEvent.click(btn);
     expect(signIn).toHaveBeenCalledTimes(1);
@@ -53,7 +55,7 @@ describe("Account", () => {
       signIn,
       signOut,
     });
-    render(<Account />);
+    render(<I18nProvider><Account /></I18nProvider>);
     expect(screen.getByText("a@b.com")).toBeInTheDocument();
     expect(screen.getByText(/free/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /sign out/i }));
@@ -74,7 +76,7 @@ describe("Account", () => {
       blocked: null,
       clearBlocked: vi.fn(),
     } as never);
-    render(<Account />);
+    render(<I18nProvider><Account /></I18nProvider>);
     expect(screen.getByText("Words this week")).toBeInTheDocument();
     expect(screen.getByText("Meetings this week")).toBeInTheDocument();
     expect(screen.getByText(/1[.,]?200\s*\/\s*2[.,]?000/)).toBeInTheDocument();
@@ -88,7 +90,7 @@ describe("Account", () => {
       signIn,
       signOut,
     });
-    render(<Account />);
+    render(<I18nProvider><Account /></I18nProvider>);
     expect(screen.getByText(/unlimited dictation and meetings/i)).toBeInTheDocument();
     expect(screen.queryByText("Words this week")).not.toBeInTheDocument();
   });

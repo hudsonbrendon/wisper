@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { I18nProvider } from "../lib/i18n";
 
 const clearBlocked = vi.fn();
 const signIn = vi.fn(() => Promise.resolve());
@@ -10,12 +11,15 @@ vi.mock("../lib/authContext", () => ({ useAuth: vi.fn(() => ({ signIn })) }));
 import { useUsage } from "../lib/usageContext";
 import UpgradeModal from "./UpgradeModal";
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  localStorage.setItem("ui_lang", "en");
+});
 
 describe("UpgradeModal", () => {
   it("renders nothing when not blocked", () => {
     vi.mocked(useUsage).mockReturnValue({ blocked: null, clearBlocked } as never);
-    const { container } = render(<UpgradeModal />);
+    const { container } = render(<I18nProvider><UpgradeModal /></I18nProvider>);
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -24,7 +28,7 @@ describe("UpgradeModal", () => {
       blocked: { reason: "quota", metric: "dictation" },
       clearBlocked,
     } as never);
-    render(<UpgradeModal />);
+    render(<I18nProvider><UpgradeModal /></I18nProvider>);
     expect(screen.getByText(/weekly limit reached/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /\$8\s*\/\s*month/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /\$72\s*\/\s*year/i })).toBeDisabled();
@@ -35,7 +39,7 @@ describe("UpgradeModal", () => {
       blocked: { reason: "auth", metric: "dictation" },
       clearBlocked,
     } as never);
-    render(<UpgradeModal />);
+    render(<I18nProvider><UpgradeModal /></I18nProvider>);
     await userEvent.click(screen.getByRole("button", { name: /continue with google/i }));
     expect(signIn).toHaveBeenCalledTimes(1);
   });

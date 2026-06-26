@@ -388,19 +388,19 @@ function LoginStep({
   loading: boolean;
   signIn: () => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [busy, setBusy] = useState(false);
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
       <h2 className="text-xl font-semibold text-stone-900 dark:text-stone-100">
-        Create your free account
+        {t("onboarding.login.title")}
       </h2>
       <p className="mt-2 max-w-md text-sm text-stone-500 dark:text-stone-400">
-        Wisper needs a free account to use dictation and meetings. Your audio and
-        transcripts stay 100% on your device — the account is just for sign-in.
+        {t("onboarding.login.body")}
       </p>
       {user ? (
         <div className="mt-6 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          ✓ Signed in
+          ✓ {t("onboarding.login.signedIn")}
         </div>
       ) : (
         <button
@@ -418,7 +418,7 @@ function LoginStep({
           }}
           className="mt-6 rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900"
         >
-          {busy ? "Opening browser…" : "Continue with Google"}
+          {busy ? t("account.openingBrowser") : t("account.continueGoogle")}
         </button>
       )}
     </div>

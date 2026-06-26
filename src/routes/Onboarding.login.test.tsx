@@ -26,10 +26,10 @@ describe("Onboarding login gate", () => {
     // Advance from welcome to the login step.
     await userEvent.click(screen.getByRole("button", { name: "onboarding.next" }));
 
-    expect(screen.getByRole("button", { name: /continue with google/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "account.continueGoogle" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "onboarding.next" })).toBeDisabled();
 
-    await userEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+    await userEvent.click(screen.getByRole("button", { name: "account.continueGoogle" }));
     expect(signIn).toHaveBeenCalledTimes(1);
   });
 
