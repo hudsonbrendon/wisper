@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 
 vi.mock("./authContext", () => ({ useAuth: vi.fn() }));
 vi.mock("./usage", () => ({ loadUsage: vi.fn(), recordUsage: vi.fn() }));
@@ -7,8 +7,8 @@ vi.mock("./supabase", () => ({ isSupabaseConfigured: vi.fn(() => true) }));
 vi.mock("./api", () => ({ setEntitlements: vi.fn(), onEvent: vi.fn(() => Promise.resolve(() => {})) }));
 
 import { useAuth } from "./authContext";
-import { loadUsage } from "./usage";
-import { setEntitlements } from "./api";
+import { loadUsage, recordUsage } from "./usage";
+import { setEntitlements, onEvent } from "./api";
 import { UsageProvider, useUsage } from "./usageContext";
 
 function Probe() {
@@ -47,5 +47,25 @@ describe("UsageProvider", () => {
         remainingMeetings: 0,
       }),
     );
+  });
+
+  it("records a meeting usage_consumed event via recordUsage", async () => {
+    vi.mocked(useAuth).mockReturnValue({ user: { id: "u1" }, plan: "free", loading: false } as never);
+    vi.mocked(loadUsage).mockResolvedValue({ dictation_words: 0, meetings: 0 });
+
+    render(<UsageProvider><Probe /></UsageProvider>);
+    // wait until the provider has registered its event listeners
+    await waitFor(() =>
+      expect(vi.mocked(onEvent).mock.calls.some((c) => c[0] === "usage_consumed")).toBe(true),
+    );
+    const handler = vi.mocked(onEvent).mock.calls.find((c) => c[0] === "usage_consumed")![1] as (
+      p: { metric: string; amount: number },
+    ) => Promise<void>;
+
+    await act(async () => {
+      await handler({ metric: "meeting", amount: 1 });
+    });
+
+    expect(recordUsage).toHaveBeenCalledWith("u1", "meeting", 1);
   });
 });

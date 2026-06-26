@@ -394,6 +394,20 @@ pub(crate) fn start_meeting(app: &tauri::AppHandle) -> Result<(), String> {
     }
     let _ = app.emit("meeting_state", serde_json::json!({ "state": "recording" }));
 
+    // Count this meeting toward the weekly quota. Recorded for everyone (server
+    // keeps full history); only free plans decrement the local cache so the next
+    // start is blocked in-session before the async refresh re-syncs.
+    {
+        let mut ent = st.entitlements.lock().unwrap();
+        if !ent.pro {
+            ent.remaining_meetings -= 1;
+        }
+    }
+    let _ = app.emit(
+        "usage_consumed",
+        serde_json::json!({ "metric": "meeting", "amount": 1 }),
+    );
+
     // Live level ticker for the bubble meter.
     let app2 = app.clone();
     std::thread::spawn(move || loop {
