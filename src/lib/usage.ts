@@ -29,8 +29,12 @@ function writeQueue(q: QueuedEvent[]): void {
 
 /// Insert one usage event into Supabase. Returns true on success.
 async function insertEvent(e: QueuedEvent): Promise<boolean> {
-  const { error } = await getSupabase().from("usage_events").insert(e);
-  return !error;
+  try {
+    const { error } = await getSupabase().from("usage_events").insert(e);
+    return !error;
+  } catch {
+    return false;
+  }
 }
 
 /// Replay queued events oldest-first; stop at the first failure so order and
