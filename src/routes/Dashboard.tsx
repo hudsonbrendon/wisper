@@ -11,6 +11,7 @@ import Settings from "./Settings";
 import Account from "./Account";
 import Onboarding from "./Onboarding";
 import UpdateBanner from "../components/UpdateBanner";
+import UpgradeModal from "../components/UpgradeModal";
 import { onEvent, getConfig, type MeetingLiveSegmentPayload } from "../lib/api";
 
 /// The main window shell: a fixed sidebar plus a rounded content surface, in
@@ -94,6 +95,7 @@ export default function Dashboard() {
         </div>
       </main>
       {onboarded === false && <Onboarding onDone={() => setOnboarded(true)} />}
+      <UpgradeModal />
     </div>
   );
 }
