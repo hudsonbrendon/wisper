@@ -17,7 +17,7 @@ export default function UsageBanner() {
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
       You're near your weekly free limit —{" "}
-      {usage.dictation_words.toLocaleString('en-US')} / {wordLimit.toLocaleString('en-US')} words
+      {usage.dictation_words.toLocaleString()} / {wordLimit.toLocaleString()} words
       · {usage.meetings} / {meetLimit} meetings. Upgrade to Pro for unlimited use.
     </div>
   );

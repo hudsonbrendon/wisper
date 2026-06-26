@@ -29,6 +29,6 @@ describe("UsageBanner", () => {
     vi.mocked(useAuth).mockReturnValue({ plan: "free" } as never);
     vi.mocked(useUsage).mockReturnValue({ usage: { dictation_words: 1800, meetings: 0 } } as never);
     render(<UsageBanner />);
-    expect(screen.getByText(/1,?800\s*\/\s*2,?000 words/i)).toBeInTheDocument();
+    expect(screen.getByText(/1[.,]?800\s*\/\s*2[.,]?000 words/i)).toBeInTheDocument();
   });
 });

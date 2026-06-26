@@ -10,21 +10,24 @@ vi.mock("../lib/authContext", () => ({
 }));
 
 vi.mock("../lib/usageContext", () => ({
-  useUsage: () => ({
+  useUsage: vi.fn(),
+}));
+
+import { useAuth } from "../lib/authContext";
+import { useUsage } from "../lib/usageContext";
+import Account from "./Account";
+
+const mockUseAuth = vi.mocked(useAuth);
+const mockUseUsage = vi.mocked(useUsage);
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockUseUsage.mockReturnValue({
     usage: { dictation_words: 0, meetings: 0 },
     refresh: vi.fn(),
     blocked: null,
     clearBlocked: vi.fn(),
-  }),
-}));
-
-import { useAuth } from "../lib/authContext";
-import Account from "./Account";
-
-const mockUseAuth = vi.mocked(useAuth);
-
-beforeEach(() => {
-  vi.clearAllMocks();
+  } as never);
 });
 
 describe("Account", () => {
@@ -55,5 +58,38 @@ describe("Account", () => {
     expect(screen.getByText(/free/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /sign out/i }));
     expect(signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("free plan shows weekly usage rows", () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "u1", email: "a@b.com" } as never,
+      plan: "free",
+      loading: false,
+      signIn,
+      signOut,
+    });
+    mockUseUsage.mockReturnValue({
+      usage: { dictation_words: 1200, meetings: 1 },
+      refresh: vi.fn(),
+      blocked: null,
+      clearBlocked: vi.fn(),
+    } as never);
+    render(<Account />);
+    expect(screen.getByText("Words this week")).toBeInTheDocument();
+    expect(screen.getByText("Meetings this week")).toBeInTheDocument();
+    expect(screen.getByText(/1[.,]?200\s*\/\s*2[.,]?000/)).toBeInTheDocument();
+  });
+
+  it("pro plan shows Unlimited", () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "u1", email: "a@b.com" } as never,
+      plan: "pro",
+      loading: false,
+      signIn,
+      signOut,
+    });
+    render(<Account />);
+    expect(screen.getByText(/unlimited dictation and meetings/i)).toBeInTheDocument();
+    expect(screen.queryByText("Words this week")).not.toBeInTheDocument();
   });
 });
