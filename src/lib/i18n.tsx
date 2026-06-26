@@ -44,6 +44,7 @@ const en: Dict = {
   "nav.meetings": "Meetings",
   "nav.dictionary": "Dictionary",
   "nav.snippets": "Snippets",
+  "nav.account": "Account",
   "dictionary.empty": "No words yet. Add names or jargon Whisper should know.",
   "snippets.empty":
     "No snippets yet. Add a spoken trigger and its replacement.",
@@ -303,6 +304,7 @@ const pt: Dict = {
   "nav.meetings": "Reuniões",
   "nav.dictionary": "Dicionário",
   "nav.snippets": "Snippets",
+  "nav.account": "Conta",
   "dictionary.empty":
     "Nenhuma palavra ainda. Adicione nomes ou jargões que o Whisper deve conhecer.",
   "snippets.empty":
@@ -561,6 +563,7 @@ const pt: Dict = {
 const es: Dict = {
   "nav.home": "Inicio",
   "nav.insights": "Estadísticas",
+  "nav.account": "Cuenta",
   "nav.settings": "Ajustes",
   "nav.help": "Ayuda",
   "home.welcome": "Bienvenido de nuevo",
@@ -665,6 +668,7 @@ const es: Dict = {
 const fr: Dict = {
   "nav.home": "Accueil",
   "nav.insights": "Statistiques",
+  "nav.account": "Compte",
   "nav.settings": "Réglages",
   "nav.help": "Aide",
   "home.welcome": "Bon retour",
@@ -769,6 +773,7 @@ const fr: Dict = {
 const de: Dict = {
   "nav.home": "Start",
   "nav.insights": "Statistiken",
+  "nav.account": "Konto",
   "nav.settings": "Einstellungen",
   "nav.help": "Hilfe",
   "home.welcome": "Willkommen zurück",
@@ -874,6 +879,7 @@ const de: Dict = {
 const it: Dict = {
   "nav.home": "Home",
   "nav.insights": "Statistiche",
+  "nav.account": "Account",
   "nav.settings": "Impostazioni",
   "nav.help": "Aiuto",
   "home.welcome": "Bentornato",
@@ -978,6 +984,7 @@ const it: Dict = {
 const nl: Dict = {
   "nav.home": "Start",
   "nav.insights": "Inzichten",
+  "nav.account": "Account",
   "nav.settings": "Instellingen",
   "nav.help": "Help",
   "home.welcome": "Welkom terug",
@@ -1083,6 +1090,7 @@ const nl: Dict = {
 const ru: Dict = {
   "nav.home": "Главная",
   "nav.insights": "Аналитика",
+  "nav.account": "Аккаунт",
   "nav.settings": "Настройки",
   "nav.help": "Помощь",
   "home.welcome": "С возвращением",
@@ -1188,6 +1196,7 @@ const ru: Dict = {
 const pl: Dict = {
   "nav.home": "Start",
   "nav.insights": "Statystyki",
+  "nav.account": "Konto",
   "nav.settings": "Ustawienia",
   "nav.help": "Pomoc",
   "home.welcome": "Witaj ponownie",
@@ -1293,6 +1302,7 @@ const pl: Dict = {
 const tr: Dict = {
   "nav.home": "Ana Sayfa",
   "nav.insights": "İstatistikler",
+  "nav.account": "Hesap",
   "nav.settings": "Ayarlar",
   "nav.help": "Yardım",
   "home.welcome": "Tekrar hoş geldin",
@@ -1397,6 +1407,7 @@ const tr: Dict = {
 const ja: Dict = {
   "nav.home": "ホーム",
   "nav.insights": "インサイト",
+  "nav.account": "アカウント",
   "nav.settings": "設定",
   "nav.help": "ヘルプ",
   "home.welcome": "おかえりなさい",
@@ -1501,6 +1512,7 @@ const ja: Dict = {
 const ko: Dict = {
   "nav.home": "홈",
   "nav.insights": "인사이트",
+  "nav.account": "계정",
   "nav.settings": "설정",
   "nav.help": "도움말",
   "home.welcome": "다시 오신 것을 환영합니다",
@@ -1604,6 +1616,7 @@ const ko: Dict = {
 const zh: Dict = {
   "nav.home": "主页",
   "nav.insights": "洞察",
+  "nav.account": "账户",
   "nav.settings": "设置",
   "nav.help": "帮助",
   "home.welcome": "欢迎回来",
@@ -1706,6 +1719,7 @@ const zh: Dict = {
 const ar: Dict = {
   "nav.home": "الرئيسية",
   "nav.insights": "إحصاءات",
+  "nav.account": "الحساب",
   "nav.settings": "الإعدادات",
   "nav.help": "مساعدة",
   "home.welcome": "مرحبًا بعودتك",
@@ -1810,6 +1824,7 @@ const ar: Dict = {
 const hi: Dict = {
   "nav.home": "होम",
   "nav.insights": "इनसाइट्स",
+  "nav.account": "खाता",
   "nav.settings": "सेटिंग्स",
   "nav.help": "मदद",
   "home.welcome": "वापसी पर स्वागत है",
