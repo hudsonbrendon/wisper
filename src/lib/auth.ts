@@ -25,13 +25,16 @@ export async function signInWithGoogle(): Promise<void> {
   const port = await invoke<number>("start_oauth_server");
   const redirectTo = `http://127.0.0.1:${port}`;
 
+  // Hoisted so the init-failure catch block can cancel them if the steps
+  // between subscribing and `await callback` throw before we get there.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let unlisten: (() => void) | undefined;
+
   // Subscribe BEFORE opening the browser so we never miss the redirect.
   // Race the Tauri event against a timeout so an abandoned login doesn't hang
   // the UI forever and leak the Rust loopback thread.
   const callback = new Promise<string>((resolve, reject) => {
-    let unlisten: (() => void) | undefined;
-
-    const timer = setTimeout(() => {
+    timer = setTimeout(() => {
       unlisten?.();
       reject(new Error("Login timed out. Please try again."));
     }, OAUTH_TIMEOUT_MS);
@@ -49,14 +52,20 @@ export async function signInWithGoogle(): Promise<void> {
       });
   });
 
-  const { data, error } = await getSupabase().auth.signInWithOAuth({
-    provider: "google",
-    options: { redirectTo, skipBrowserRedirect: true },
-  });
-  if (error) throw error;
-  if (!data?.url) throw new Error("OAuth provider returned no URL.");
+  try {
+    const { data, error } = await getSupabase().auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo, skipBrowserRedirect: true },
+    });
+    if (error) throw error;
+    if (!data?.url) throw new Error("OAuth provider returned no URL.");
 
-  await openUrl(data.url);
+    await openUrl(data.url);
+  } catch (e) {
+    clearTimeout(timer);
+    unlisten?.();
+    throw e;
+  }
 
   const callbackUrl = await callback;
   const code = extractCode(callbackUrl);

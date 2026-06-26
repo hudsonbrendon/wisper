@@ -117,6 +117,32 @@ describe("signInWithGoogle", () => {
     vi.useRealTimers();
   });
 
+  it("rejects with the signInWithOAuth error and cleans up the timer (no second rejection)", async () => {
+    vi.useFakeTimers();
+
+    mockInvoke.mockResolvedValueOnce(5123);
+    // once() returns an unlisten fn but never fires the event.
+    mockOnce.mockImplementationOnce(
+      ((_event: string, _handler: unknown) =>
+        Promise.resolve(() => {})) as never,
+    );
+    const oauthError = new Error("OAuth provider error");
+    mockClient.auth.signInWithOAuth.mockResolvedValueOnce({
+      data: null,
+      error: oauthError,
+    });
+
+    await expect(signInWithGoogle()).rejects.toThrow("OAuth provider error");
+
+    // If the timer were NOT cleared, vi.runAllTimersAsync() would fire it and
+    // reject the callback Promise — an unhandled rejection that Vitest surfaces
+    // as a test failure.  With the fix the timer is cleared in the catch block,
+    // so advancing all timers must not produce any additional rejection.
+    await vi.runAllTimersAsync();
+
+    vi.useRealTimers();
+  });
+
   it("rejects immediately and never calls getSupabase when not configured", async () => {
     vi.mocked(isSupabaseConfigured).mockReturnValueOnce(false);
 
