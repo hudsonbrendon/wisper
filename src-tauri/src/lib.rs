@@ -1,6 +1,7 @@
 mod audio;
 mod commands;
 mod config;
+mod secure_store;
 mod history;
 mod hotkey;
 mod inject;
@@ -1254,6 +1255,9 @@ pub fn run() {
             commands::llm_model_downloaded,
             commands::download_llm_model,
             commands::generate_summary,
+            secure_store::secure_set,
+            secure_store::secure_get,
+            secure_store::secure_delete,
             set_ui_language,
         ])
         .build(tauri::generate_context!())
