@@ -30,4 +30,23 @@ export function createSupabase(
   );
 }
 
-export const supabase = createSupabase(secureStorage);
+export function isSupabaseConfigured(): boolean {
+  return Boolean(
+    import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY,
+  );
+}
+
+// Lazily constructed and cached; never created at import time so windows that
+// don't need auth (and fresh clones with no .env) don't crash on module load.
+let client: SupabaseClient | null = null;
+export function getSupabase(): SupabaseClient {
+  if (!client) {
+    if (!isSupabaseConfigured()) {
+      throw new Error(
+        "Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.",
+      );
+    }
+    client = createSupabase(secureStorage);
+  }
+  return client;
+}

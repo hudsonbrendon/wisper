@@ -11,9 +11,8 @@ vi.mock("@supabase/supabase-js", () => ({
 import { createClient } from "@supabase/supabase-js";
 import { createSupabase } from "./supabase";
 
-// When both supabase.ts and secureStorage.ts exist, loading supabase.ts triggers
-// the module-level `createSupabase(secureStorage)` call which occupies calls[0].
-// Clear the mock history before each test so the test's explicit call is calls[0].
+// Clear the mock history before each test so the test's explicit createSupabase
+// call is always calls[0] (no stale state from previous tests).
 beforeEach(() => vi.mocked(createClient).mockClear());
 
 describe("createSupabase", () => {

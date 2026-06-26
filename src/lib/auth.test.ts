@@ -3,27 +3,34 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 vi.mock("@tauri-apps/api/event", () => ({ once: vi.fn() }));
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn() }));
-vi.mock("./supabase", () => ({
-  supabase: {
-    auth: {
-      signInWithOAuth: vi.fn(),
-      exchangeCodeForSession: vi.fn(),
-      signOut: vi.fn(),
-      getSession: vi.fn(),
-      onAuthStateChange: vi.fn(),
-    },
-    from: vi.fn(),
+
+// Mock client object used by all tests.  Lives outside vi.mock() so tests can
+// reference it directly without going through vi.mocked() every time.
+const mockClient = {
+  auth: {
+    signInWithOAuth: vi.fn(),
+    exchangeCodeForSession: vi.fn(),
+    signOut: vi.fn(),
+    getSession: vi.fn(),
+    onAuthStateChange: vi.fn(),
   },
+  from: vi.fn(),
+};
+
+vi.mock("./supabase", () => ({
+  getSupabase: vi.fn(() => mockClient),
+  isSupabaseConfigured: vi.fn(() => true),
 }));
 
 import { invoke } from "@tauri-apps/api/core";
 import { once } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { supabase } from "./supabase";
+import { getSupabase, isSupabaseConfigured } from "./supabase";
 import {
   extractCode,
   signInWithGoogle,
   signOut,
+  getSession,
   fetchPlan,
   onAuthChange,
 } from "./auth";
@@ -32,7 +39,12 @@ const mockInvoke = vi.mocked(invoke);
 const mockOnce = vi.mocked(once);
 const mockOpenUrl = vi.mocked(openUrl);
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  // Restore defaults after each test that may override them.
+  vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+  vi.mocked(getSupabase).mockReturnValue(mockClient as never);
+});
 
 describe("extractCode", () => {
   it("pulls the code query param from a callback URL", () => {
@@ -55,19 +67,19 @@ describe("signInWithGoogle", () => {
         return Promise.resolve(() => {});
       }) as never,
     );
-    vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValueOnce({
+    mockClient.auth.signInWithOAuth.mockResolvedValueOnce({
       data: { url: "https://supabase.co/auth/v1/authorize?x=1", provider: "google" },
       error: null,
-    } as never);
-    vi.mocked(supabase.auth.exchangeCodeForSession).mockResolvedValueOnce({
+    });
+    mockClient.auth.exchangeCodeForSession.mockResolvedValueOnce({
       data: { session: { user: { id: "u1" } } },
       error: null,
-    } as never);
+    });
 
     await signInWithGoogle();
 
     expect(mockInvoke).toHaveBeenCalledWith("start_oauth_server");
-    expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+    expect(mockClient.auth.signInWithOAuth).toHaveBeenCalledWith({
       provider: "google",
       options: {
         redirectTo: "http://127.0.0.1:5123",
@@ -77,15 +89,68 @@ describe("signInWithGoogle", () => {
     expect(mockOpenUrl).toHaveBeenCalledWith(
       "https://supabase.co/auth/v1/authorize?x=1",
     );
-    expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledWith("abc123");
+    expect(mockClient.auth.exchangeCodeForSession).toHaveBeenCalledWith("abc123");
+  });
+
+  it("rejects with timeout error when oauth://url event never fires", async () => {
+    vi.useFakeTimers();
+
+    mockInvoke.mockResolvedValueOnce(5123);
+    // once() never calls the handler — simulates user closing the browser.
+    mockOnce.mockImplementationOnce(
+      ((_event: string, _handler: unknown) =>
+        Promise.resolve(() => {})) as never,
+    );
+    mockClient.auth.signInWithOAuth.mockResolvedValueOnce({
+      data: { url: "https://supabase.co/auth/v1/authorize?x=1", provider: "google" },
+      error: null,
+    });
+
+    const promise = signInWithGoogle();
+    // Attach an early no-op catch so Node.js doesn't emit an unhandled-rejection
+    // warning while the timer is outstanding; the real assertion still runs.
+    void promise.catch(() => {});
+    await vi.runAllTimersAsync();
+
+    await expect(promise).rejects.toThrow("Login timed out. Please try again.");
+
+    vi.useRealTimers();
+  });
+
+  it("rejects immediately and never calls getSupabase when not configured", async () => {
+    vi.mocked(isSupabaseConfigured).mockReturnValueOnce(false);
+
+    await expect(signInWithGoogle()).rejects.toThrow(
+      "Sign-in is unavailable: Supabase is not configured.",
+    );
+    expect(getSupabase).not.toHaveBeenCalled();
   });
 });
 
 describe("signOut", () => {
   it("delegates to supabase signOut", async () => {
-    vi.mocked(supabase.auth.signOut).mockResolvedValueOnce({ error: null } as never);
+    mockClient.auth.signOut.mockResolvedValueOnce({ error: null });
     await signOut();
-    expect(supabase.auth.signOut).toHaveBeenCalledTimes(1);
+    expect(mockClient.auth.signOut).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("getSession", () => {
+  it("returns null without calling getSupabase when not configured", async () => {
+    vi.mocked(isSupabaseConfigured).mockReturnValueOnce(false);
+
+    expect(await getSession()).toBeNull();
+    expect(getSupabase).not.toHaveBeenCalled();
+  });
+
+  it("returns the session from supabase when configured", async () => {
+    mockClient.auth.getSession.mockResolvedValueOnce({
+      data: { session: { user: { id: "u1" } } },
+      error: null,
+    });
+
+    expect(await getSession()).toEqual({ user: { id: "u1" } });
+    expect(mockClient.auth.getSession).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -97,42 +162,53 @@ describe("fetchPlan", () => {
     });
     const eq = vi.fn(() => ({ single }));
     const select = vi.fn(() => ({ eq }));
-    vi.mocked(supabase.from).mockReturnValueOnce({ select } as never);
+    mockClient.from.mockReturnValueOnce({ select });
 
     expect(await fetchPlan("u1")).toBe("pro");
-    expect(supabase.from).toHaveBeenCalledWith("profiles");
+    expect(mockClient.from).toHaveBeenCalledWith("profiles");
   });
 
   it("falls back to 'free' when the row or column is missing", async () => {
     const single = vi.fn().mockResolvedValueOnce({ data: null, error: null });
     const eq = vi.fn(() => ({ single }));
     const select = vi.fn(() => ({ eq }));
-    vi.mocked(supabase.from).mockReturnValueOnce({ select } as never);
+    mockClient.from.mockReturnValueOnce({ select });
 
     expect(await fetchPlan("u1")).toBe("free");
   });
 });
 
 describe("onAuthChange", () => {
+  it("returns a no-op unsubscribe and never calls getSupabase when not configured", () => {
+    vi.mocked(isSupabaseConfigured).mockReturnValueOnce(false);
+
+    const cb = vi.fn();
+    const off = onAuthChange(cb);
+
+    expect(typeof off).toBe("function");
+    off(); // must not throw
+    expect(getSupabase).not.toHaveBeenCalled();
+  });
+
   it("subscribes to auth state changes and returns an unsubscribe function", () => {
     const cb = vi.fn();
     const unsubscribe = vi.fn();
-    vi.mocked(supabase.auth.onAuthStateChange).mockReturnValue({
+    mockClient.auth.onAuthStateChange.mockReturnValue({
       data: { subscription: { unsubscribe } },
-    } as never);
+    });
 
     const off = onAuthChange(cb);
 
-    expect(supabase.auth.onAuthStateChange).toHaveBeenCalledTimes(1);
+    expect(mockClient.auth.onAuthStateChange).toHaveBeenCalledTimes(1);
 
-    // Get the handler passed to onAuthStateChange and call it
-    const handler = vi.mocked(supabase.auth.onAuthStateChange).mock.calls[0][0];
+    // Get the handler passed to onAuthStateChange and call it.
+    const handler = mockClient.auth.onAuthStateChange.mock.calls[0][0];
     handler("SIGNED_IN", { user: { id: "u1" } } as never);
 
-    // Verify the callback was invoked with the session
+    // Verify the callback was invoked with the session.
     expect(cb).toHaveBeenCalledWith({ user: { id: "u1" } });
 
-    // Verify the returned function is callable and invokes unsubscribe
+    // Verify the returned function is callable and invokes unsubscribe.
     expect(off).toBeInstanceOf(Function);
     off();
     expect(unsubscribe).toHaveBeenCalledOnce();
