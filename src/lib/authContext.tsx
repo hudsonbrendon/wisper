@@ -37,11 +37,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    let seq = 0;
 
     const apply = async (u: User | null) => {
-      if (!active) return;
+      const mine = ++seq;
+      const p = u ? await fetchPlan(u.id) : DEFAULT_PLAN;
+      if (!active || seq !== mine) return;
       setUser(u);
-      setPlan(u ? await fetchPlan(u.id) : DEFAULT_PLAN);
+      setPlan(p);
     };
 
     getSession()
