@@ -11,6 +11,7 @@ import {
   type BillingInfo,
 } from "../lib/billing";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { WisperBrand } from "../components/BrandLogos";
 
 /// Account screen: a full-width identity/plan card, weekly usage metrics side
 /// by side, and a Wisper Pro upsell for free users (the upgrade button starts
@@ -69,10 +70,7 @@ export default function Account() {
   if (!user) {
     return (
       <div className="flex min-h-[78vh] flex-col items-center justify-center px-6 text-center">
-        <div className="mb-7 flex items-center gap-2.5 text-stone-900 dark:text-stone-100">
-          <WaveGlyph />
-          <span className="text-2xl font-semibold tracking-tight">Wisper</span>
-        </div>
+        <WisperBrand className="mb-7" />
         <h1 className="text-3xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">
           {t("account.signInHeadline")}
         </h1>
@@ -298,26 +296,6 @@ export default function Account() {
         <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
     </div>
-  );
-}
-
-// App glyph for the signed-out hero — the same waveform mark as the sidebar.
-function WaveGlyph() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-8 w-8"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.4"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <line x1="4" y1="14" x2="4" y2="10" />
-      <line x1="9" y1="19" x2="9" y2="5" />
-      <line x1="14" y1="16" x2="14" y2="8" />
-      <line x1="19" y1="14" x2="19" y2="10" />
-    </svg>
   );
 }
 

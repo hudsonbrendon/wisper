@@ -3,6 +3,51 @@
 /// geometric icons (a brand-evoking color + a plain shape), NOT reproductions
 /// of any company's actual logo.
 
+/// The Wisper waveform mark — the same glyph shown at the top of the sidebar.
+export function WisperMark({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      aria-hidden
+    >
+      <line x1="4" y1="14" x2="4" y2="10" />
+      <line x1="9" y1="19" x2="9" y2="5" />
+      <line x1="14" y1="16" x2="14" y2="8" />
+      <line x1="19" y1="14" x2="19" y2="10" />
+    </svg>
+  );
+}
+
+/// The Wisper brand lockup (waveform mark + wordmark), matching the sidebar.
+export function WisperBrand({
+  markClassName = "h-8 w-8",
+  textClassName = "text-2xl",
+  className = "",
+}: {
+  markClassName?: string;
+  textClassName?: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={
+        "flex items-center gap-2.5 text-stone-900 dark:text-stone-100 " +
+        className
+      }
+    >
+      <WisperMark className={markClassName} />
+      <span className={"font-semibold tracking-tight " + textClassName}>
+        Wisper
+      </span>
+    </div>
+  );
+}
+
 export function ChatGptMark({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" aria-hidden>

@@ -11,7 +11,12 @@ import {
 import { eventToAccelerator } from "../lib/hotkey";
 import { useI18n } from "../lib/i18n";
 import { useAuth } from "../lib/authContext";
-import { ChatGptMark, ClaudeMark, GmailMark } from "../components/BrandLogos";
+import {
+  ChatGptMark,
+  ClaudeMark,
+  GmailMark,
+  WisperBrand,
+} from "../components/BrandLogos";
 
 type StepId = "welcome" | "login" | "hotkey" | "model" | "practice" | "done";
 const STEPS: StepId[] = ["welcome", "login", "hotkey", "model", "practice", "done"];
@@ -392,6 +397,7 @@ function LoginStep({
   const [busy, setBusy] = useState(false);
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
+      <WisperBrand markClassName="h-7 w-7" textClassName="text-xl" className="mb-6" />
       <h2 className="text-xl font-semibold text-stone-900 dark:text-stone-100">
         {t("onboarding.login.title")}
       </h2>
