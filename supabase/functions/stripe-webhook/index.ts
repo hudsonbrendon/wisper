@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     event.type === "customer.subscription.deleted"
   ) {
     const sub = event.data.object as Stripe.Subscription;
-    const { error } = await admin
+    const { data, error } = await admin
       .from("profiles")
       .update({
         plan: planForStatus(sub.status),
@@ -45,8 +45,12 @@ Deno.serve(async (req) => {
           sub.current_period_end * 1000,
         ).toISOString(),
       })
-      .eq("stripe_customer_id", sub.customer as string);
+      .eq("stripe_customer_id", sub.customer as string)
+      .select();
     if (error) throw error;
+    if (!data || data.length === 0) {
+      return new Response("no profile linked to customer; retry", { status: 409 });
+    }
   } else if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     // Ensure the customer is linked to the user even if the customer row was

@@ -73,6 +73,7 @@ Deno.serve(async (req) => {
     if (!session.url) return json({ error: "no checkout url" }, 500);
     return json({ url: session.url });
   } catch (e) {
-    return json({ error: String(e) }, 400);
+    console.error("billing function error:", e);
+    return json({ error: "internal error" }, 400);
   }
 });

@@ -1,6 +1,7 @@
 -- Stripe linkage for billing. Written only by the service role (the webhook);
--- clients can read their own row (existing profiles_select_own policy) but the
--- existing RLS already blocks client writes to these columns.
+-- clients can read their own row (existing profiles_select_own policy) but
+-- column-level privileges (see 0004_lock_profile_columns.sql) block client
+-- writes to these columns.
 alter table public.profiles
   add column if not exists stripe_customer_id text,
   add column if not exists stripe_subscription_status text,

@@ -7,15 +7,15 @@ import { startCheckout, openBillingPortal } from "../lib/billing";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 /// Account screen: a full-width identity/plan card, weekly usage metrics side
-/// by side, and a Wisper Pro upsell for free users (the plan buttons are inert
-/// until Stripe lands in Phase 2).
+/// by side, and a Wisper Pro upsell for free users (the upgrade button starts
+/// a Stripe checkout session; Pro users get a button to open the billing portal).
 export default function Account() {
   const { user, plan, loading, signIn, signOut } = useAuth();
   const { usage } = useUsage();
   const { t } = useI18n();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [interval, setInterval] = useState<"month" | "year">("year");
+  const [billingInterval, setBillingInterval] = useState<"month" | "year">("year");
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -127,10 +127,10 @@ export default function Account() {
                 <div className="inline-flex rounded-lg border border-stone-300 p-0.5 text-sm dark:border-stone-700">
                   <button
                     type="button"
-                    onClick={() => setInterval("month")}
+                    onClick={() => setBillingInterval("month")}
                     className={
                       "rounded-md px-3 py-1.5 " +
-                      (interval === "month"
+                      (billingInterval === "month"
                         ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900"
                         : "text-stone-600 dark:text-stone-300")
                     }
@@ -139,10 +139,10 @@ export default function Account() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setInterval("year")}
+                    onClick={() => setBillingInterval("year")}
                     className={
                       "rounded-md px-3 py-1.5 " +
-                      (interval === "year"
+                      (billingInterval === "year"
                         ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900"
                         : "text-stone-600 dark:text-stone-300")
                     }
@@ -151,7 +151,7 @@ export default function Account() {
                   </button>
                 </div>
               </div>
-              {interval === "year" && (
+              {billingInterval === "year" && (
                 <p className="mt-2 text-xs font-medium text-teal-700 dark:text-teal-400">
                   {t("billing.saveAnnual")}
                 </p>
@@ -160,12 +160,12 @@ export default function Account() {
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => run(() => startCheckout(interval))}
+                  onClick={() => run(() => startCheckout(billingInterval))}
                   className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900"
                 >
                   {busy
                     ? t("billing.opening")
-                    : interval === "year"
+                    : billingInterval === "year"
                       ? t("billing.upgradeAnnual")
                       : t("billing.upgradeMonthly")}
                 </button>
