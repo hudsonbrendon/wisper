@@ -1,0 +1,7 @@
+{
+  "version": "5",
+  "remote": {
+    "https://esm.sh/@supabase/supabase-js@2.45.0": "36ae57c3f2dc3f94fd122a846b40a87114d29bb2f47e910cb46bee5575febf2e",
+    "https://esm.sh/stripe@17.5.0?target=deno": "d6c6f9f18f527a114908a3e9a9bc777e2d05b4acbcb626595b85f0a6513eb6ab"
+  }
+}
