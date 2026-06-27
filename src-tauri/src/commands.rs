@@ -94,6 +94,19 @@ pub fn get_launch_at_login(app: AppHandle) -> bool {
 pub fn reset_app(app: AppHandle, state: tauri::State<AppState>) -> Result<(), String> {
     config::save(&state.config_dir, &Config::default()).map_err(|e| format!("save config: {e}"))?;
     let _ = crate::history::clear(&state.data_dir);
+
+    // On macOS, `app.restart()` exits via `std::process::exit`, whose C runtime
+    // teardown runs ggml's Metal static destructor and aborts (the same crash
+    // the `RunEvent::Exit` path avoids). Re-spawn ourselves and hard-exit with
+    // `_exit` so those destructors never run.
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(exe) = tauri::process::current_binary(&app.env()) {
+            let _ = std::process::Command::new(exe).spawn();
+        }
+        unsafe { libc::_exit(0) }
+    }
+    #[cfg(not(target_os = "macos"))]
     app.restart();
 }
 
