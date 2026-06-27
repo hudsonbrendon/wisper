@@ -3,6 +3,8 @@ import { useAuth } from "../lib/authContext";
 import { useUsage } from "../lib/usageContext";
 import { WEEKLY_LIMITS, isUnlimited } from "../lib/entitlements";
 import { useI18n } from "../lib/i18n";
+import { startCheckout, openBillingPortal } from "../lib/billing";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 /// Account screen: a full-width identity/plan card, weekly usage metrics side
 /// by side, and a Wisper Pro upsell for free users (the plan buttons are inert
@@ -13,6 +15,7 @@ export default function Account() {
   const { t } = useI18n();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [interval, setInterval] = useState<"month" | "year">("year");
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -109,7 +112,6 @@ export default function Account() {
             </Card>
           )}
 
-          {/* Wisper Pro upsell — full width (free only); buttons inert until Phase 2 */}
           {free && (
             <Card className="border-teal-200 bg-gradient-to-br from-teal-50 to-stone-50 dark:border-teal-900/40 dark:from-teal-950/30 dark:to-stone-900">
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -118,29 +120,93 @@ export default function Account() {
                     Wisper Pro
                   </div>
                   <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
-                    {t("account.unlimited")}
+                    {t("billing.proFeatures")}
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
+                {/* Monthly / Annual toggle — annual default */}
+                <div className="inline-flex rounded-lg border border-stone-300 p-0.5 text-sm dark:border-stone-700">
                   <button
                     type="button"
-                    disabled
-                    title={t("upgrade.comingSoon")}
-                    className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-600 disabled:opacity-60 dark:border-stone-700"
+                    onClick={() => setInterval("month")}
+                    className={
+                      "rounded-md px-3 py-1.5 " +
+                      (interval === "month"
+                        ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900"
+                        : "text-stone-600 dark:text-stone-300")
+                    }
                   >
-                    {t("upgrade.perMonth")}
+                    {t("billing.monthly")}
                   </button>
                   <button
                     type="button"
-                    disabled
-                    title={t("upgrade.comingSoon")}
-                    className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white opacity-60 dark:bg-stone-100 dark:text-stone-900"
+                    onClick={() => setInterval("year")}
+                    className={
+                      "rounded-md px-3 py-1.5 " +
+                      (interval === "year"
+                        ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900"
+                        : "text-stone-600 dark:text-stone-300")
+                    }
                   >
-                    {t("upgrade.perYear")}
+                    {t("billing.annual")}
                   </button>
                 </div>
               </div>
-              <p className="mt-3 text-xs text-stone-400">{t("upgrade.comingSoon")}</p>
+              {interval === "year" && (
+                <p className="mt-2 text-xs font-medium text-teal-700 dark:text-teal-400">
+                  {t("billing.saveAnnual")}
+                </p>
+              )}
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => run(() => startCheckout(interval))}
+                  className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900"
+                >
+                  {busy
+                    ? t("billing.opening")
+                    : interval === "year"
+                      ? t("billing.upgradeAnnual")
+                      : t("billing.upgradeMonthly")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void openUrl("https://whisper.chat")}
+                  className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+                >
+                  {t("billing.exploreFeatures")}
+                </button>
+              </div>
+            </Card>
+          )}
+
+          {!free && (
+            <Card className="sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-lg font-semibold text-stone-900 dark:text-stone-100">
+                  Wisper Pro
+                </div>
+                <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+                  {t("billing.proFeatures")}
+                </p>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-3 sm:mt-0">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => run(openBillingPortal)}
+                  className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900"
+                >
+                  {busy ? t("billing.opening") : t("billing.manageSubscription")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void openUrl("https://whisper.chat")}
+                  className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+                >
+                  {t("billing.exploreFeatures")}
+                </button>
+              </div>
             </Card>
           )}
         </div>
