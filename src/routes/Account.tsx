@@ -300,7 +300,7 @@ export default function Account() {
   );
 }
 
-// App glyph for the signed-out hero — an audio waveform echoing the sidebar.
+// App glyph for the signed-out hero — the same waveform mark as the sidebar.
 function WaveGlyph() {
   return (
     <svg
@@ -308,11 +308,14 @@ function WaveGlyph() {
       className="h-7 w-7"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="2.4"
       strokeLinecap="round"
       aria-hidden="true"
     >
-      <path d="M4 10v4M8 6v12M12 9v6M16 4v16M20 10v4" />
+      <line x1="4" y1="14" x2="4" y2="10" />
+      <line x1="9" y1="19" x2="9" y2="5" />
+      <line x1="14" y1="16" x2="14" y2="8" />
+      <line x1="19" y1="14" x2="19" y2="10" />
     </svg>
   );
 }
