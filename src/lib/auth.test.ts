@@ -33,6 +33,7 @@ import {
   getSession,
   fetchPlan,
   onAuthChange,
+  subscribePlan,
 } from "./auth";
 
 const mockInvoke = vi.mocked(invoke);
@@ -238,5 +239,34 @@ describe("onAuthChange", () => {
     expect(off).toBeInstanceOf(Function);
     off();
     expect(unsubscribe).toHaveBeenCalledOnce();
+  });
+});
+
+describe("subscribePlan", () => {
+  it("subscribes to the user's profile row and forwards plan updates", () => {
+    const cb = vi.fn();
+    let handler: (p: { new: { plan: string } }) => void = () => {};
+    const channel = {
+      on: vi.fn((_evt: string, _cfg: unknown, h: typeof handler) => {
+        handler = h;
+        return channel;
+      }),
+      subscribe: vi.fn(() => channel),
+    };
+    const removeChannel = vi.fn();
+    vi.mocked(getSupabase).mockReturnValue({
+      channel: vi.fn(() => channel),
+      removeChannel,
+    } as never);
+
+    const off = subscribePlan("u1", cb);
+    // The realtime payload delivers the new row; only valid plans forward.
+    handler({ new: { plan: "pro" } });
+    expect(cb).toHaveBeenCalledWith("pro");
+    handler({ new: { plan: "garbage" } });
+    expect(cb).toHaveBeenCalledTimes(1); // unchanged
+
+    off();
+    expect(removeChannel).toHaveBeenCalledWith(channel);
   });
 });
