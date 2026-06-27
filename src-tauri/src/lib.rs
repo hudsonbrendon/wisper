@@ -1152,7 +1152,7 @@ pub fn run() {
             // Resolve OS dirs and load config.
             let config_dir = handle.path().app_config_dir().expect("config dir");
             let data_dir = handle.path().app_data_dir().expect("data dir");
-            let cfg = config::load(&config_dir);
+            let mut cfg = config::load(&config_dir);
 
             // After an install/update the ad-hoc signature changes, so macOS
             // leaves BOTH the Microphone and Accessibility TCC grants stale —
@@ -1177,13 +1177,29 @@ pub fn run() {
             // silence while the dialog is still up.
             std::thread::spawn(audio::prompt_microphone_access);
 
-            // Load the configured model if it is already downloaded.
-            let transcriber = model_manager::find(&cfg.model_id)
+            // Load the configured model, or fall back to any model already on
+            // disk. A reset (or a stale config) can leave `model_id` pointing at
+            // an undownloaded default while the user still has another model
+            // downloaded; without this fallback dictation and meetings would be
+            // blocked even though a usable model exists. Persist the choice so
+            // Settings shows the right active model.
+            let chosen = model_manager::find(&cfg.model_id)
                 .filter(|m| model_manager::is_downloaded(&data_dir, m))
-                .and_then(|m| {
-                    let path = model_manager::model_path(&data_dir, m);
-                    stt::Transcriber::load(path.to_str()?).ok()
+                .or_else(|| {
+                    model_manager::catalog()
+                        .iter()
+                        .find(|m| model_manager::is_downloaded(&data_dir, m))
                 });
+            if let Some(m) = chosen {
+                if m.id != cfg.model_id.as_str() {
+                    cfg.model_id = m.id.to_string();
+                    let _ = config::save(&config_dir, &cfg);
+                }
+            }
+            let transcriber = chosen.and_then(|m| {
+                let path = model_manager::model_path(&data_dir, m);
+                stt::Transcriber::load(path.to_str()?).ok()
+            });
 
             let hotkey_accel = cfg.hotkey.clone();
 
