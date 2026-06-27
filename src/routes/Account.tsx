@@ -69,8 +69,9 @@ export default function Account() {
   if (!user) {
     return (
       <div className="flex min-h-[78vh] flex-col items-center justify-center px-6 text-center">
-        <div className="mb-7 flex h-16 w-16 items-center justify-center rounded-2xl bg-stone-900 text-white shadow-sm dark:bg-stone-100 dark:text-stone-900">
+        <div className="mb-7 flex items-center gap-2.5 text-stone-900 dark:text-stone-100">
           <WaveGlyph />
+          <span className="text-2xl font-semibold tracking-tight">Wisper</span>
         </div>
         <h1 className="text-3xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">
           {t("account.signInHeadline")}
@@ -305,7 +306,7 @@ function WaveGlyph() {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="h-7 w-7"
+      className="h-8 w-8"
       fill="none"
       stroke="currentColor"
       strokeWidth="2.4"
