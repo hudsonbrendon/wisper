@@ -6,7 +6,7 @@ vi.mock("./supabase", () => ({
 }));
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn() }));
 
-import { getSupabase } from "./supabase";
+import { getSupabase, isSupabaseConfigured } from "./supabase";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { startCheckout, openBillingPortal } from "./billing";
 
@@ -44,5 +44,25 @@ describe("openBillingPortal", () => {
     await openBillingPortal();
     expect(invoke).toHaveBeenCalledWith("create-portal-session", {});
     expect(mockOpen).toHaveBeenCalledWith("https://stripe/portal");
+  });
+});
+
+describe("not configured", () => {
+  it("startCheckout throws and does not open a URL", async () => {
+    vi.mocked(isSupabaseConfigured).mockReturnValueOnce(false);
+    const invoke = vi.fn();
+    vi.mocked(getSupabase).mockReturnValue({ functions: { invoke } } as never);
+    await expect(startCheckout("year")).rejects.toBeTruthy();
+    expect(invoke).not.toHaveBeenCalled();
+    expect(mockOpen).not.toHaveBeenCalled();
+  });
+
+  it("openBillingPortal throws and does not open a URL", async () => {
+    vi.mocked(isSupabaseConfigured).mockReturnValueOnce(false);
+    const invoke = vi.fn();
+    vi.mocked(getSupabase).mockReturnValue({ functions: { invoke } } as never);
+    await expect(openBillingPortal()).rejects.toBeTruthy();
+    expect(invoke).not.toHaveBeenCalled();
+    expect(mockOpen).not.toHaveBeenCalled();
   });
 });
