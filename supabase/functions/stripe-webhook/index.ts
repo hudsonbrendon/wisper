@@ -7,7 +7,8 @@ Deno.serve(async (req) => {
     httpClient: Stripe.createFetchHttpClient(),
     apiVersion: "2024-12-18.acacia",
   });
-  const sig = req.headers.get("stripe-signature") ?? "";
+  const sig = req.headers.get("stripe-signature");
+  if (!sig) return new Response("Missing stripe-signature", { status: 400 });
   const body = await req.text();
 
   let event: Stripe.Event;
@@ -20,9 +21,8 @@ Deno.serve(async (req) => {
       Stripe.createSubtleCryptoProvider(),
     );
   } catch (e) {
-    return new Response(`Webhook signature verification failed: ${e}`, {
-      status: 400,
-    });
+    console.error("Webhook signature verification failed:", e);
+    return new Response("Invalid signature", { status: 400 });
   }
 
   const admin = createClient(
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     event.type === "customer.subscription.deleted"
   ) {
     const sub = event.data.object as Stripe.Subscription;
-    await admin
+    const { error } = await admin
       .from("profiles")
       .update({
         plan: planForStatus(sub.status),
@@ -46,15 +46,17 @@ Deno.serve(async (req) => {
         ).toISOString(),
       })
       .eq("stripe_customer_id", sub.customer as string);
+    if (error) throw error;
   } else if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     // Ensure the customer is linked to the user even if the customer row was
     // created by Stripe rather than our function (defensive).
     if (session.client_reference_id && session.customer) {
-      await admin
+      const { error } = await admin
         .from("profiles")
         .update({ stripe_customer_id: session.customer as string })
         .eq("id", session.client_reference_id);
+      if (error) throw error;
     }
   }
 
