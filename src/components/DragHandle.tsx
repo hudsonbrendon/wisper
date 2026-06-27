@@ -1,13 +1,55 @@
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { LogicalPosition } from "@tauri-apps/api/dpi";
+
 /// A six-dot grip that is the ONLY draggable region of a floating pill window.
-/// It carries `data-tauri-drag-region` and the grab cursor, so a drag (and the
-/// hand cursor) only start over the dots — never the rest of the pill, so the
-/// dots can't be confused with the pill's buttons. The inner SVG is
-/// `pointer-events-none` so the mousedown lands on this span (the drag region),
-/// not the SVG. Pass `className` for color (e.g. "text-zinc-500").
+/// It drives the drag manually (pointer capture + `setPosition` following the
+/// cursor) instead of relying on `data-tauri-drag-region` / native
+/// `startDragging`, which does not move a non-activating NSPanel reliably on
+/// recent macOS. The inner SVG is `pointer-events-none` so the pointerdown lands
+/// on this span. Pass `className` for color (e.g. "text-zinc-500").
 export default function DragHandle({ className = "" }: { className?: string }) {
+  const onPointerDown = (e: React.PointerEvent<HTMLSpanElement>) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const el = e.currentTarget;
+    const startX = e.screenX;
+    const startY = e.screenY;
+    const win = getCurrentWindow();
+
+    // Window's logical top-left at drag start; the cursor delta is in logical
+    // (CSS) points, so we can add it directly.
+    let origin: { x: number; y: number } | null = null;
+    void Promise.all([win.outerPosition(), win.scaleFactor()]).then(
+      ([pos, sf]) => {
+        const lp = pos.toLogical(sf);
+        origin = { x: lp.x, y: lp.y };
+      },
+    );
+
+    const onMove = (ev: PointerEvent) => {
+      if (!origin) return;
+      void win.setPosition(
+        new LogicalPosition(
+          origin.x + (ev.screenX - startX),
+          origin.y + (ev.screenY - startY),
+        ),
+      );
+    };
+    const onUp = () => {
+      el.releasePointerCapture(e.pointerId);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointercancel", onUp);
+    };
+    el.setPointerCapture(e.pointerId);
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointercancel", onUp);
+  };
+
   return (
     <span
-      data-tauri-drag-region
+      onPointerDown={onPointerDown}
       className={
         "flex shrink-0 cursor-grab items-center active:cursor-grabbing " +
         className
