@@ -68,6 +68,7 @@ export const resetApp = () => invoke<void>("reset_app");
 
 export interface Permissions {
   accessibility: boolean;
+  microphone: boolean;
 }
 export const getPermissions = () => invoke<Permissions>("get_permissions");
 export const promptAccessibility = () => invoke<void>("prompt_accessibility");

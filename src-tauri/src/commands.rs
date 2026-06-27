@@ -114,6 +114,7 @@ pub fn reset_app(app: AppHandle, state: tauri::State<AppState>) -> Result<(), St
 #[derive(serde::Serialize)]
 pub struct Permissions {
     pub accessibility: bool,
+    pub microphone: bool,
 }
 
 #[tauri::command]
@@ -122,7 +123,11 @@ pub fn get_permissions() -> Permissions {
     let accessibility = crate::inject::accessibility::is_trusted();
     #[cfg(not(target_os = "macos"))]
     let accessibility = true;
-    Permissions { accessibility }
+    let microphone = crate::audio::microphone_authorized();
+    Permissions {
+        accessibility,
+        microphone,
+    }
 }
 
 /// Re-run the Accessibility trust prompt (also re-registers the current binary

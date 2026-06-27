@@ -590,12 +590,34 @@ export default function Settings() {
             <Field
               align="right"
               label={t("settings.permMic")}
-              hint={t("settings.permMicHint")}
+              hint={
+                perms
+                  ? perms.microphone
+                    ? t("settings.permGranted")
+                    : t("settings.permNotGranted")
+                  : t("settings.permMicHint")
+              }
             >
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                {perms && (
+                  <span
+                    className={
+                      "inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium " +
+                      (perms.microphone
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-rose-100 text-rose-700")
+                    }
+                  >
+                    {perms.microphone ? "✓" : "✗"}
+                  </span>
+                )}
                 <button
                   type="button"
-                  onClick={() => void resetMicrophone()}
+                  onClick={() =>
+                    void resetMicrophone().then(() =>
+                      getPermissions().then(setPerms),
+                    )
+                  }
                   className="rounded-lg bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
                 >
                   {t("settings.permMicReset")}
