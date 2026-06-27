@@ -5,11 +5,12 @@ vi.mock("./auth", () => ({
   getSession: vi.fn(),
   onAuthChange: vi.fn(() => () => {}),
   fetchPlan: vi.fn(),
+  subscribePlan: vi.fn(() => () => {}),
   signInWithGoogle: vi.fn(),
   signOut: vi.fn(),
 }));
 
-import { getSession, onAuthChange, fetchPlan } from "./auth";
+import { getSession, onAuthChange, fetchPlan, subscribePlan } from "./auth";
 import { AuthProvider, useAuth, useEntitlements } from "./authContext";
 
 function Probe() {
@@ -102,5 +103,25 @@ describe("AuthProvider", () => {
       expect(screen.getByTestId("user").textContent).toBe("none"),
     );
     expect(screen.getByTestId("plan").textContent).toBe("free");
+  });
+
+  it("updates the plan live when subscribePlan delivers a change", async () => {
+    vi.mocked(getSession).mockResolvedValueOnce({ user: { id: "u1" } } as never);
+    vi.mocked(fetchPlan).mockResolvedValueOnce("free");
+    let deliver: (p: "pro" | "free") => void = () => {};
+    vi.mocked(subscribePlan).mockImplementation((_id, cb) => {
+      deliver = cb;
+      return () => {};
+    });
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("plan").textContent).toBe("free"));
+
+    await act(async () => deliver("pro"));
+    expect(screen.getByTestId("plan").textContent).toBe("pro");
   });
 });

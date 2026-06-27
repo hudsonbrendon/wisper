@@ -10,6 +10,7 @@ import {
   getSession,
   onAuthChange,
   fetchPlan,
+  subscribePlan,
   signInWithGoogle,
   signOut as signOutFn,
 } from "./auth";
@@ -60,6 +61,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       unsub();
     };
   }, []);
+
+  // Live plan updates: when the Stripe webhook flips profiles.plan, Realtime
+  // delivers it here so Pro unlocks instantly without a reload.
+  useEffect(() => {
+    if (!user) return;
+    const off = subscribePlan(user.id, (p) => setPlan(p));
+    return off;
+  }, [user]);
 
   const value: AuthState = {
     user,
