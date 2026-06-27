@@ -931,21 +931,27 @@ fn set_media_paused(paused: bool) {
         static PAUSED_MEDIA: std::sync::Mutex<Vec<&'static str>> =
             std::sync::Mutex::new(Vec::new());
 
-        if paused {
-            let mut remembered = PAUSED_MEDIA.lock().unwrap();
-            remembered.clear();
-            for media_app in ["Spotify", "Music"] {
-                if media_is_playing(media_app) {
-                    run_media_command(media_app, "pause");
-                    remembered.push(media_app);
+        // Run off-thread: this is called from `start_recording`, which on a lone-
+        // modifier hotkey runs on the CGEventTap callback thread. The blocking
+        // `osascript` player-state query would otherwise stall that thread and
+        // drop the rapid edges of a double-tap (and can trip the tap timeout).
+        std::thread::spawn(move || {
+            if paused {
+                let mut remembered = PAUSED_MEDIA.lock().unwrap();
+                remembered.clear();
+                for media_app in ["Spotify", "Music"] {
+                    if media_is_playing(media_app) {
+                        run_media_command(media_app, "pause");
+                        remembered.push(media_app);
+                    }
+                }
+            } else {
+                let remembered = std::mem::take(&mut *PAUSED_MEDIA.lock().unwrap());
+                for media_app in remembered {
+                    run_media_command(media_app, "play");
                 }
             }
-        } else {
-            let remembered = std::mem::take(&mut *PAUSED_MEDIA.lock().unwrap());
-            for media_app in remembered {
-                run_media_command(media_app, "play");
-            }
-        }
+        });
     }
     #[cfg(not(target_os = "macos"))]
     let _ = paused;
