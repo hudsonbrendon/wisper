@@ -11,7 +11,7 @@ import {
   type BillingInfo,
 } from "../lib/billing";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { WisperBrand } from "../components/BrandLogos";
+import { WisperBrand, GoogleG } from "../components/BrandLogos";
 
 /// Account screen: a full-width identity/plan card, weekly usage metrics side
 /// by side, and a Wisper Pro upsell for free users (the upgrade button starts
@@ -24,6 +24,7 @@ export default function Account() {
   const [error, setError] = useState<string | null>(null);
   const [billingInterval, setBillingInterval] = useState<"month" | "year">("year");
   const [billing, setBilling] = useState<BillingInfo | null>(null);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -75,7 +76,7 @@ export default function Account() {
           {t("account.signInHeadline")}
         </h1>
         <p className="mt-3 max-w-md text-base text-stone-500 dark:text-stone-400">
-          {t("account.subtitle")}
+          {t("account.signInSubtitle")}
         </p>
 
         <ul className="mt-9 w-full max-w-sm space-y-4 text-left">
@@ -88,7 +89,7 @@ export default function Account() {
           type="button"
           disabled={busy}
           onClick={() => run(signIn)}
-          className="mt-10 inline-flex w-full max-w-sm items-center justify-center gap-3 rounded-xl bg-stone-900 px-5 py-3.5 text-sm font-medium text-white shadow-sm transition hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
+          className="mt-10 inline-flex w-full max-w-sm items-center justify-center gap-3 rounded-xl border border-white/10 bg-stone-900 px-5 py-3.5 text-sm font-medium text-white shadow-sm transition hover:bg-stone-800 disabled:opacity-50"
         >
           <GoogleG className="h-5 w-5" />
           {busy ? t("account.openingBrowser") : t("account.continueGoogle")}
@@ -148,7 +149,7 @@ export default function Account() {
               <button
                 type="button"
                 disabled={busy}
-                onClick={() => run(signOut)}
+                onClick={() => setConfirmSignOut(true)}
                 className="rounded-lg border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-100 disabled:opacity-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
               >
                 {t("account.signOut")}
@@ -295,6 +296,47 @@ export default function Account() {
       {error && (
         <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
+
+      {confirmSignOut && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6"
+          onClick={() => setConfirmSignOut(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-xl dark:border-stone-800 dark:bg-stone-900"
+          >
+            <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100">
+              {t("account.signOutConfirmTitle")}
+            </h2>
+            <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
+              {t("account.signOutConfirmBody")}
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmSignOut(false)}
+                className="rounded-lg border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+              >
+                {t("account.cancel")}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setConfirmSignOut(false);
+                  void run(signOut);
+                }}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+              >
+                {t("account.signOut")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -310,18 +352,6 @@ function Benefit({ text }: { text: string }) {
       </span>
       <span className="text-sm text-stone-600 dark:text-stone-300">{text}</span>
     </li>
-  );
-}
-
-// The Google "G", rendered in solid white for use on the dark CTA button.
-function GoogleG({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
-      <path fill="#fff" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
-      <path fill="#fff" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
-      <path fill="#fff" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
-      <path fill="#fff" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
-    </svg>
   );
 }
 

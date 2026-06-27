@@ -73,8 +73,28 @@ describe("Account", () => {
     render(<I18nProvider><Account /></I18nProvider>);
     expect(screen.getByText("a@b.com")).toBeInTheDocument();
     expect(screen.getByText(/free/i)).toBeInTheDocument();
+    // Sign out asks for confirmation before signing out.
     await userEvent.click(screen.getByRole("button", { name: /sign out/i }));
+    expect(signOut).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    const signOutButtons = screen.getAllByRole("button", { name: /sign out/i });
+    await userEvent.click(signOutButtons[signOutButtons.length - 1]);
     expect(signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("sign out can be cancelled from the confirmation dialog", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "u1", email: "a@b.com" } as never,
+      plan: "free",
+      loading: false,
+      signIn,
+      signOut,
+    });
+    render(<I18nProvider><Account /></I18nProvider>);
+    await userEvent.click(screen.getByRole("button", { name: /sign out/i }));
+    await userEvent.click(screen.getByRole("button", { name: /cancel/i }));
+    expect(signOut).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("free plan shows weekly usage rows", () => {

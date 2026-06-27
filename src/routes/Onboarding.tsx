@@ -16,6 +16,7 @@ import {
   ClaudeMark,
   GmailMark,
   WisperBrand,
+  GoogleG,
 } from "../components/BrandLogos";
 
 type StepId = "welcome" | "login" | "hotkey" | "model" | "practice" | "done";
@@ -422,8 +423,9 @@ function LoginStep({
               setBusy(false);
             }
           }}
-          className="mt-6 rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900"
+          className="mt-6 inline-flex items-center justify-center gap-3 rounded-xl border border-white/10 bg-stone-900 px-5 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-stone-800 disabled:opacity-50"
         >
+          <GoogleG className="h-5 w-5" />
           {busy ? t("account.openingBrowser") : t("account.continueGoogle")}
         </button>
       )}
