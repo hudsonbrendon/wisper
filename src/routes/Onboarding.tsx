@@ -121,7 +121,10 @@ function Welcome() {
   const { t } = useI18n();
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <img src="/logo.png" alt="" className="mb-5 h-20 w-20" />
+      <img src="/logo.png" alt="" className="mb-3 h-20 w-20" />
+      <span className="mb-6 text-xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">
+        Wisper
+      </span>
       <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">
         {t("onboarding.welcome.title")}
       </h1>
