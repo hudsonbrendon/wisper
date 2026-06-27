@@ -135,7 +135,7 @@ describe("Account", () => {
     expect(vi.mocked(startCheckout)).toHaveBeenCalledWith("month");
   });
 
-  it("free: Explore features opens whisper.chat", async () => {
+  it("free: Explore features opens wisper.chat", async () => {
     mockUseAuth.mockReturnValue({
       user: { id: "u1", email: "a@b.com" } as never,
       plan: "free",
@@ -145,7 +145,7 @@ describe("Account", () => {
     });
     render(<I18nProvider><Account /></I18nProvider>);
     await userEvent.click(screen.getByRole("button", { name: /explore features/i }));
-    expect(vi.mocked(openUrl)).toHaveBeenCalledWith("https://whisper.chat");
+    expect(vi.mocked(openUrl)).toHaveBeenCalledWith("https://wisper.chat");
   });
 
   it("pro: Manage subscription opens the billing portal", async () => {

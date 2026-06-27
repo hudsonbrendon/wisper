@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
 
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: "https://whisper.chat/?portal=return",
+      return_url: "https://wisper.chat/?portal=return",
     });
 
     return json({ url: session.url });

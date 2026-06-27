@@ -36,14 +36,23 @@ Deno.serve(async (req) => {
     event.type === "customer.subscription.deleted"
   ) {
     const sub = event.data.object as Stripe.Subscription;
+    // `current_period_end` moved from the subscription to its items in newer
+    // Stripe API versions; read whichever is present and tolerate its absence.
+    const item0 = sub.items?.data?.[0] as
+      | { current_period_end?: number }
+      | undefined;
+    const periodEndUnix =
+      (sub as { current_period_end?: number }).current_period_end ??
+      item0?.current_period_end ??
+      null;
     const { data, error } = await admin
       .from("profiles")
       .update({
         plan: planForStatus(sub.status),
         stripe_subscription_status: sub.status,
-        current_period_end: new Date(
-          sub.current_period_end * 1000,
-        ).toISOString(),
+        current_period_end: periodEndUnix
+          ? new Date(periodEndUnix * 1000).toISOString()
+          : null,
       })
       .eq("stripe_customer_id", sub.customer as string)
       .select();

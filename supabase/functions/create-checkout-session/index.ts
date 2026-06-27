@@ -66,8 +66,8 @@ Deno.serve(async (req) => {
       line_items: [{ price, quantity: 1 }],
       client_reference_id: user.id,
       subscription_data: { metadata: { supabase_user_id: user.id } },
-      success_url: "https://whisper.chat/?checkout=success",
-      cancel_url: "https://whisper.chat/?checkout=cancel",
+      success_url: "https://wisper.chat/?checkout=success",
+      cancel_url: "https://wisper.chat/?checkout=cancel",
     });
 
     if (!session.url) return json({ error: "no checkout url" }, 500);

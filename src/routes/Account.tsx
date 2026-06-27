@@ -171,7 +171,7 @@ export default function Account() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void openUrl("https://whisper.chat")}
+                  onClick={() => void openUrl("https://wisper.chat")}
                   className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
                 >
                   {t("billing.exploreFeatures")}
@@ -201,7 +201,7 @@ export default function Account() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void openUrl("https://whisper.chat")}
+                  onClick={() => void openUrl("https://wisper.chat")}
                   className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
                 >
                   {t("billing.exploreFeatures")}
