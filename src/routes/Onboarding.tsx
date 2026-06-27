@@ -10,15 +10,30 @@ import {
 } from "../lib/api";
 import { eventToAccelerator } from "../lib/hotkey";
 import { useI18n } from "../lib/i18n";
-import { ChatGptMark, ClaudeMark, GmailMark } from "../components/BrandLogos";
+import { useAuth } from "../lib/authContext";
+import {
+  ChatGptMark,
+  ClaudeMark,
+  GmailMark,
+  WisperLogoStack,
+  GoogleG,
+} from "../components/BrandLogos";
 
-type StepId = "welcome" | "hotkey" | "model" | "practice" | "done";
-const STEPS: StepId[] = ["welcome", "hotkey", "model", "practice", "done"];
+type StepId = "welcome" | "login" | "hotkey" | "model" | "practice" | "done";
+const STEPS: StepId[] = [
+  "welcome",
+  "login",
+  "hotkey",
+  "model",
+  "practice",
+  "done",
+];
 
 /// First-run tutorial. Shown over the dashboard until the user finishes (or
 /// skips), which persists `onboarded: true`. Re-openable from Settings.
 export default function Onboarding({ onDone }: { onDone: () => void }) {
   const { t } = useI18n();
+  const { user, loading: authLoading, signIn } = useAuth();
   const [config, setConfig] = useState<Config | null>(null);
   const [stepIdx, setStepIdx] = useState(0);
   const step = STEPS[stepIdx];
@@ -50,15 +65,15 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
                 className={
                   "h-1.5 rounded-full transition-all " +
                   (i === stepIdx
-                    ? "w-6 bg-teal-600"
+                    ? "w-6 bg-stone-900 dark:bg-stone-100"
                     : i < stepIdx
-                      ? "w-3 bg-teal-400"
-                      : "w-3 bg-stone-200")
+                      ? "w-3 bg-stone-400 dark:bg-stone-600"
+                      : "w-3 bg-stone-200 dark:bg-stone-700")
                 }
               />
             ))}
           </div>
-          {step !== "done" && (
+          {step !== "done" && step !== "login" && (
             <button
               type="button"
               onClick={finish}
@@ -72,6 +87,9 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-8 py-6">
           {step === "welcome" && <Welcome />}
+          {step === "login" && (
+            <LoginStep user={!!user} loading={authLoading} signIn={signIn} />
+          )}
           {step === "hotkey" && config && (
             <HotkeyStep config={config} onChange={setConfig} />
           )}
@@ -95,7 +113,8 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
           <button
             type="button"
             onClick={next}
-            className="rounded-lg bg-teal-600 px-5 py-2 text-sm font-medium text-white hover:bg-teal-500"
+            disabled={step === "login" && !user}
+            className="rounded-lg bg-stone-900 px-5 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-40 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
           >
             {step === "done" ? t("onboarding.finish") : t("onboarding.next")}
           </button>
@@ -109,7 +128,7 @@ function Welcome() {
   const { t } = useI18n();
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <img src="/logo.png" alt="" className="mb-5 h-20 w-20" />
+      <WisperLogoStack className="mb-6" />
       <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">
         {t("onboarding.welcome.title")}
       </h1>
@@ -166,7 +185,7 @@ function HotkeyStep({
         className={
           "mt-5 w-full rounded-xl border px-4 py-3 text-center font-mono text-sm transition-colors " +
           (capturing
-            ? "border-teal-300 bg-teal-600 text-white ring-2 ring-teal-200"
+            ? "border-stone-400 bg-stone-900 text-white ring-2 ring-stone-200 dark:bg-stone-100 dark:text-stone-900 dark:ring-stone-700"
             : "border-stone-300 dark:border-stone-700 text-stone-800 dark:text-stone-200 hover:bg-stone-50")
         }
       >
@@ -228,7 +247,7 @@ function ModelStep() {
       </p>
 
       {hasModel ? (
-        <div className="mt-6 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="mt-6 flex items-center gap-2 rounded-xl bg-stone-100 px-4 py-3 text-sm text-stone-700 dark:bg-stone-800 dark:text-stone-200">
           ✓ {t("onboarding.model.ready")}
         </div>
       ) : (
@@ -344,7 +363,7 @@ function PracticeStep({ hotkey }: { hotkey: string }) {
       </div>
 
       {done ? (
-        <div className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="mt-4 flex items-center gap-2 rounded-xl bg-stone-100 px-4 py-3 text-sm text-stone-700 dark:bg-stone-800 dark:text-stone-200">
           ✓ {t("onboarding.practice.success")}
         </div>
       ) : (
@@ -360,7 +379,7 @@ function Done() {
   const { t } = useI18n();
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl text-emerald-600">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-stone-900 text-3xl text-white dark:bg-stone-100 dark:text-stone-900">
         ✓
       </div>
       <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">
@@ -369,6 +388,54 @@ function Done() {
       <p className="mt-3 max-w-md text-sm text-stone-500 dark:text-stone-400">
         {t("onboarding.done.body")}
       </p>
+    </div>
+  );
+}
+
+function LoginStep({
+  user,
+  loading,
+  signIn,
+}: {
+  user: boolean;
+  loading: boolean;
+  signIn: () => Promise<void>;
+}) {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="flex h-full flex-col items-center justify-center text-center">
+      <WisperLogoStack className="mb-6" />
+      <h2 className="text-xl font-semibold text-stone-900 dark:text-stone-100">
+        {t("onboarding.login.title")}
+      </h2>
+      <p className="mt-2 max-w-md text-sm text-stone-500 dark:text-stone-400">
+        {t("onboarding.login.body")}
+      </p>
+      {user ? (
+        <div className="mt-6 flex items-center gap-2 rounded-xl bg-stone-100 px-4 py-3 text-sm text-stone-700 dark:bg-stone-800 dark:text-stone-200">
+          ✓ {t("onboarding.login.signedIn")}
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={busy || loading}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await signIn();
+            } catch {
+              /* surfaced by the auth layer */
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="mt-6 inline-flex items-center justify-center gap-3 rounded-xl border border-white/10 bg-stone-900 px-5 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-stone-800 disabled:opacity-50"
+        >
+          <GoogleG className="h-5 w-5" />
+          {busy ? t("account.openingBrowser") : t("account.continueGoogle")}
+        </button>
+      )}
     </div>
   );
 }

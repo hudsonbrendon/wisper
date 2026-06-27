@@ -175,6 +175,31 @@ pub fn prompt_microphone_access() {
     }
 }
 
+/// Whether the app currently holds macOS Microphone (TCC) authorization.
+/// Mirrors the Accessibility check so Settings can show the same granted badge.
+/// Reads `[AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio]`.
+#[cfg(target_os = "macos")]
+pub fn microphone_authorized() -> bool {
+    use objc2::msg_send;
+    use objc2::runtime::AnyClass;
+    use objc2_foundation::NSString;
+    unsafe {
+        let Some(cls) = AnyClass::get(c"AVCaptureDevice") else {
+            return false;
+        };
+        // AVMediaTypeAudio is the constant @"soun".
+        let media = NSString::from_str("soun");
+        // AVAuthorizationStatus: 0 notDetermined, 1 restricted, 2 denied, 3 authorized.
+        let status: isize = msg_send![cls, authorizationStatusForMediaType: &*media];
+        status == 3
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn microphone_authorized() -> bool {
+    true
+}
+
 /// List input device names available on the system.
 pub fn list_input_devices() -> Vec<String> {
     let host = cpal::default_host();

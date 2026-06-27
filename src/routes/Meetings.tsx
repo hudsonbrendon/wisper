@@ -60,6 +60,9 @@ export default function Meetings({
       await startMeeting();
     } catch (e) {
       const msg = String(e);
+      // A quota/auth block is already surfaced by the UpgradeModal (driven by the
+      // quota_blocked event); don't also show the raw error string.
+      if (msg === "quota_exhausted" || msg === "auth_required") return;
       setError(msg === "no_model" ? t("meetings.noModel") : msg);
     } finally {
       setBusy(false);
