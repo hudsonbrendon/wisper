@@ -4,11 +4,13 @@ Wisper accounts are **optional**: the app is fully functional logged out. Login
 exists to enable future per-plan features.
 
 ## Stack
+
 - **Supabase** (Postgres + Auth + RLS) — see `supabase/README.md` for setup.
 - **Desktop OAuth (PKCE + loopback)** — no client secret on the device.
 - **Sessions in the OS keychain** via Rust `secure_*` commands (`keyring` crate).
 
 ## Login flow
+
 1. UI calls `signInWithGoogle()` (`src/lib/auth.ts`).
 2. Rust `start_oauth_server` binds an ephemeral `127.0.0.1:<port>` and returns the port.
 3. `supabase.auth.signInWithOAuth({ provider: "google", redirectTo, skipBrowserRedirect })`
@@ -18,6 +20,7 @@ exists to enable future per-plan features.
    `exchangeCodeForSession(code)`. Session is persisted to the keychain.
 
 ## Plans & gating (the monetization seam)
+
 - Each user has a `profiles.plan` row, default `free`, server-authoritative (RLS
   blocks clients from changing it).
 - `src/lib/entitlements.ts` maps `(plan, feature) -> boolean`. **Today every
@@ -27,6 +30,7 @@ exists to enable future per-plan features.
   `profiles.plan` with the service role on subscription events.
 
 ## Manual smoke test (requires a configured Supabase project + `.env`)
+
 1. `pnpm tauri dev`.
 2. Sidebar → Account → "Continue with Google" → complete consent in the browser.
 3. App returns to the Account screen showing your email + "free plan".

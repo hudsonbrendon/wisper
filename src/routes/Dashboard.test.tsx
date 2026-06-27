@@ -68,6 +68,16 @@ vi.mock("../lib/authContext", () => ({
   useEntitlements: vi.fn(() => ({ can: () => true })),
 }));
 
+vi.mock("../lib/usageContext", () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  UsageProvider: ({ children }: { children: any }) => children,
+  useUsage: vi.fn(() => ({
+    usage: { dictation_words: 0, meetings: 0 },
+    blocked: null,
+    clearBlocked: vi.fn(),
+  })),
+}));
+
 vi.mock("@tauri-apps/api/app", () => ({
   getVersion: mockGetVersion,
 }));

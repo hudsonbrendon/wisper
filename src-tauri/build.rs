@@ -11,6 +11,10 @@ fn main() {
     // environment (CLT-only or full Xcode).
     #[cfg(target_os = "macos")]
     {
+        // AVFoundation provides AVCaptureDevice, used to read the Microphone
+        // (TCC) authorization status for the Settings permissions panel.
+        println!("cargo:rustc-link-lib=framework=AVFoundation");
+
         if let Some(dir) = swift_runtime_search_path() {
             println!("cargo:rustc-link-search=native={dir}");
         }

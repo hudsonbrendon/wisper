@@ -10,9 +10,7 @@ export interface SupabaseAuthStorage {
   removeItem(key: string): Promise<void>;
 }
 
-export function createSupabase(
-  storage: SupabaseAuthStorage,
-): SupabaseClient {
+export function createSupabase(storage: SupabaseAuthStorage): SupabaseClient {
   return createClient(
     import.meta.env.VITE_SUPABASE_URL,
     import.meta.env.VITE_SUPABASE_ANON_KEY,

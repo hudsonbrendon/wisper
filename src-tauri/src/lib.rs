@@ -1,8 +1,7 @@
 mod audio;
 mod commands;
 mod config;
-mod oauth;
-mod secure_store;
+mod entitlements;
 mod history;
 mod hotkey;
 mod inject;
@@ -11,7 +10,9 @@ mod meetings;
 mod model_manager;
 #[cfg(target_os = "macos")]
 mod modtap;
+mod oauth;
 mod overlay;
+mod secure_store;
 mod state;
 pub mod stt;
 mod sysaudio;
@@ -216,8 +217,54 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
                 let app_inj = app.clone();
                 let text_inj = text.clone();
                 let dispatched = app.run_on_main_thread(move || {
+                    let words = text_inj.split_whitespace().count();
+                    // Quota gate: a logged-out user is blocked (sign-in prompt); a free
+                    // user over the weekly word cap is blocked (upgrade prompt). The
+                    // already-transcribed text is dropped — we do not inject it.
+                    {
+                        let st = app_inj.state::<AppState>();
+                        let decision = {
+                            let ent = st.entitlements.lock().unwrap();
+                            crate::entitlements::decide_dictation(&ent)
+                        };
+                        use crate::entitlements::Decision;
+                        match decision {
+                            Decision::BlockAuth => {
+                                let _ = app_inj.emit(
+                                    "quota_blocked",
+                                    serde_json::json!({ "reason": "auth", "metric": "dictation" }),
+                                );
+                                transition(&app_inj, SmEvent::InjectionDone);
+                                return_key_to_target(&app_inj);
+                                return;
+                            }
+                            Decision::BlockQuota => {
+                                let _ = app_inj.emit(
+                                    "quota_blocked",
+                                    serde_json::json!({ "reason": "quota", "metric": "dictation" }),
+                                );
+                                transition(&app_inj, SmEvent::InjectionDone);
+                                return_key_to_target(&app_inj);
+                                return;
+                            }
+                            Decision::Allow => {
+                                // Decrement the local cache so the NEXT dictation is
+                                // blocked once the cap is reached; the frontend records
+                                // the event to Supabase and re-pushes the true total.
+                                let mut ent = st.entitlements.lock().unwrap();
+                                if !ent.pro {
+                                    ent.remaining_words -= words as i64;
+                                }
+                            }
+                        }
+                    }
                     match inject::insert(&text_inj, method) {
-                        Ok(()) => {}
+                        Ok(()) => {
+                            let _ = app_inj.emit(
+                                "usage_consumed",
+                                serde_json::json!({ "metric": "dictation_words", "amount": words }),
+                            );
+                        }
                         Err(e) => {
                             eprintln!("inject failed: {e}");
                             let _ = app_inj.emit("error", serde_json::json!({ "message": e }));
@@ -268,6 +315,32 @@ pub(crate) fn start_meeting(app: &tauri::AppHandle) -> Result<(), String> {
     }
     if st.meeting.lock().unwrap().is_some() {
         return Err("already_recording".to_string());
+    }
+    // Quota gate: block before recording starts. The frontend pre-checks too
+    // (to show the right prompt), but this is the real enforcement.
+    {
+        use crate::entitlements::Decision;
+        let decision = {
+            let ent = st.entitlements.lock().unwrap();
+            crate::entitlements::decide_meeting(&ent)
+        };
+        match decision {
+            Decision::BlockAuth => {
+                let _ = app.emit(
+                    "quota_blocked",
+                    serde_json::json!({ "reason": "auth", "metric": "meeting" }),
+                );
+                return Err("auth_required".to_string());
+            }
+            Decision::BlockQuota => {
+                let _ = app.emit(
+                    "quota_blocked",
+                    serde_json::json!({ "reason": "quota", "metric": "meeting" }),
+                );
+                return Err("quota_exhausted".to_string());
+            }
+            Decision::Allow => {}
+        }
     }
     let mic_device = st.config.lock().unwrap().mic_device.clone();
     let started_ms = now_ms();
@@ -320,6 +393,20 @@ pub(crate) fn start_meeting(app: &tauri::AppHandle) -> Result<(), String> {
         let _ = w.hide();
     }
     let _ = app.emit("meeting_state", serde_json::json!({ "state": "recording" }));
+
+    // Count this meeting toward the weekly quota. Recorded for everyone (server
+    // keeps full history); only free plans decrement the local cache so the next
+    // start is blocked in-session before the async refresh re-syncs.
+    {
+        let mut ent = st.entitlements.lock().unwrap();
+        if !ent.pro {
+            ent.remaining_meetings -= 1;
+        }
+    }
+    let _ = app.emit(
+        "usage_consumed",
+        serde_json::json!({ "metric": "meeting", "amount": 1 }),
+    );
 
     // Live level ticker for the bubble meter.
     let app2 = app.clone();
@@ -832,22 +919,71 @@ fn play_dictation_sound(start: bool) {
 
 /// Pause or resume Spotify / Apple Music while dictating (macOS only,
 /// best-effort — a no-op if the app isn't running).
+///
+/// On pause we only touch apps that are actually *playing* and remember them;
+/// on resume we play back only those. Without this, resume would `play` apps
+/// that were paused (or never playing) before dictation, starting music the
+/// user did not have running.
 fn set_media_paused(paused: bool) {
     #[cfg(target_os = "macos")]
     {
-        let action = if paused { "pause" } else { "play" };
-        for media_app in ["Spotify", "Music"] {
-            let script = format!(
-                "tell application \"System Events\" to if exists (processes whose name is \"{media_app}\") then tell application \"{media_app}\" to {action}"
-            );
-            let _ = std::process::Command::new("osascript")
-                .arg("-e")
-                .arg(script)
-                .spawn();
-        }
+        // Apps we paused on dictation start, so we resume exactly those.
+        static PAUSED_MEDIA: std::sync::Mutex<Vec<&'static str>> =
+            std::sync::Mutex::new(Vec::new());
+
+        // Run off-thread: this is called from `start_recording`, which on a lone-
+        // modifier hotkey runs on the CGEventTap callback thread. The blocking
+        // `osascript` player-state query would otherwise stall that thread and
+        // drop the rapid edges of a double-tap (and can trip the tap timeout).
+        std::thread::spawn(move || {
+            if paused {
+                let mut remembered = PAUSED_MEDIA.lock().unwrap();
+                remembered.clear();
+                for media_app in ["Spotify", "Music"] {
+                    if media_is_playing(media_app) {
+                        run_media_command(media_app, "pause");
+                        remembered.push(media_app);
+                    }
+                }
+            } else {
+                let remembered = std::mem::take(&mut *PAUSED_MEDIA.lock().unwrap());
+                for media_app in remembered {
+                    run_media_command(media_app, "play");
+                }
+            }
+        });
     }
     #[cfg(not(target_os = "macos"))]
     let _ = paused;
+}
+
+/// Whether `media_app` is running AND currently playing. Guarded so it never
+/// launches a non-running app.
+#[cfg(target_os = "macos")]
+fn media_is_playing(media_app: &str) -> bool {
+    let script = format!(
+        "tell application \"System Events\" to if exists (processes whose name is \"{media_app}\") then tell application \"{media_app}\" to return (player state as text)"
+    );
+    match std::process::Command::new("osascript")
+        .arg("-e")
+        .arg(script)
+        .output()
+    {
+        Ok(o) => String::from_utf8_lossy(&o.stdout).trim() == "playing",
+        Err(_) => false,
+    }
+}
+
+/// Send a transport command (`pause` / `play`) to `media_app` if it's running.
+#[cfg(target_os = "macos")]
+fn run_media_command(media_app: &str, action: &str) {
+    let script = format!(
+        "tell application \"System Events\" to if exists (processes whose name is \"{media_app}\") then tell application \"{media_app}\" to {action}"
+    );
+    let _ = std::process::Command::new("osascript")
+        .arg("-e")
+        .arg(script)
+        .spawn();
 }
 
 /// Re-apply the pill's visibility from config + current state. Called after a
@@ -1065,7 +1201,7 @@ pub fn run() {
             // Resolve OS dirs and load config.
             let config_dir = handle.path().app_config_dir().expect("config dir");
             let data_dir = handle.path().app_data_dir().expect("data dir");
-            let cfg = config::load(&config_dir);
+            let mut cfg = config::load(&config_dir);
 
             // After an install/update the ad-hoc signature changes, so macOS
             // leaves BOTH the Microphone and Accessibility TCC grants stale —
@@ -1090,13 +1226,29 @@ pub fn run() {
             // silence while the dialog is still up.
             std::thread::spawn(audio::prompt_microphone_access);
 
-            // Load the configured model if it is already downloaded.
-            let transcriber = model_manager::find(&cfg.model_id)
+            // Load the configured model, or fall back to any model already on
+            // disk. A reset (or a stale config) can leave `model_id` pointing at
+            // an undownloaded default while the user still has another model
+            // downloaded; without this fallback dictation and meetings would be
+            // blocked even though a usable model exists. Persist the choice so
+            // Settings shows the right active model.
+            let chosen = model_manager::find(&cfg.model_id)
                 .filter(|m| model_manager::is_downloaded(&data_dir, m))
-                .and_then(|m| {
-                    let path = model_manager::model_path(&data_dir, m);
-                    stt::Transcriber::load(path.to_str()?).ok()
+                .or_else(|| {
+                    model_manager::catalog()
+                        .iter()
+                        .find(|m| model_manager::is_downloaded(&data_dir, m))
                 });
+            if let Some(m) = chosen {
+                if m.id != cfg.model_id.as_str() {
+                    cfg.model_id = m.id.to_string();
+                    let _ = config::save(&config_dir, &cfg);
+                }
+            }
+            let transcriber = chosen.and_then(|m| {
+                let path = model_manager::model_path(&data_dir, m);
+                stt::Transcriber::load(path.to_str()?).ok()
+            });
 
             let hotkey_accel = cfg.hotkey.clone();
 
@@ -1110,6 +1262,7 @@ pub fn run() {
                 data_dir,
                 cancels: Mutex::new(std::collections::HashSet::new()),
                 hotkey: Mutex::new(hotkey::Controller::new()),
+                entitlements: Mutex::new(crate::entitlements::Entitlements::default()),
             });
 
             // Tray menu: Home, updates, paste-last, Microphone submenu, Quit.
@@ -1236,6 +1389,7 @@ pub fn run() {
             commands::reset_app,
             commands::get_permissions,
             commands::prompt_accessibility,
+            commands::reset_accessibility,
             commands::reset_microphone,
             commands::open_privacy_settings,
             commands::start_meeting,
@@ -1261,6 +1415,7 @@ pub fn run() {
             secure_store::secure_get,
             secure_store::secure_delete,
             oauth::start_oauth_server,
+            entitlements::set_entitlements,
             set_ui_language,
         ])
         .build(tauri::generate_context!())

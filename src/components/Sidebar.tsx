@@ -212,7 +212,7 @@ export default function Sidebar({
       <div className="mt-auto flex flex-col gap-1 border-t border-stone-200 pt-3 dark:border-stone-800">
         <NavButton
           icon="account"
-          label="Account"
+          label={t("nav.account")}
           active={view === "account"}
           onClick={() => onNavigate("account")}
         />

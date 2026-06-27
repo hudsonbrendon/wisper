@@ -28,6 +28,9 @@ pub struct AppState {
     pub cancels: Mutex<std::collections::HashSet<String>>,
     /// Hotkey gesture detector (hold vs double-tap).
     pub hotkey: Mutex<crate::hotkey::Controller>,
+    /// Latest entitlements/quota snapshot pushed by the frontend. Enforced by
+    /// the dictation and meeting guards.
+    pub entitlements: Mutex<crate::entitlements::Entitlements>,
 }
 
 /// Metadata sent to the frontend for each catalog model.
@@ -91,6 +94,19 @@ pub fn get_launch_at_login(app: AppHandle) -> bool {
 pub fn reset_app(app: AppHandle, state: tauri::State<AppState>) -> Result<(), String> {
     config::save(&state.config_dir, &Config::default()).map_err(|e| format!("save config: {e}"))?;
     let _ = crate::history::clear(&state.data_dir);
+
+    // On macOS, `app.restart()` exits via `std::process::exit`, whose C runtime
+    // teardown runs ggml's Metal static destructor and aborts (the same crash
+    // the `RunEvent::Exit` path avoids). Re-spawn ourselves and hard-exit with
+    // `_exit` so those destructors never run.
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(exe) = tauri::process::current_binary(&app.env()) {
+            let _ = std::process::Command::new(exe).spawn();
+        }
+        unsafe { libc::_exit(0) }
+    }
+    #[cfg(not(target_os = "macos"))]
     app.restart();
 }
 
@@ -98,6 +114,7 @@ pub fn reset_app(app: AppHandle, state: tauri::State<AppState>) -> Result<(), St
 #[derive(serde::Serialize)]
 pub struct Permissions {
     pub accessibility: bool,
+    pub microphone: bool,
 }
 
 #[tauri::command]
@@ -106,7 +123,11 @@ pub fn get_permissions() -> Permissions {
     let accessibility = crate::inject::accessibility::is_trusted();
     #[cfg(not(target_os = "macos"))]
     let accessibility = true;
-    Permissions { accessibility }
+    let microphone = crate::audio::microphone_authorized();
+    Permissions {
+        accessibility,
+        microphone,
+    }
 }
 
 /// Re-run the Accessibility trust prompt (also re-registers the current binary
@@ -127,6 +148,16 @@ pub fn reset_microphone() {
             .status();
         std::thread::spawn(crate::audio::prompt_microphone_access);
     }
+}
+
+/// Recover the Accessibility grant by re-registering the current binary in TCC
+/// via the prompt. Unlike Microphone, this does NOT `tccutil reset`: a reset
+/// removes the app from the Accessibility list and forces a manual re-add, while
+/// `AXIsProcessTrustedWithOptions` re-registers and recovers a stale grant
+/// (e.g. after a re-signed build) without revoking it.
+#[tauri::command]
+pub fn reset_accessibility() {
+    crate::inject::prompt_accessibility_on_startup();
 }
 
 /// Open the OS privacy settings pane for "microphone" | "accessibility".

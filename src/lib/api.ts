@@ -68,9 +68,11 @@ export const resetApp = () => invoke<void>("reset_app");
 
 export interface Permissions {
   accessibility: boolean;
+  microphone: boolean;
 }
 export const getPermissions = () => invoke<Permissions>("get_permissions");
 export const promptAccessibility = () => invoke<void>("prompt_accessibility");
+export const resetAccessibility = () => invoke<void>("reset_accessibility");
 export const resetMicrophone = () => invoke<void>("reset_microphone");
 export const openPrivacySettings = (which: "microphone" | "accessibility") =>
   invoke<void>("open_privacy_settings", { which });
@@ -163,3 +165,13 @@ export const llmModelDownloaded = () => invoke<boolean>("llm_model_downloaded");
 export const downloadLlmModel = () => invoke<void>("download_llm_model");
 
 export type LlmDownloadProgressPayload = { received: number; total: number };
+
+export interface EntitlementsSnapshot {
+  loggedIn: boolean;
+  pro: boolean;
+  remainingWords: number;
+  remainingMeetings: number;
+}
+
+export const setEntitlements = (ent: EntitlementsSnapshot) =>
+  invoke<void>("set_entitlements", { ent });

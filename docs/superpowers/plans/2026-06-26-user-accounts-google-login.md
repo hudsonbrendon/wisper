@@ -23,10 +23,12 @@
 ## File Structure
 
 **Supabase (new, version-controlled):**
+
 - `supabase/migrations/0001_profiles.sql` — `profiles` table, new-user trigger, RLS policies.
 - `supabase/README.md` — how to apply migrations + configure Google provider.
 
 **Rust (`src-tauri/src/`):**
+
 - `secure_store.rs` (new) — keychain-backed `secure_get` / `secure_set` / `secure_delete` commands.
 - `oauth.rs` (new) — `start_oauth_server` loopback command.
 - `lib.rs` (modify) — declare modules, register the three+one commands.
@@ -34,6 +36,7 @@
 - `capabilities/default.json` (modify) — allow `opener:allow-open-url`.
 
 **Frontend (`src/`):**
+
 - `lib/supabase.ts` (new) — Supabase client (PKCE + injectable storage).
 - `lib/secureStorage.ts` (new) — storage adapter bridging Supabase ↔ Rust keychain commands.
 - `lib/auth.ts` (new) — `signInWithGoogle` / `signOut` / `getSession` / `onAuthChange` / `fetchPlan`.
@@ -52,10 +55,12 @@
 ## Task 1: Supabase schema — `profiles` table, new-user trigger, RLS
 
 **Files:**
+
 - Create: `supabase/migrations/0001_profiles.sql`
 - Create: `supabase/README.md`
 
 **Interfaces:**
+
 - Consumes: nothing (first task).
 - Produces: a `public.profiles` table with columns `id uuid` (PK, FK → `auth.users`), `email text`, `full_name text`, `avatar_url text`, `plan text` (default `'free'`), `created_at timestamptz`, `updated_at timestamptz`. Later TS tasks read `plan` and (optionally) `full_name`/`avatar_url` for the signed-in user.
 
@@ -130,6 +135,7 @@ Create `supabase/README.md`:
 # Supabase backend
 
 ## One-time project setup
+
 1. Create a project at https://supabase.com (free tier is fine).
 2. Authentication → Providers → Google: enable it. Create an OAuth client in
    Google Cloud Console (type "Web application"). Set the **Authorized redirect URI**
@@ -141,10 +147,13 @@ Create `supabase/README.md`:
    OR use the Supabase CLI: `supabase db push`.
 
 ## Client config
+
 Copy the project URL and the **anon/public** key into the app's `.env`:
 ```
+
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<anon-key>
+
 ```
 The anon key is publishable; RLS enforces data safety. Never ship the service-role key.
 
@@ -179,6 +188,7 @@ git commit -m "feat(auth): add Supabase profiles schema with plan column and RLS
 ## Task 2: Supabase client with PKCE + injectable storage
 
 **Files:**
+
 - Create: `src/lib/supabase.ts`
 - Create: `src/lib/supabase.test.ts`
 - Create: `src/vite-env.d.ts`
@@ -186,15 +196,18 @@ git commit -m "feat(auth): add Supabase profiles schema with plan column and RLS
 - Modify: `.gitignore` (ensure `.env` is ignored)
 
 **Interfaces:**
+
 - Consumes: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` from `import.meta.env`.
 - Produces: `export const supabase: SupabaseClient` and `export function createSupabase(storage: SupabaseAuthStorage): SupabaseClient`, where `SupabaseAuthStorage` is `{ getItem(key: string): Promise<string | null>; setItem(key: string, value: string): Promise<void>; removeItem(key: string): Promise<void> }`. Later tasks import `supabase` to call `auth.*` and `from("profiles")`.
 
 - [ ] **Step 1: Add the dependency**
 
 Run:
+
 ```bash
 pnpm add @supabase/supabase-js
 ```
+
 Expected: `@supabase/supabase-js` appears under `dependencies` in `package.json`.
 
 - [ ] **Step 2: Type the env vars**
@@ -293,9 +306,7 @@ export interface SupabaseAuthStorage {
   removeItem(key: string): Promise<void>;
 }
 
-export function createSupabase(
-  storage: SupabaseAuthStorage,
-): SupabaseClient {
+export function createSupabase(storage: SupabaseAuthStorage): SupabaseClient {
   return createClient(
     import.meta.env.VITE_SUPABASE_URL,
     import.meta.env.VITE_SUPABASE_ANON_KEY,
@@ -338,11 +349,13 @@ git commit -m "feat(auth): add Supabase client configured for desktop PKCE"
 ## Task 3: Rust keychain commands (`secure_store`)
 
 **Files:**
+
 - Create: `src-tauri/src/secure_store.rs`
 - Modify: `src-tauri/Cargo.toml` (add `keyring`)
 - Modify: `src-tauri/src/lib.rs` (declare module + register commands)
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: three Tauri commands invokable from JS — `secure_set(key: string, value: string) -> void`, `secure_get(key: string) -> string | null`, `secure_delete(key: string) -> void`. Keyed under the keychain service `"wisper-auth"`. Task 4's TS adapter calls these.
 
@@ -470,10 +483,12 @@ git commit -m "feat(auth): add OS-keychain secure storage commands"
 ## Task 4: TypeScript secure-storage adapter
 
 **Files:**
+
 - Create: `src/lib/secureStorage.ts`
 - Create: `src/lib/secureStorage.test.ts`
 
 **Interfaces:**
+
 - Consumes: Rust commands `secure_get` / `secure_set` / `secure_delete` (Task 3) via `invoke`.
 - Produces: `export const secureStorage: SupabaseAuthStorage` (matching the interface from Task 2). Imported by `src/lib/supabase.ts`.
 
@@ -562,12 +577,14 @@ git commit -m "feat(auth): bridge Supabase session storage to OS keychain"
 ## Task 5: Rust loopback OAuth server (`oauth.rs`)
 
 **Files:**
+
 - Create: `src-tauri/src/oauth.rs`
 - Modify: `src-tauri/Cargo.toml` (add `tauri-plugin-oauth`)
 - Modify: `src-tauri/src/lib.rs` (declare module + register command)
 - Modify: `src-tauri/capabilities/default.json` (allow `opener:allow-open-url`)
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: Tauri command `start_oauth_server() -> number` (the bound loopback port). When the browser hits `http://127.0.0.1:<port>/...`, the backend emits a Tauri event `"oauth://url"` whose payload is the full callback URL string. Task 6 listens for that event.
 
@@ -647,10 +664,12 @@ git commit -m "feat(auth): add loopback OAuth server command"
 ## Task 6: Auth orchestration (`auth.ts`)
 
 **Files:**
+
 - Create: `src/lib/auth.ts`
 - Create: `src/lib/auth.test.ts`
 
 **Interfaces:**
+
 - Consumes: `supabase` (Task 2), Rust command `start_oauth_server` (Task 5), the `oauth://url` event, `openUrl` from `@tauri-apps/plugin-opener`.
 - Produces:
   - `export function extractCode(callbackUrl: string): string | null`
@@ -687,12 +706,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { once } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { supabase } from "./supabase";
-import {
-  extractCode,
-  signInWithGoogle,
-  signOut,
-  fetchPlan,
-} from "./auth";
+import { extractCode, signInWithGoogle, signOut, fetchPlan } from "./auth";
 
 const mockInvoke = vi.mocked(invoke);
 const mockOnce = vi.mocked(once);
@@ -722,7 +736,10 @@ describe("signInWithGoogle", () => {
       },
     );
     vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValueOnce({
-      data: { url: "https://supabase.co/auth/v1/authorize?x=1", provider: "google" },
+      data: {
+        url: "https://supabase.co/auth/v1/authorize?x=1",
+        provider: "google",
+      },
       error: null,
     } as never);
     vi.mocked(supabase.auth.exchangeCodeForSession).mockResolvedValueOnce({
@@ -749,7 +766,9 @@ describe("signInWithGoogle", () => {
 
 describe("signOut", () => {
   it("delegates to supabase signOut", async () => {
-    vi.mocked(supabase.auth.signOut).mockResolvedValueOnce({ error: null } as never);
+    vi.mocked(supabase.auth.signOut).mockResolvedValueOnce({
+      error: null,
+    } as never);
     await signOut();
     expect(supabase.auth.signOut).toHaveBeenCalledTimes(1);
   });
@@ -887,17 +906,19 @@ git commit -m "feat(auth): add Google OAuth loopback orchestration"
 ## Task 7: Entitlements model (`entitlements.ts`)
 
 **Files:**
+
 - Create: `src/lib/entitlements.ts`
 - Create: `src/lib/entitlements.test.ts`
 
 **Interfaces:**
+
 - Consumes: nothing (pure module).
 - Produces:
   - `export type Plan = "free" | "pro"`
   - `export type Feature = "meetings" | "summaries" | "unlimited_history"`
   - `export const DEFAULT_PLAN: Plan = "free"`
   - `export function canUseFeature(plan: Plan, feature: Feature): boolean`
-  Imported by `auth.ts` (Task 6) and `authContext.tsx` (Task 8).
+    Imported by `auth.ts` (Task 6) and `authContext.tsx` (Task 8).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -984,16 +1005,18 @@ git commit -m "feat(auth): add entitlements seam for future plan-based gating"
 ## Task 8: Auth context + hooks (`authContext.tsx`)
 
 **Files:**
+
 - Create: `src/lib/authContext.tsx`
 - Create: `src/lib/authContext.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `getSession`, `onAuthChange`, `fetchPlan`, `signInWithGoogle`, `signOut` (Task 6); `canUseFeature`, `DEFAULT_PLAN`, `Plan`, `Feature` (Task 7).
 - Produces:
   - `export function AuthProvider({ children }: { children: ReactNode }): JSX.Element`
   - `export function useAuth(): AuthState` where `AuthState = { user: User | null; plan: Plan; loading: boolean; signIn: () => Promise<void>; signOut: () => Promise<void> }`
   - `export function useEntitlements(): { can: (feature: Feature) => boolean }`
-  Consumed by `Account.tsx` (Task 9) and `App.tsx`.
+    Consumed by `Account.tsx` (Task 9) and `App.tsx`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1175,6 +1198,7 @@ git commit -m "feat(auth): add AuthProvider, useAuth, useEntitlements"
 ## Task 9: Account UI + navigation + provider mount
 
 **Files:**
+
 - Create: `src/routes/Account.tsx`
 - Create: `src/routes/Account.test.tsx`
 - Modify: `src/components/Sidebar.tsx` (add `account` to `View` + a nav button)
@@ -1182,6 +1206,7 @@ git commit -m "feat(auth): add AuthProvider, useAuth, useEntitlements"
 - Modify: `src/App.tsx` (wrap the main window in `AuthProvider`)
 
 **Interfaces:**
+
 - Consumes: `useAuth` (Task 8).
 - Produces: an `Account` screen reachable from the sidebar; logged-out shows a "Continue with Google" button, logged-in shows email + plan badge + "Sign out".
 
@@ -1359,12 +1384,12 @@ Add an icon to the `icons` record (place it after the `snippets` entry, before `
 Add a nav button in the bottom group, just before the `settings` `NavButton`:
 
 ```tsx
-        <NavButton
-          icon="account"
-          label="Account"
-          active={view === "account"}
-          onClick={() => onNavigate("account")}
-        />
+<NavButton
+  icon="account"
+  label="Account"
+  active={view === "account"}
+  onClick={() => onNavigate("account")}
+/>
 ```
 
 - [ ] **Step 6: Route the `account` view in Dashboard**
@@ -1378,7 +1403,9 @@ import Account from "./Account";
 Add the render line alongside the other `view === ...` lines (after the `settings` line):
 
 ```tsx
-          {view === "account" && <Account />}
+{
+  view === "account" && <Account />;
+}
 ```
 
 - [ ] **Step 7: Wrap the main window in AuthProvider**
@@ -1435,9 +1462,11 @@ git commit -m "feat(auth): add Account screen, nav entry, and AuthProvider mount
 ## Task 10: End-to-end docs + manual verification
 
 **Files:**
+
 - Create: `docs/AUTH.md`
 
 **Interfaces:**
+
 - Consumes: everything above.
 - Produces: a single doc describing setup + the live login flow + how to extend gating.
 
@@ -1452,11 +1481,13 @@ Wisper accounts are **optional**: the app is fully functional logged out. Login
 exists to enable future per-plan features.
 
 ## Stack
+
 - **Supabase** (Postgres + Auth + RLS) — see `supabase/README.md` for setup.
 - **Desktop OAuth (PKCE + loopback)** — no client secret on the device.
 - **Sessions in the OS keychain** via Rust `secure_*` commands (`keyring` crate).
 
 ## Login flow
+
 1. UI calls `signInWithGoogle()` (`src/lib/auth.ts`).
 2. Rust `start_oauth_server` binds an ephemeral `127.0.0.1:<port>` and returns the port.
 3. `supabase.auth.signInWithOAuth({ provider: "google", redirectTo, skipBrowserRedirect })`
@@ -1466,6 +1497,7 @@ exists to enable future per-plan features.
    `exchangeCodeForSession(code)`. Session is persisted to the keychain.
 
 ## Plans & gating (the monetization seam)
+
 - Each user has a `profiles.plan` row, default `free`, server-authoritative (RLS
   blocks clients from changing it).
 - `src/lib/entitlements.ts` maps `(plan, feature) -> boolean`. **Today every
@@ -1475,6 +1507,7 @@ exists to enable future per-plan features.
   `profiles.plan` with the service role on subscription events.
 
 ## Manual smoke test (requires a configured Supabase project + `.env`)
+
 1. `pnpm tauri dev`.
 2. Sidebar → Account → "Continue with Google" → complete consent in the browser.
 3. App returns to the Account screen showing your email + "free plan".
@@ -1503,6 +1536,7 @@ git commit -m "docs(auth): document accounts, OAuth flow, and the gating seam"
 ## Self-Review
 
 **Spec coverage:**
+
 - "Usuário consiga fazer login / login com Google" → Tasks 5, 6, 9 (loopback PKCE + Google + Account UI). ✅
 - "Exista um back-end para gerenciar isso" → Task 1 (Supabase Postgres + Auth + RLS). ✅
 - "Background pronto para monetizar / limitar features com base no plano" → Task 1 (`plan` column + RLS), Task 7 (entitlements matrix), Task 8 (`useEntitlements`). ✅
