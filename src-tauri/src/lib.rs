@@ -2,8 +2,6 @@ mod audio;
 mod commands;
 mod config;
 mod entitlements;
-mod oauth;
-mod secure_store;
 mod history;
 mod hotkey;
 mod inject;
@@ -12,7 +10,9 @@ mod meetings;
 mod model_manager;
 #[cfg(target_os = "macos")]
 mod modtap;
+mod oauth;
 mod overlay;
+mod secure_store;
 mod state;
 pub mod stt;
 mod sysaudio;

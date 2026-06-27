@@ -33,7 +33,9 @@ export function UsageProvider({ children }: { children: ReactNode }) {
   const [usage, setUsage] = useState<Usage>(EMPTY);
   const [blocked, setBlocked] = useState<BlockedState | null>(null);
   const userIdRef = useRef<string | null>(null);
-  userIdRef.current = user?.id ?? null;
+  useEffect(() => {
+    userIdRef.current = user?.id ?? null;
+  }, [user]);
 
   // Compute remaining and push the snapshot to Rust.
   const push = useCallback(

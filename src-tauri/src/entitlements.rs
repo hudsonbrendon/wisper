@@ -59,13 +59,24 @@ mod tests {
     use super::*;
 
     fn ent(logged_in: bool, pro: bool, words: i64, meetings: i64) -> Entitlements {
-        Entitlements { logged_in, pro, remaining_words: words, remaining_meetings: meetings }
+        Entitlements {
+            logged_in,
+            pro,
+            remaining_words: words,
+            remaining_meetings: meetings,
+        }
     }
 
     #[test]
     fn logged_out_blocks_with_auth() {
-        assert_eq!(decide_dictation(&ent(false, false, 100, 100)), Decision::BlockAuth);
-        assert_eq!(decide_meeting(&ent(false, false, 100, 100)), Decision::BlockAuth);
+        assert_eq!(
+            decide_dictation(&ent(false, false, 100, 100)),
+            Decision::BlockAuth
+        );
+        assert_eq!(
+            decide_meeting(&ent(false, false, 100, 100)),
+            Decision::BlockAuth
+        );
     }
 
     #[test]
@@ -79,8 +90,14 @@ mod tests {
         // > 0 allows (the in-progress dictation finishes even if it crosses 0).
         assert_eq!(decide_dictation(&ent(true, false, 1, 1)), Decision::Allow);
         // <= 0 blocks the next one.
-        assert_eq!(decide_dictation(&ent(true, false, 0, 1)), Decision::BlockQuota);
-        assert_eq!(decide_meeting(&ent(true, false, 1, 0)), Decision::BlockQuota);
+        assert_eq!(
+            decide_dictation(&ent(true, false, 0, 1)),
+            Decision::BlockQuota
+        );
+        assert_eq!(
+            decide_meeting(&ent(true, false, 1, 0)),
+            Decision::BlockQuota
+        );
     }
 }
 

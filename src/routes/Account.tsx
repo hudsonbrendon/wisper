@@ -43,10 +43,10 @@ export default function Account() {
   const userId = user?.id ?? null;
   const isPro = plan === "pro";
   useEffect(() => {
-    if (!userId || !isPro) {
-      setBilling(null);
-      return;
-    }
+    // When not Pro the billing date isn't rendered, so leave any prior value as
+    // is (clearing it here would be a synchronous setState in an effect); a
+    // later Pro plan re-runs this and re-fetches.
+    if (!userId || !isPro) return;
     let active = true;
     void getBillingInfo(userId).then((b) => {
       if (active) setBilling(b);
