@@ -120,6 +120,10 @@ describe("AuthProvider", () => {
       </AuthProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("plan").textContent).toBe("free"));
+    // Ensure the realtime effect has subscribed (so `deliver` is the real callback).
+    await waitFor(() =>
+      expect(vi.mocked(subscribePlan)).toHaveBeenCalledWith("u1", expect.any(Function)),
+    );
 
     await act(async () => deliver("pro"));
     expect(screen.getByTestId("plan").textContent).toBe("pro");

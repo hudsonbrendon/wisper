@@ -13,6 +13,7 @@ export default defineConfig({
       "**/dist/**",
       "**/.claude/**",
       "**/site/**",
+      "**/supabase/functions/**",
     ],
     coverage: {
       provider: "v8",
