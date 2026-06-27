@@ -1340,6 +1340,7 @@ pub fn run() {
             commands::reset_app,
             commands::get_permissions,
             commands::prompt_accessibility,
+            commands::reset_accessibility,
             commands::reset_microphone,
             commands::open_privacy_settings,
             commands::start_meeting,

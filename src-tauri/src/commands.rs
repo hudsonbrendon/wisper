@@ -150,6 +150,19 @@ pub fn reset_microphone() {
     }
 }
 
+/// Reset the Accessibility TCC grant and re-prompt — the same recovery flow as
+/// the microphone reset, for a stale grant left by an earlier build.
+#[tauri::command]
+pub fn reset_accessibility() {
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("tccutil")
+            .args(["reset", "Accessibility", "chat.wisper"])
+            .status();
+        crate::inject::prompt_accessibility_on_startup();
+    }
+}
+
 /// Open the OS privacy settings pane for "microphone" | "accessibility".
 #[tauri::command]
 pub fn open_privacy_settings(which: String) {

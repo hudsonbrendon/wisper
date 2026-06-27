@@ -51,6 +51,7 @@ vi.mock("../lib/api", () => ({
     .fn()
     .mockResolvedValue({ accessibility: true, microphone: true }),
   promptAccessibility: vi.fn().mockResolvedValue(undefined),
+  resetAccessibility: vi.fn().mockResolvedValue(undefined),
   resetMicrophone: vi.fn().mockResolvedValue(undefined),
   openPrivacySettings: vi.fn().mockResolvedValue(undefined),
   onEvent: mockOnEvent,

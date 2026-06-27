@@ -72,6 +72,7 @@ export interface Permissions {
 }
 export const getPermissions = () => invoke<Permissions>("get_permissions");
 export const promptAccessibility = () => invoke<void>("prompt_accessibility");
+export const resetAccessibility = () => invoke<void>("reset_accessibility");
 export const resetMicrophone = () => invoke<void>("reset_microphone");
 export const openPrivacySettings = (which: "microphone" | "accessibility") =>
   invoke<void>("open_privacy_settings", { which });
