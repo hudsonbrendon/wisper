@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
       .update({
         plan: planForStatus(sub.status),
         stripe_subscription_status: sub.status,
+        cancel_at_period_end: sub.cancel_at_period_end ?? false,
         current_period_end: periodEndUnix
           ? new Date(periodEndUnix * 1000).toISOString()
           : null,

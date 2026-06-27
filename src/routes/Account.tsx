@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../lib/authContext";
 import { useUsage } from "../lib/usageContext";
 import { WEEKLY_LIMITS, isUnlimited } from "../lib/entitlements";
 import { useI18n } from "../lib/i18n";
-import { startCheckout, openBillingPortal } from "../lib/billing";
+import {
+  startCheckout,
+  openBillingPortal,
+  getBillingInfo,
+  type BillingInfo,
+} from "../lib/billing";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 /// Account screen: a full-width identity/plan card, weekly usage metrics side
@@ -16,6 +21,7 @@ export default function Account() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [billingInterval, setBillingInterval] = useState<"month" | "year">("year");
+  const [billing, setBilling] = useState<BillingInfo | null>(null);
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -28,6 +34,24 @@ export default function Account() {
       setBusy(false);
     }
   };
+
+  // Pro: load the renewal/cancellation date for the management card. Re-runs
+  // when the plan flips (Realtime), so it appears the moment a checkout lands.
+  const userId = user?.id ?? null;
+  const isPro = plan === "pro";
+  useEffect(() => {
+    if (!userId || !isPro) {
+      setBilling(null);
+      return;
+    }
+    let active = true;
+    void getBillingInfo(userId).then((b) => {
+      if (active) setBilling(b);
+    });
+    return () => {
+      active = false;
+    };
+  }, [userId, isPro]);
 
   if (loading) {
     return <div className="text-sm text-stone-500">{t("account.loading")}</div>;
@@ -189,6 +213,20 @@ export default function Account() {
                 <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
                   {t("billing.proFeatures")}
                 </p>
+                {billing?.currentPeriodEnd && (
+                  <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+                    {t(
+                      billing.cancelAtPeriodEnd
+                        ? "billing.cancelsOn"
+                        : "billing.renewsOn",
+                      {
+                        date: new Date(
+                          billing.currentPeriodEnd,
+                        ).toLocaleDateString(),
+                      },
+                    )}
+                  </p>
+                )}
               </div>
               <div className="mt-4 flex flex-wrap gap-3 sm:mt-0">
                 <button

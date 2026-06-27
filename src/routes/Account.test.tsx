@@ -17,12 +17,13 @@ vi.mock("../lib/usageContext", () => ({
 vi.mock("../lib/billing", () => ({
   startCheckout: vi.fn(),
   openBillingPortal: vi.fn(),
+  getBillingInfo: vi.fn(() => Promise.resolve(null)),
 }));
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn() }));
 
 import { useAuth } from "../lib/authContext";
 import { useUsage } from "../lib/usageContext";
-import { startCheckout, openBillingPortal } from "../lib/billing";
+import { startCheckout, openBillingPortal, getBillingInfo } from "../lib/billing";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import Account from "./Account";
 
@@ -161,5 +162,22 @@ describe("Account", () => {
       screen.getByRole("button", { name: /manage subscription/i }),
     );
     expect(vi.mocked(openBillingPortal)).toHaveBeenCalledTimes(1);
+  });
+
+  it("pro: shows the cancellation date when set to cancel at period end", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "u1", email: "a@b.com" } as never,
+      plan: "pro",
+      loading: false,
+      signIn,
+      signOut,
+    });
+    vi.mocked(getBillingInfo).mockResolvedValueOnce({
+      status: "active",
+      currentPeriodEnd: "2026-07-27T00:00:00Z",
+      cancelAtPeriodEnd: true,
+    });
+    render(<I18nProvider><Account /></I18nProvider>);
+    expect(await screen.findByText(/cancels on/i)).toBeInTheDocument();
   });
 });

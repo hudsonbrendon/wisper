@@ -30,3 +30,29 @@ export async function startCheckout(interval: Interval): Promise<void> {
 export async function openBillingPortal(): Promise<void> {
   await openUrl(await invokeUrl("create-portal-session", {}));
 }
+
+export interface BillingInfo {
+  status: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+}
+
+/// Read the signed-in user's billing details (subscription status, period end,
+/// and whether it's set to cancel) so the Account screen can show the renewal
+/// or cancellation date. Returns null when unconfigured or on any read miss.
+export async function getBillingInfo(
+  userId: string,
+): Promise<BillingInfo | null> {
+  if (!isSupabaseConfigured()) return null;
+  const { data, error } = await getSupabase()
+    .from("profiles")
+    .select("stripe_subscription_status, current_period_end, cancel_at_period_end")
+    .eq("id", userId)
+    .single();
+  if (error || !data) return null;
+  return {
+    status: (data.stripe_subscription_status as string | null) ?? null,
+    currentPeriodEnd: (data.current_period_end as string | null) ?? null,
+    cancelAtPeriodEnd: Boolean(data.cancel_at_period_end),
+  };
+}
