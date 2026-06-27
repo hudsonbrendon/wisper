@@ -11,7 +11,7 @@ import {
   type BillingInfo,
 } from "../lib/billing";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { WisperBrand, GoogleG } from "../components/BrandLogos";
+import { WisperLogoStack, GoogleG } from "../components/BrandLogos";
 
 /// Account screen: a full-width identity/plan card, weekly usage metrics side
 /// by side, and a Wisper Pro upsell for free users (the upgrade button starts
@@ -71,7 +71,7 @@ export default function Account() {
   if (!user) {
     return (
       <div className="flex min-h-[78vh] flex-col items-center justify-center px-6 text-center">
-        <WisperBrand className="mb-7" />
+        <WisperLogoStack className="mb-7" />
         <h1 className="text-3xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">
           {t("account.signInHeadline")}
         </h1>

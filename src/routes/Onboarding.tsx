@@ -15,7 +15,7 @@ import {
   ChatGptMark,
   ClaudeMark,
   GmailMark,
-  WisperBrand,
+  WisperLogoStack,
   GoogleG,
 } from "../components/BrandLogos";
 
@@ -121,10 +121,7 @@ function Welcome() {
   const { t } = useI18n();
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <img src="/logo.png" alt="" className="mb-3 h-20 w-20" />
-      <span className="mb-6 text-xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">
-        Wisper
-      </span>
+      <WisperLogoStack className="mb-6" />
       <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">
         {t("onboarding.welcome.title")}
       </h1>
@@ -401,7 +398,7 @@ function LoginStep({
   const [busy, setBusy] = useState(false);
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <WisperBrand markClassName="h-7 w-7" textClassName="text-xl" className="mb-6" />
+      <WisperLogoStack className="mb-6" />
       <h2 className="text-xl font-semibold text-stone-900 dark:text-stone-100">
         {t("onboarding.login.title")}
       </h2>
