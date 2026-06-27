@@ -58,10 +58,10 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
                 className={
                   "h-1.5 rounded-full transition-all " +
                   (i === stepIdx
-                    ? "w-6 bg-teal-600"
+                    ? "w-6 bg-stone-900 dark:bg-stone-100"
                     : i < stepIdx
-                      ? "w-3 bg-teal-400"
-                      : "w-3 bg-stone-200")
+                      ? "w-3 bg-stone-400 dark:bg-stone-600"
+                      : "w-3 bg-stone-200 dark:bg-stone-700")
                 }
               />
             ))}
@@ -107,7 +107,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
             type="button"
             onClick={next}
             disabled={step === "login" && !user}
-            className="rounded-lg bg-teal-600 px-5 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-40"
+            className="rounded-lg bg-stone-900 px-5 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-40 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
           >
             {step === "done" ? t("onboarding.finish") : t("onboarding.next")}
           </button>
@@ -178,7 +178,7 @@ function HotkeyStep({
         className={
           "mt-5 w-full rounded-xl border px-4 py-3 text-center font-mono text-sm transition-colors " +
           (capturing
-            ? "border-teal-300 bg-teal-600 text-white ring-2 ring-teal-200"
+            ? "border-stone-400 bg-stone-900 text-white ring-2 ring-stone-200 dark:bg-stone-100 dark:text-stone-900 dark:ring-stone-700"
             : "border-stone-300 dark:border-stone-700 text-stone-800 dark:text-stone-200 hover:bg-stone-50")
         }
       >
@@ -240,7 +240,7 @@ function ModelStep() {
       </p>
 
       {hasModel ? (
-        <div className="mt-6 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="mt-6 flex items-center gap-2 rounded-xl bg-stone-100 px-4 py-3 text-sm text-stone-700 dark:bg-stone-800 dark:text-stone-200">
           ✓ {t("onboarding.model.ready")}
         </div>
       ) : (
@@ -356,7 +356,7 @@ function PracticeStep({ hotkey }: { hotkey: string }) {
       </div>
 
       {done ? (
-        <div className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="mt-4 flex items-center gap-2 rounded-xl bg-stone-100 px-4 py-3 text-sm text-stone-700 dark:bg-stone-800 dark:text-stone-200">
           ✓ {t("onboarding.practice.success")}
         </div>
       ) : (
@@ -372,7 +372,7 @@ function Done() {
   const { t } = useI18n();
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl text-emerald-600">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-stone-900 text-3xl text-white dark:bg-stone-100 dark:text-stone-900">
         ✓
       </div>
       <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">
@@ -406,7 +406,7 @@ function LoginStep({
         {t("onboarding.login.body")}
       </p>
       {user ? (
-        <div className="mt-6 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="mt-6 flex items-center gap-2 rounded-xl bg-stone-100 px-4 py-3 text-sm text-stone-700 dark:bg-stone-800 dark:text-stone-200">
           ✓ {t("onboarding.login.signedIn")}
         </div>
       ) : (

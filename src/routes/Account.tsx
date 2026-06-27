@@ -181,7 +181,7 @@ export default function Account() {
           )}
 
           {free && (
-            <Card className="border-teal-200 bg-gradient-to-br from-teal-50 to-stone-50 dark:border-teal-900/40 dark:from-teal-950/30 dark:to-stone-900">
+            <Card className="border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-900">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <div className="text-lg font-semibold text-stone-900 dark:text-stone-100">
@@ -220,7 +220,7 @@ export default function Account() {
                 </div>
               </div>
               {billingInterval === "year" && (
-                <p className="mt-2 text-xs font-medium text-teal-700 dark:text-teal-400">
+                <p className="mt-2 text-xs font-medium text-stone-600 dark:text-stone-300">
                   {t("billing.saveAnnual")}
                 </p>
               )}
@@ -341,11 +341,11 @@ export default function Account() {
   );
 }
 
-// One value-prop row with a teal check.
+// One value-prop row with a check.
 function Benefit({ text }: { text: string }) {
   return (
     <li className="flex items-start gap-3">
-      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">
+      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900">
         <svg viewBox="0 0 20 20" className="h-3 w-3" fill="currentColor" aria-hidden="true">
           <path d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 1 1 1.4-1.4l3.3 3.3 6.8-6.8a1 1 0 0 1 1.6 0z" />
         </svg>
@@ -388,7 +388,7 @@ function Avatar({ url, fallback }: { url: string; fallback: string }) {
     );
   }
   return (
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-600 text-lg font-semibold uppercase text-white">
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-stone-900 text-lg font-semibold uppercase text-white dark:bg-stone-100 dark:text-stone-900">
       {(fallback || "?").charAt(0)}
     </div>
   );
@@ -405,14 +405,14 @@ function MetricCard({
 }) {
   const pct = Math.min(100, Math.round((used / limit) * 100));
   // Reached (at/over the cap) → red; halfway-or-more but not yet at the cap →
-  // amber; otherwise teal.
+  // amber; otherwise neutral (black/white per theme).
   const reached = used >= limit;
   const near = !reached && pct >= 50;
   const barColor = reached
     ? "bg-red-500"
     : near
       ? "bg-amber-500"
-      : "bg-teal-500";
+      : "bg-stone-900 dark:bg-stone-100";
   const pctColor = reached
     ? "text-red-500"
     : near
