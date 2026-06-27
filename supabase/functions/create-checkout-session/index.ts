@@ -51,10 +51,13 @@ Deno.serve(async (req) => {
         metadata: { supabase_user_id: user.id },
       });
       customerId = customer.id;
-      await admin
+      const { error: updateErr } = await admin
         .from("profiles")
         .update({ stripe_customer_id: customerId })
         .eq("id", user.id);
+      if (updateErr) {
+        return json({ error: "failed to persist customer" }, 500);
+      }
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -67,6 +70,7 @@ Deno.serve(async (req) => {
       cancel_url: "https://whisper.chat/?checkout=cancel",
     });
 
+    if (!session.url) return json({ error: "no checkout url" }, 500);
     return json({ url: session.url });
   } catch (e) {
     return json({ error: String(e) }, 400);

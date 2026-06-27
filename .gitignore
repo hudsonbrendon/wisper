@@ -34,3 +34,6 @@ coverage
 
 # Local environment variables (never commit real credentials)
 .env
+
+# Stray root-level Deno lockfile (the real one lives at supabase/functions/deno.lock)
+/deno.lock
