@@ -64,6 +64,44 @@ export default function Account() {
     return <div className="text-sm text-stone-500">{t("account.loading")}</div>;
   }
 
+  // Signed out: a centered hero that fills the screen — app glyph, headline,
+  // what an account gives you, and a Google button with the white "G" logo.
+  if (!user) {
+    return (
+      <div className="flex min-h-[78vh] flex-col items-center justify-center px-6 text-center">
+        <div className="mb-7 flex h-16 w-16 items-center justify-center rounded-2xl bg-stone-900 text-white shadow-sm dark:bg-stone-100 dark:text-stone-900">
+          <WaveGlyph />
+        </div>
+        <h1 className="text-3xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">
+          {t("account.signInHeadline")}
+        </h1>
+        <p className="mt-3 max-w-md text-base text-stone-500 dark:text-stone-400">
+          {t("account.subtitle")}
+        </p>
+
+        <ul className="mt-9 w-full max-w-sm space-y-4 text-left">
+          <Benefit text={t("account.benefit.local")} />
+          <Benefit text={t("account.benefit.usage")} />
+          <Benefit text={t("account.benefit.plan")} />
+        </ul>
+
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => run(signIn)}
+          className="mt-10 inline-flex w-full max-w-sm items-center justify-center gap-3 rounded-xl bg-stone-900 px-5 py-3.5 text-sm font-medium text-white shadow-sm transition hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
+        >
+          <GoogleG className="h-5 w-5" />
+          {busy ? t("account.openingBrowser") : t("account.continueGoogle")}
+        </button>
+
+        {error && (
+          <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p>
+        )}
+      </div>
+    );
+  }
+
   const free = !isUnlimited(plan);
   const planName = t(plan === "pro" ? "account.plan.pro" : "account.plan.free");
 
@@ -88,8 +126,7 @@ export default function Account() {
         </p>
       </header>
 
-      {user ? (
-        <div className="space-y-4">
+      <div className="space-y-4">
           {/* Identity + plan — full width */}
           <Card className="sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
@@ -255,23 +292,54 @@ export default function Account() {
             </Card>
           )}
         </div>
-      ) : (
-        <div className="max-w-md rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-800 dark:bg-stone-900/40">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => run(signIn)}
-            className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
-          >
-            {busy ? t("account.openingBrowser") : t("account.continueGoogle")}
-          </button>
-        </div>
-      )}
 
       {error && (
         <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
     </div>
+  );
+}
+
+// App glyph for the signed-out hero — an audio waveform echoing the sidebar.
+function WaveGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-7 w-7"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M4 10v4M8 6v12M12 9v6M16 4v16M20 10v4" />
+    </svg>
+  );
+}
+
+// One value-prop row with a teal check.
+function Benefit({ text }: { text: string }) {
+  return (
+    <li className="flex items-start gap-3">
+      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">
+        <svg viewBox="0 0 20 20" className="h-3 w-3" fill="currentColor" aria-hidden="true">
+          <path d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 1 1 1.4-1.4l3.3 3.3 6.8-6.8a1 1 0 0 1 1.6 0z" />
+        </svg>
+      </span>
+      <span className="text-sm text-stone-600 dark:text-stone-300">{text}</span>
+    </li>
+  );
+}
+
+// The Google "G", rendered in solid white for use on the dark CTA button.
+function GoogleG({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
+      <path fill="#fff" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
+      <path fill="#fff" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
+      <path fill="#fff" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
+      <path fill="#fff" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
+    </svg>
   );
 }
 
