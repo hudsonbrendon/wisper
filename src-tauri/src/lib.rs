@@ -919,22 +919,65 @@ fn play_dictation_sound(start: bool) {
 
 /// Pause or resume Spotify / Apple Music while dictating (macOS only,
 /// best-effort — a no-op if the app isn't running).
+///
+/// On pause we only touch apps that are actually *playing* and remember them;
+/// on resume we play back only those. Without this, resume would `play` apps
+/// that were paused (or never playing) before dictation, starting music the
+/// user did not have running.
 fn set_media_paused(paused: bool) {
     #[cfg(target_os = "macos")]
     {
-        let action = if paused { "pause" } else { "play" };
-        for media_app in ["Spotify", "Music"] {
-            let script = format!(
-                "tell application \"System Events\" to if exists (processes whose name is \"{media_app}\") then tell application \"{media_app}\" to {action}"
-            );
-            let _ = std::process::Command::new("osascript")
-                .arg("-e")
-                .arg(script)
-                .spawn();
+        // Apps we paused on dictation start, so we resume exactly those.
+        static PAUSED_MEDIA: std::sync::Mutex<Vec<&'static str>> =
+            std::sync::Mutex::new(Vec::new());
+
+        if paused {
+            let mut remembered = PAUSED_MEDIA.lock().unwrap();
+            remembered.clear();
+            for media_app in ["Spotify", "Music"] {
+                if media_is_playing(media_app) {
+                    run_media_command(media_app, "pause");
+                    remembered.push(media_app);
+                }
+            }
+        } else {
+            let remembered = std::mem::take(&mut *PAUSED_MEDIA.lock().unwrap());
+            for media_app in remembered {
+                run_media_command(media_app, "play");
+            }
         }
     }
     #[cfg(not(target_os = "macos"))]
     let _ = paused;
+}
+
+/// Whether `media_app` is running AND currently playing. Guarded so it never
+/// launches a non-running app.
+#[cfg(target_os = "macos")]
+fn media_is_playing(media_app: &str) -> bool {
+    let script = format!(
+        "tell application \"System Events\" to if exists (processes whose name is \"{media_app}\") then tell application \"{media_app}\" to return (player state as text)"
+    );
+    match std::process::Command::new("osascript")
+        .arg("-e")
+        .arg(script)
+        .output()
+    {
+        Ok(o) => String::from_utf8_lossy(&o.stdout).trim() == "playing",
+        Err(_) => false,
+    }
+}
+
+/// Send a transport command (`pause` / `play`) to `media_app` if it's running.
+#[cfg(target_os = "macos")]
+fn run_media_command(media_app: &str, action: &str) {
+    let script = format!(
+        "tell application \"System Events\" to if exists (processes whose name is \"{media_app}\") then tell application \"{media_app}\" to {action}"
+    );
+    let _ = std::process::Command::new("osascript")
+        .arg("-e")
+        .arg(script)
+        .spawn();
 }
 
 /// Re-apply the pill's visibility from config + current state. Called after a
