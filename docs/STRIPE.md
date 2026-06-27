@@ -5,11 +5,13 @@ prices `price_1Tmjij…` ($8/mo) and `price_1Tmjik…` ($72/yr). Keys + price ID
 in the gitignored `supabase/.env`.
 
 ## One-time
+
 1. Apply migrations (local stack): `supabase stop && supabase start` (re-applies
    `0001`–`0003`) or `docker exec -i supabase_db_wisper psql -U postgres -d postgres < supabase/migrations/0003_billing.sql`.
 2. Stripe CLI login (once): `stripe login`.
 
 ## Run the loop
+
 1. Serve the Edge Functions with the env file:
    ```
    supabase functions serve --no-verify-jwt --env-file supabase/.env

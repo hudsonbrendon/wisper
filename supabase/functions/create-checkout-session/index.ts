@@ -9,7 +9,8 @@ const json = (body: unknown, status = 200) =>
   });
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response("ok", { headers: corsHeaders });
   try {
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
       httpClient: Stripe.createFetchHttpClient(),
@@ -33,10 +34,7 @@ Deno.serve(async (req) => {
         ? Deno.env.get("STRIPE_PRICE_ANNUAL")!
         : Deno.env.get("STRIPE_PRICE_MONTHLY")!;
 
-    const admin = createClient(
-      url,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // Reuse the customer if we already created one; else create + store it.
     const { data: profile } = await admin

@@ -62,14 +62,18 @@ describe("signInWithGoogle", () => {
   it("runs the loopback PKCE flow and exchanges the code for a session", async () => {
     mockInvoke.mockResolvedValueOnce(5123); // start_oauth_server -> port
     // once() resolves with the callback URL when the browser redirects.
-    mockOnce.mockImplementationOnce(
-      ((_event: string, handler: (e: { payload: string }) => void) => {
-        handler({ payload: "http://127.0.0.1:5123/?code=abc123" });
-        return Promise.resolve(() => {});
-      }) as never,
-    );
+    mockOnce.mockImplementationOnce(((
+      _event: string,
+      handler: (e: { payload: string }) => void,
+    ) => {
+      handler({ payload: "http://127.0.0.1:5123/?code=abc123" });
+      return Promise.resolve(() => {});
+    }) as never);
     mockClient.auth.signInWithOAuth.mockResolvedValueOnce({
-      data: { url: "https://supabase.co/auth/v1/authorize?x=1", provider: "google" },
+      data: {
+        url: "https://supabase.co/auth/v1/authorize?x=1",
+        provider: "google",
+      },
       error: null,
     });
     mockClient.auth.exchangeCodeForSession.mockResolvedValueOnce({
@@ -90,7 +94,9 @@ describe("signInWithGoogle", () => {
     expect(mockOpenUrl).toHaveBeenCalledWith(
       "https://supabase.co/auth/v1/authorize?x=1",
     );
-    expect(mockClient.auth.exchangeCodeForSession).toHaveBeenCalledWith("abc123");
+    expect(mockClient.auth.exchangeCodeForSession).toHaveBeenCalledWith(
+      "abc123",
+    );
   });
 
   it("rejects with timeout error when oauth://url event never fires", async () => {
@@ -98,12 +104,13 @@ describe("signInWithGoogle", () => {
 
     mockInvoke.mockResolvedValueOnce(5123);
     // once() never calls the handler — simulates user closing the browser.
-    mockOnce.mockImplementationOnce(
-      ((_event: string, _handler: unknown) =>
-        Promise.resolve(() => {})) as never,
-    );
+    mockOnce.mockImplementationOnce(((_event: string, _handler: unknown) =>
+      Promise.resolve(() => {})) as never);
     mockClient.auth.signInWithOAuth.mockResolvedValueOnce({
-      data: { url: "https://supabase.co/auth/v1/authorize?x=1", provider: "google" },
+      data: {
+        url: "https://supabase.co/auth/v1/authorize?x=1",
+        provider: "google",
+      },
       error: null,
     });
 
@@ -123,10 +130,8 @@ describe("signInWithGoogle", () => {
 
     mockInvoke.mockResolvedValueOnce(5123);
     // once() returns an unlisten fn but never fires the event.
-    mockOnce.mockImplementationOnce(
-      ((_event: string, _handler: unknown) =>
-        Promise.resolve(() => {})) as never,
-    );
+    mockOnce.mockImplementationOnce(((_event: string, _handler: unknown) =>
+      Promise.resolve(() => {})) as never);
     const oauthError = new Error("OAuth provider error");
     mockClient.auth.signInWithOAuth.mockResolvedValueOnce({
       data: null,

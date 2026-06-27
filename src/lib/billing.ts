@@ -12,7 +12,10 @@ async function invokeUrl(
   }
   const opts =
     Object.keys(body).length > 0 ? { body } : ({} as Record<string, unknown>);
-  const { data, error } = await getSupabase().functions.invoke(fn, opts as never);
+  const { data, error } = await getSupabase().functions.invoke(
+    fn,
+    opts as never,
+  );
   if (error) throw error;
   const url = (data as { url?: string } | null)?.url;
   if (!url) throw new Error(`${fn} returned no URL`);
@@ -46,7 +49,9 @@ export async function getBillingInfo(
   if (!isSupabaseConfigured()) return null;
   const { data, error } = await getSupabase()
     .from("profiles")
-    .select("stripe_subscription_status, current_period_end, cancel_at_period_end")
+    .select(
+      "stripe_subscription_status, current_period_end, cancel_at_period_end",
+    )
     .eq("id", userId)
     .single();
   if (error || !data) return null;

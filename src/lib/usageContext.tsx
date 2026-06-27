@@ -42,18 +42,30 @@ export function UsageProvider({ children }: { children: ReactNode }) {
     (u: Usage) => {
       if (!isSupabaseConfigured()) {
         // No backend → metering disabled so the app stays usable.
-        setEntitlements({ loggedIn: true, pro: true, remainingWords: 0, remainingMeetings: 0 });
+        setEntitlements({
+          loggedIn: true,
+          pro: true,
+          remainingWords: 0,
+          remainingMeetings: 0,
+        });
         return;
       }
       if (!user) {
-        setEntitlements({ loggedIn: false, pro: false, remainingWords: 0, remainingMeetings: 0 });
+        setEntitlements({
+          loggedIn: false,
+          pro: false,
+          remainingWords: 0,
+          remainingMeetings: 0,
+        });
         return;
       }
       const pro = isUnlimited(plan);
       setEntitlements({
         loggedIn: true,
         pro,
-        remainingWords: pro ? 0 : remainingFor(plan, "dictation_words", u.dictation_words),
+        remainingWords: pro
+          ? 0
+          : remainingFor(plan, "dictation_words", u.dictation_words),
         remainingMeetings: pro ? 0 : remainingFor(plan, "meeting", u.meetings),
       });
     },

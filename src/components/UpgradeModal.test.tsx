@@ -18,8 +18,15 @@ beforeEach(() => {
 
 describe("UpgradeModal", () => {
   it("renders nothing when not blocked", () => {
-    vi.mocked(useUsage).mockReturnValue({ blocked: null, clearBlocked } as never);
-    const { container } = render(<I18nProvider><UpgradeModal /></I18nProvider>);
+    vi.mocked(useUsage).mockReturnValue({
+      blocked: null,
+      clearBlocked,
+    } as never);
+    const { container } = render(
+      <I18nProvider>
+        <UpgradeModal />
+      </I18nProvider>,
+    );
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -28,10 +35,18 @@ describe("UpgradeModal", () => {
       blocked: { reason: "quota", metric: "dictation" },
       clearBlocked,
     } as never);
-    render(<I18nProvider><UpgradeModal /></I18nProvider>);
+    render(
+      <I18nProvider>
+        <UpgradeModal />
+      </I18nProvider>,
+    );
     expect(screen.getByText(/weekly limit reached/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /\$8\s*\/\s*month/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /\$72\s*\/\s*year/i })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /\$8\s*\/\s*month/i }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /\$72\s*\/\s*year/i }),
+    ).toBeDisabled();
   });
 
   it("shows a sign-in prompt on an auth block and wires the button", async () => {
@@ -39,8 +54,14 @@ describe("UpgradeModal", () => {
       blocked: { reason: "auth", metric: "dictation" },
       clearBlocked,
     } as never);
-    render(<I18nProvider><UpgradeModal /></I18nProvider>);
-    await userEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+    render(
+      <I18nProvider>
+        <UpgradeModal />
+      </I18nProvider>,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /continue with google/i }),
+    );
     expect(signIn).toHaveBeenCalledTimes(1);
   });
 });

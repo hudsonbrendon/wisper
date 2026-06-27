@@ -9,7 +9,8 @@ const json = (body: unknown, status = 200) =>
   });
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response("ok", { headers: corsHeaders });
   try {
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
       httpClient: Stripe.createFetchHttpClient(),

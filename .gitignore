@@ -37,3 +37,5 @@ coverage
 
 # Stray root-level Deno lockfile (the real one lives at supabase/functions/deno.lock)
 /deno.lock
+
+.superpowers/

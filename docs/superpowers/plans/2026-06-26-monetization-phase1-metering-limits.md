@@ -14,7 +14,7 @@
 - **Weekly reset:** fixed window, **Monday 00:00 UTC** (no per-user timezone). The reset is implicit via the `current_usage()` query filter; there is no cron job.
 - **Account required:** a session is required to dictate/record meetings. Logged-out → blocked (reason `auth`).
 - **Server is the source of truth** for usage; the app enforces from a local cache for instant UX and reconciles on sync.
-- **Limit-reached behavior:** block the *next* action. A dictation already transcribed is still injected if quota was `> 0` before it; the next one is blocked. Meetings block before the 3rd recording starts.
+- **Limit-reached behavior:** block the _next_ action. A dictation already transcribed is still injected if quota was `> 0` before it; the next one is blocked. Meetings block before the 3rd recording starts.
 - **No Stripe in this plan.** The upgrade modal's buttons are inert (Phase 2 wires checkout). Do not add Stripe deps, Edge Functions, or `profiles` Stripe columns here.
 - **`plan` stays server-authoritative.** This plan never writes `plan` from the client. It only reads `plan` (via the existing `fetchPlan`) and writes `usage_events`.
 - **New UI strings are literal English** (do NOT edit the large `src/lib/i18n.tsx`), consistent with the existing `Account.tsx`.
@@ -24,14 +24,17 @@
 ## File Structure
 
 **Supabase:**
+
 - `supabase/migrations/0002_usage_events.sql` (new) — `usage_events` table, RLS, `current_usage()`.
 
 **Rust (`src-tauri/src/`):**
+
 - `entitlements.rs` (new) — `Entitlements` struct, pure decision fns, `set_entitlements` command.
 - `lib.rs` (modify) — `mod entitlements;`, `AppState` field + init, dictation guard in `stop_and_insert`, meeting guard in `start_meeting`, register command.
 - `commands.rs` (modify) — `AppState` struct field.
 
 **Frontend (`src/`):**
+
 - `lib/entitlements.ts` (modify) — weekly limits + `remainingFor` / `isUnlimited` / `Metric`.
 - `lib/usage.ts` (new) — Supabase bridge: `loadUsage`, `recordUsage`, `flushQueue`.
 - `lib/usageContext.tsx` (new) — `UsageProvider` + `useUsage`: loads usage, pushes entitlements to Rust, listens to `usage_consumed`, exposes usage + `blocked`.
@@ -48,9 +51,11 @@
 ## Task 1: Usage schema — `usage_events` + RLS + `current_usage()`
 
 **Files:**
+
 - Create: `supabase/migrations/0002_usage_events.sql`
 
 **Interfaces:**
+
 - Consumes: `auth.users`, `auth.uid()` (Supabase auth, already present from the accounts feature).
 - Produces: table `public.usage_events(id, user_id, metric, amount, created_at)`; RPC `public.current_usage()` returning JSON `{ "dictation_words": <int>, "meetings": <int> }` for the calling user over the current UTC week.
 
@@ -135,10 +140,12 @@ git commit -m "feat(usage): add usage_events table, RLS, and current_usage() fun
 ## Task 2: Entitlements limits (`entitlements.ts`)
 
 **Files:**
+
 - Modify: `src/lib/entitlements.ts`
 - Create: `src/lib/entitlements.limits.test.ts`
 
 **Interfaces:**
+
 - Consumes: nothing new.
 - Produces (added to `src/lib/entitlements.ts`):
   - `export type Metric = "dictation_words" | "meeting"`
@@ -231,10 +238,12 @@ git commit -m "feat(usage): add weekly limits and remaining helpers to entitleme
 ## Task 3: Usage bridge (`usage.ts`)
 
 **Files:**
+
 - Create: `src/lib/usage.ts`
 - Create: `src/lib/usage.test.ts`
 
 **Interfaces:**
+
 - Consumes: `getSupabase`, `isSupabaseConfigured` (from `./supabase`); `Metric` (from `./entitlements`).
 - Produces:
   - `export interface Usage { dictation_words: number; meetings: number }`
@@ -261,7 +270,10 @@ const QUEUE_KEY = "wisper.usage.queue";
 
 function mockClient(over: Record<string, unknown> = {}) {
   return {
-    rpc: vi.fn().mockResolvedValue({ data: { dictation_words: 12, meetings: 1 }, error: null }),
+    rpc: vi.fn().mockResolvedValue({
+      data: { dictation_words: 12, meetings: 1 },
+      error: null,
+    }),
     from: vi.fn(() => ({ insert: vi.fn().mockResolvedValue({ error: null }) })),
     ...over,
   };
@@ -285,15 +297,23 @@ describe("loadUsage", () => {
 describe("recordUsage", () => {
   it("inserts an event with the user's id", async () => {
     const insert = vi.fn().mockResolvedValue({ error: null });
-    vi.mocked(getSupabase).mockReturnValue(mockClient({ from: vi.fn(() => ({ insert })) }) as never);
+    vi.mocked(getSupabase).mockReturnValue(
+      mockClient({ from: vi.fn(() => ({ insert })) }) as never,
+    );
     await recordUsage("u1", "dictation_words", 42);
-    expect(insert).toHaveBeenCalledWith({ user_id: "u1", metric: "dictation_words", amount: 42 });
+    expect(insert).toHaveBeenCalledWith({
+      user_id: "u1",
+      metric: "dictation_words",
+      amount: 42,
+    });
     expect(JSON.parse(localStorage.getItem(QUEUE_KEY) ?? "[]")).toEqual([]);
   });
 
   it("enqueues to localStorage when the insert fails", async () => {
     const insert = vi.fn().mockResolvedValue({ error: { message: "offline" } });
-    vi.mocked(getSupabase).mockReturnValue(mockClient({ from: vi.fn(() => ({ insert })) }) as never);
+    vi.mocked(getSupabase).mockReturnValue(
+      mockClient({ from: vi.fn(() => ({ insert })) }) as never,
+    );
     await recordUsage("u1", "meeting", 1);
     expect(JSON.parse(localStorage.getItem(QUEUE_KEY) ?? "[]")).toEqual([
       { user_id: "u1", metric: "meeting", amount: 1 },
@@ -308,9 +328,15 @@ describe("flushQueue", () => {
       JSON.stringify([{ user_id: "u1", metric: "meeting", amount: 1 }]),
     );
     const insert = vi.fn().mockResolvedValue({ error: null });
-    vi.mocked(getSupabase).mockReturnValue(mockClient({ from: vi.fn(() => ({ insert })) }) as never);
+    vi.mocked(getSupabase).mockReturnValue(
+      mockClient({ from: vi.fn(() => ({ insert })) }) as never,
+    );
     await flushQueue();
-    expect(insert).toHaveBeenCalledWith({ user_id: "u1", metric: "meeting", amount: 1 });
+    expect(insert).toHaveBeenCalledWith({
+      user_id: "u1",
+      metric: "meeting",
+      amount: 1,
+    });
     expect(JSON.parse(localStorage.getItem(QUEUE_KEY) ?? "[]")).toEqual([]);
   });
 
@@ -320,7 +346,9 @@ describe("flushQueue", () => {
       JSON.stringify([{ user_id: "u1", metric: "meeting", amount: 1 }]),
     );
     const insert = vi.fn().mockResolvedValue({ error: { message: "offline" } });
-    vi.mocked(getSupabase).mockReturnValue(mockClient({ from: vi.fn(() => ({ insert })) }) as never);
+    vi.mocked(getSupabase).mockReturnValue(
+      mockClient({ from: vi.fn(() => ({ insert })) }) as never,
+    );
     await flushQueue();
     expect(JSON.parse(localStorage.getItem(QUEUE_KEY) ?? "[]")).toHaveLength(1);
   });
@@ -429,6 +457,7 @@ git commit -m "feat(usage): add Supabase usage bridge with offline queue"
 ## Task 4: Rust enforcement (`entitlements.rs` + guards)
 
 **Files:**
+
 - Create: `src-tauri/src/entitlements.rs`
 - Create: (tests inline in `entitlements.rs`)
 - Modify: `src-tauri/src/commands.rs` (AppState field)
@@ -436,6 +465,7 @@ git commit -m "feat(usage): add Supabase usage bridge with offline queue"
 - Modify: `src/lib/api.ts` (TS binding)
 
 **Interfaces:**
+
 - Consumes: the dictation flow in `lib.rs::stop_and_insert` (word count at the line `let words = text.split_whitespace().count();`) and `lib.rs::start_meeting` (after the existing `no_model` / `already_recording` checks).
 - Produces:
   - Rust: `entitlements::Entitlements { logged_in: bool, pro: bool, remaining_words: i64, remaining_meetings: i64 }` (serde `camelCase`), `entitlements::DictationDecision`, `decide_dictation(&Entitlements)`, `decide_meeting(&Entitlements)`, command `set_entitlements`.
@@ -711,11 +741,13 @@ git commit -m "feat(usage): enforce dictation/meeting quotas in the Rust backend
 ## Task 5: Usage context + entitlements push (`usageContext.tsx`)
 
 **Files:**
+
 - Create: `src/lib/usageContext.tsx`
 - Create: `src/lib/usageContext.test.tsx`
 - Modify: `src/App.tsx` (mount `UsageProvider` inside `AuthProvider`)
 
 **Interfaces:**
+
 - Consumes: `useAuth` (from `./authContext`), `loadUsage`/`recordUsage` (from `./usage`), `remainingFor`/`isUnlimited` (from `./entitlements`), `isSupabaseConfigured` (from `./supabase`), `setEntitlements` + `onEvent` (from `./api`).
 - Produces:
   - `export function UsageProvider({ children })`
@@ -732,7 +764,10 @@ import { render, screen, waitFor } from "@testing-library/react";
 vi.mock("./authContext", () => ({ useAuth: vi.fn() }));
 vi.mock("./usage", () => ({ loadUsage: vi.fn(), recordUsage: vi.fn() }));
 vi.mock("./supabase", () => ({ isSupabaseConfigured: vi.fn(() => true) }));
-vi.mock("./api", () => ({ setEntitlements: vi.fn(), onEvent: vi.fn(() => Promise.resolve(() => {})) }));
+vi.mock("./api", () => ({
+  setEntitlements: vi.fn(),
+  onEvent: vi.fn(() => Promise.resolve(() => {})),
+}));
 
 import { useAuth } from "./authContext";
 import { loadUsage } from "./usage";
@@ -748,12 +783,25 @@ beforeEach(() => vi.clearAllMocks());
 
 describe("UsageProvider", () => {
   it("loads usage for a free user and pushes remaining to Rust", async () => {
-    vi.mocked(useAuth).mockReturnValue({ user: { id: "u1" }, plan: "free", loading: false } as never);
-    vi.mocked(loadUsage).mockResolvedValue({ dictation_words: 500, meetings: 1 });
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: "u1" },
+      plan: "free",
+      loading: false,
+    } as never);
+    vi.mocked(loadUsage).mockResolvedValue({
+      dictation_words: 500,
+      meetings: 1,
+    });
 
-    render(<UsageProvider><Probe /></UsageProvider>);
+    render(
+      <UsageProvider>
+        <Probe />
+      </UsageProvider>,
+    );
 
-    await waitFor(() => expect(screen.getByTestId("words").textContent).toBe("500"));
+    await waitFor(() =>
+      expect(screen.getByTestId("words").textContent).toBe("500"),
+    );
     expect(setEntitlements).toHaveBeenCalledWith({
       loggedIn: true,
       pro: false,
@@ -763,9 +811,17 @@ describe("UsageProvider", () => {
   });
 
   it("pushes a logged-out snapshot when there is no user", async () => {
-    vi.mocked(useAuth).mockReturnValue({ user: null, plan: "free", loading: false } as never);
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      plan: "free",
+      loading: false,
+    } as never);
 
-    render(<UsageProvider><Probe /></UsageProvider>);
+    render(
+      <UsageProvider>
+        <Probe />
+      </UsageProvider>,
+    );
 
     await waitFor(() =>
       expect(setEntitlements).toHaveBeenCalledWith({
@@ -831,18 +887,30 @@ export function UsageProvider({ children }: { children: ReactNode }) {
     (u: Usage) => {
       if (!isSupabaseConfigured()) {
         // No backend → metering disabled so the app stays usable.
-        setEntitlements({ loggedIn: true, pro: true, remainingWords: 0, remainingMeetings: 0 });
+        setEntitlements({
+          loggedIn: true,
+          pro: true,
+          remainingWords: 0,
+          remainingMeetings: 0,
+        });
         return;
       }
       if (!user) {
-        setEntitlements({ loggedIn: false, pro: false, remainingWords: 0, remainingMeetings: 0 });
+        setEntitlements({
+          loggedIn: false,
+          pro: false,
+          remainingWords: 0,
+          remainingMeetings: 0,
+        });
         return;
       }
       const pro = isUnlimited(plan);
       setEntitlements({
         loggedIn: true,
         pro,
-        remainingWords: pro ? 0 : remainingFor(plan, "dictation_words", u.dictation_words),
+        remainingWords: pro
+          ? 0
+          : remainingFor(plan, "dictation_words", u.dictation_words),
         remainingMeetings: pro ? 0 : remainingFor(plan, "meeting", u.meetings),
       });
     },
@@ -875,7 +943,9 @@ export function UsageProvider({ children }: { children: ReactNode }) {
         await refresh();
       },
     );
-    const blockedSub = onEvent<BlockedState>("quota_blocked", (p) => setBlocked(p));
+    const blockedSub = onEvent<BlockedState>("quota_blocked", (p) =>
+      setBlocked(p),
+    );
     return () => {
       consumed.then((f) => f());
       blockedSub.then((f) => f());
@@ -915,11 +985,11 @@ import { UsageProvider } from "./lib/usageContext";
 Change the Dashboard branch to:
 
 ```tsx
-        <AuthProvider>
-          <UsageProvider>
-            <Dashboard />
-          </UsageProvider>
-        </AuthProvider>
+<AuthProvider>
+  <UsageProvider>
+    <Dashboard />
+  </UsageProvider>
+</AuthProvider>
 ```
 
 - [ ] **Step 6: Run the full suite + typecheck**
@@ -939,11 +1009,13 @@ git commit -m "feat(usage): add UsageProvider that syncs usage and pushes entitl
 ## Task 6: Upgrade modal + block wiring (`UpgradeModal.tsx`)
 
 **Files:**
+
 - Create: `src/components/UpgradeModal.tsx`
 - Create: `src/components/UpgradeModal.test.tsx`
 - Modify: `src/routes/Dashboard.tsx` (mount the modal)
 
 **Interfaces:**
+
 - Consumes: `useUsage` (`blocked`, `clearBlocked`).
 - Produces: `export default function UpgradeModal()` — renders nothing when not blocked; on `reason: "quota"` shows the upgrade modal (inert Monthly/Annual buttons); on `reason: "auth"` shows a sign-in prompt wired to `useAuth().signIn`.
 
@@ -968,7 +1040,10 @@ beforeEach(() => vi.clearAllMocks());
 
 describe("UpgradeModal", () => {
   it("renders nothing when not blocked", () => {
-    vi.mocked(useUsage).mockReturnValue({ blocked: null, clearBlocked } as never);
+    vi.mocked(useUsage).mockReturnValue({
+      blocked: null,
+      clearBlocked,
+    } as never);
     const { container } = render(<UpgradeModal />);
     expect(container).toBeEmptyDOMElement();
   });
@@ -980,8 +1055,12 @@ describe("UpgradeModal", () => {
     } as never);
     render(<UpgradeModal />);
     expect(screen.getByText(/weekly limit reached/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /\$8\s*\/\s*month/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /\$72\s*\/\s*year/i })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /\$8\s*\/\s*month/i }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /\$72\s*\/\s*year/i }),
+    ).toBeDisabled();
   });
 
   it("shows a sign-in prompt on an auth block and wires the button", async () => {
@@ -990,7 +1069,9 @@ describe("UpgradeModal", () => {
       clearBlocked,
     } as never);
     render(<UpgradeModal />);
-    await userEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /continue with google/i }),
+    );
     expect(signIn).toHaveBeenCalledTimes(1);
   });
 });
@@ -1027,8 +1108,8 @@ export default function UpgradeModal() {
               Sign in to continue
             </h2>
             <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
-              Wisper needs a free account to use dictation and meetings. Your audio
-              still stays on your device.
+              Wisper needs a free account to use dictation and meetings. Your
+              audio still stays on your device.
             </p>
             <button
               type="button"
@@ -1047,8 +1128,8 @@ export default function UpgradeModal() {
               Weekly limit reached
             </h2>
             <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
-              You've hit this week's free {blocked.metric} limit. Upgrade to Pro for
-              unlimited dictation and meetings.
+              You've hit this week's free {blocked.metric} limit. Upgrade to Pro
+              for unlimited dictation and meetings.
             </p>
             <div className="mt-5 flex gap-3">
               <button
@@ -1068,7 +1149,9 @@ export default function UpgradeModal() {
                 $72 / year
               </button>
             </div>
-            <p className="mt-2 text-center text-xs text-stone-400">Checkout coming soon</p>
+            <p className="mt-2 text-center text-xs text-stone-400">
+              Checkout coming soon
+            </p>
           </>
         )}
         <button
@@ -1100,7 +1183,7 @@ import UpgradeModal from "../components/UpgradeModal";
 And add `<UpgradeModal />` just before the closing `</div>` of the outer flex container (sibling to the `{onboarded === false && ...}` line):
 
 ```tsx
-      <UpgradeModal />
+<UpgradeModal />
 ```
 
 - [ ] **Step 6: Run the suite**
@@ -1120,6 +1203,7 @@ git commit -m "feat(usage): add upgrade/sign-in modal driven by quota_blocked"
 ## Task 7: Usage indicator (Account panel + Home banner)
 
 **Files:**
+
 - Modify: `src/routes/Account.tsx`
 - Create: `src/components/UsageBanner.tsx`
 - Create: `src/components/UsageBanner.test.tsx`
@@ -1127,6 +1211,7 @@ git commit -m "feat(usage): add upgrade/sign-in modal driven by quota_blocked"
 - Modify: `src/routes/Account.test.tsx` (mock `useUsage`)
 
 **Interfaces:**
+
 - Consumes: `useUsage` (`usage`), `useAuth` (`plan`), `WEEKLY_LIMITS`/`isUnlimited` (from `./entitlements`).
 - Produces: a usage section in `Account` (free shows `used / limit` for both metrics; pro shows "Unlimited"); `UsageBanner` shows a one-line nudge on Home when any free metric is ≥ 80% used.
 
@@ -1150,21 +1235,27 @@ beforeEach(() => vi.clearAllMocks());
 describe("UsageBanner", () => {
   it("renders nothing for a pro user", () => {
     vi.mocked(useAuth).mockReturnValue({ plan: "pro" } as never);
-    vi.mocked(useUsage).mockReturnValue({ usage: { dictation_words: 1999, meetings: 2 } } as never);
+    vi.mocked(useUsage).mockReturnValue({
+      usage: { dictation_words: 1999, meetings: 2 },
+    } as never);
     const { container } = render(<UsageBanner />);
     expect(container).toBeEmptyDOMElement();
   });
 
   it("renders nothing for a free user below 80%", () => {
     vi.mocked(useAuth).mockReturnValue({ plan: "free" } as never);
-    vi.mocked(useUsage).mockReturnValue({ usage: { dictation_words: 100, meetings: 0 } } as never);
+    vi.mocked(useUsage).mockReturnValue({
+      usage: { dictation_words: 100, meetings: 0 },
+    } as never);
     const { container } = render(<UsageBanner />);
     expect(container).toBeEmptyDOMElement();
   });
 
   it("warns when a free metric is at/over 80%", () => {
     vi.mocked(useAuth).mockReturnValue({ plan: "free" } as never);
-    vi.mocked(useUsage).mockReturnValue({ usage: { dictation_words: 1800, meetings: 0 } } as never);
+    vi.mocked(useUsage).mockReturnValue({
+      usage: { dictation_words: 1800, meetings: 0 },
+    } as never);
     render(<UsageBanner />);
     expect(screen.getByText(/1,?800\s*\/\s*2,?000 words/i)).toBeInTheDocument();
   });
@@ -1200,8 +1291,9 @@ export default function UsageBanner() {
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
       You're near your weekly free limit —{" "}
-      {usage.dictation_words.toLocaleString()} / {wordLimit.toLocaleString()} words
-      · {usage.meetings} / {meetLimit} meetings. Upgrade to Pro for unlimited use.
+      {usage.dictation_words.toLocaleString()} / {wordLimit.toLocaleString()}{" "}
+      words · {usage.meetings} / {meetLimit} meetings. Upgrade to Pro for
+      unlimited use.
     </div>
   );
 }
@@ -1223,14 +1315,16 @@ import UsageBanner from "../components/UsageBanner";
 Render it inside the `{view === "home" && ...}` area — change that line to:
 
 ```tsx
-          {view === "home" && (
-            <>
-              <div className="mb-4 empty:mb-0">
-                <UsageBanner />
-              </div>
-              <Home />
-            </>
-          )}
+{
+  view === "home" && (
+    <>
+      <div className="mb-4 empty:mb-0">
+        <UsageBanner />
+      </div>
+      <Home />
+    </>
+  );
+}
 ```
 
 - [ ] **Step 6: Add the usage section to Account**
@@ -1245,37 +1339,49 @@ import { WEEKLY_LIMITS, isUnlimited } from "../lib/entitlements";
 Inside the component, after `const { user, plan, loading, signIn, signOut } = useAuth();`, add:
 
 ```tsx
-  const { usage } = useUsage();
+const { usage } = useUsage();
 ```
 
 Then, inside the logged-in `<div className="rounded-xl border ...">` block, after the plan badge `<span>...</span>`, add a usage section:
 
 ```tsx
-          {!isUnlimited(plan) && (
-            <div className="mt-4 space-y-2 text-xs text-stone-600 dark:text-stone-400">
-              <UsageRow
-                label="Words this week"
-                used={usage.dictation_words}
-                limit={WEEKLY_LIMITS.free.dictation_words}
-              />
-              <UsageRow
-                label="Meetings this week"
-                used={usage.meetings}
-                limit={WEEKLY_LIMITS.free.meeting}
-              />
-            </div>
-          )}
-          {isUnlimited(plan) && (
-            <div className="mt-4 text-xs text-stone-500 dark:text-stone-400">
-              Unlimited dictation and meetings.
-            </div>
-          )}
+{
+  !isUnlimited(plan) && (
+    <div className="mt-4 space-y-2 text-xs text-stone-600 dark:text-stone-400">
+      <UsageRow
+        label="Words this week"
+        used={usage.dictation_words}
+        limit={WEEKLY_LIMITS.free.dictation_words}
+      />
+      <UsageRow
+        label="Meetings this week"
+        used={usage.meetings}
+        limit={WEEKLY_LIMITS.free.meeting}
+      />
+    </div>
+  );
+}
+{
+  isUnlimited(plan) && (
+    <div className="mt-4 text-xs text-stone-500 dark:text-stone-400">
+      Unlimited dictation and meetings.
+    </div>
+  );
+}
 ```
 
 And add a small `UsageRow` helper at the bottom of the file (after the `Account` component):
 
 ```tsx
-function UsageRow({ label, used, limit }: { label: string; used: number; limit: number }) {
+function UsageRow({
+  label,
+  used,
+  limit,
+}: {
+  label: string;
+  used: number;
+  limit: number;
+}) {
   const pct = Math.min(100, Math.round((used / limit) * 100));
   return (
     <div>
@@ -1328,10 +1434,12 @@ git commit -m "feat(usage): show weekly usage in Account and a near-limit Home b
 ## Task 8: Onboarding login gate
 
 **Files:**
+
 - Modify: `src/routes/Onboarding.tsx`
 - Create: `src/routes/Onboarding.login.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `useAuth` (`user`, `loading`, `signIn`).
 - Produces: a mandatory `"login"` step inserted as the second step (after `welcome`); the footer "Next" button is disabled on that step until `user` is set.
 
@@ -1362,24 +1470,44 @@ beforeEach(() => vi.clearAllMocks());
 
 describe("Onboarding login gate", () => {
   it("blocks Next on the login step until signed in, and signs in on click", async () => {
-    vi.mocked(useAuth).mockReturnValue({ user: null, loading: false, signIn } as never);
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      loading: false,
+      signIn,
+    } as never);
     render(<Onboarding onDone={vi.fn()} />);
 
     // Advance from welcome to the login step.
-    await userEvent.click(screen.getByRole("button", { name: "onboarding.next" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "onboarding.next" }),
+    );
 
-    expect(screen.getByRole("button", { name: /continue with google/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "onboarding.next" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /continue with google/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "onboarding.next" }),
+    ).toBeDisabled();
 
-    await userEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /continue with google/i }),
+    );
     expect(signIn).toHaveBeenCalledTimes(1);
   });
 
   it("allows Next on the login step once signed in", async () => {
-    vi.mocked(useAuth).mockReturnValue({ user: { id: "u1" }, loading: false, signIn } as never);
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: "u1" },
+      loading: false,
+      signIn,
+    } as never);
     render(<Onboarding onDone={vi.fn()} />);
-    await userEvent.click(screen.getByRole("button", { name: "onboarding.next" }));
-    expect(screen.getByRole("button", { name: "onboarding.next" })).toBeEnabled();
+    await userEvent.click(
+      screen.getByRole("button", { name: "onboarding.next" }),
+    );
+    expect(
+      screen.getByRole("button", { name: "onboarding.next" }),
+    ).toBeEnabled();
   });
 });
 ```
@@ -1403,34 +1531,43 @@ Change the step list (add `"login"` after `"welcome"`):
 
 ```tsx
 type StepId = "welcome" | "login" | "hotkey" | "model" | "practice" | "done";
-const STEPS: StepId[] = ["welcome", "login", "hotkey", "model", "practice", "done"];
+const STEPS: StepId[] = [
+  "welcome",
+  "login",
+  "hotkey",
+  "model",
+  "practice",
+  "done",
+];
 ```
 
 Inside the `Onboarding` component, read auth and gate Next:
 
 ```tsx
-  const { user, loading: authLoading, signIn } = useAuth();
+const { user, loading: authLoading, signIn } = useAuth();
 ```
 
 Render the login step (add alongside the other `{step === ... && ...}` blocks in the content area):
 
 ```tsx
-          {step === "login" && (
-            <LoginStep user={!!user} loading={authLoading} signIn={signIn} />
-          )}
+{
+  step === "login" && (
+    <LoginStep user={!!user} loading={authLoading} signIn={signIn} />
+  );
+}
 ```
 
 Disable the footer "Next" button while on the login step and not signed in. Change the footer Next button to:
 
 ```tsx
-          <button
-            type="button"
-            onClick={next}
-            disabled={step === "login" && !user}
-            className="rounded-lg bg-teal-600 px-5 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-40"
-          >
-            {step === "done" ? t("onboarding.finish") : t("onboarding.next")}
-          </button>
+<button
+  type="button"
+  onClick={next}
+  disabled={step === "login" && !user}
+  className="rounded-lg bg-teal-600 px-5 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-40"
+>
+  {step === "done" ? t("onboarding.finish") : t("onboarding.next")}
+</button>
 ```
 
 Also gate the "Skip" link so onboarding can't be skipped past the login step without an account — change the skip condition from `step !== "done"` to also require a user on the login step:
@@ -1458,8 +1595,9 @@ function LoginStep({
         Create your free account
       </h2>
       <p className="mt-2 max-w-md text-sm text-stone-500 dark:text-stone-400">
-        Wisper needs a free account to use dictation and meetings. Your audio and
-        transcripts stay 100% on your device — the account is just for sign-in.
+        Wisper needs a free account to use dictation and meetings. Your audio
+        and transcripts stay 100% on your device — the account is just for
+        sign-in.
       </p>
       {user ? (
         <div className="mt-6 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
@@ -1511,9 +1649,11 @@ git commit -m "feat(usage): require a free account via a mandatory onboarding lo
 ## Task 9: Local E2E docs
 
 **Files:**
+
 - Create: `docs/MONETIZATION.md`
 
 **Interfaces:**
+
 - Consumes: everything above.
 - Produces: a doc covering the metering model and a local end-to-end smoke test.
 
@@ -1528,6 +1668,7 @@ Free tier: **2,000 dictation words/week + 2 meetings/week**. Pro: unlimited.
 Billing (Stripe) is Phase 2 — the upgrade buttons are inert here.
 
 ## How it works
+
 - `usage_events` (Supabase, append-only, RLS) is the source of truth; `current_usage()`
   sums the current UTC week (Monday 00:00 — implicit reset, no cron).
 - The React webview (always alive) loads usage, records consumption (with a localStorage
@@ -1538,6 +1679,7 @@ Billing (Stripe) is Phase 2 — the upgrade buttons are inert here.
 - A free account is required (mandatory onboarding login step).
 
 ## Local smoke test (requires the local Supabase stack + .env, see supabase/README.md)
+
 1. Apply `supabase/migrations/0002_usage_events.sql` (`supabase stop && supabase start` re-applies).
 2. `pnpm tauri dev`, complete onboarding (sign in with Google).
 3. Dictate until you cross 2,000 words this week → the next dictation is blocked and the
@@ -1560,6 +1702,7 @@ git commit -m "docs(usage): document Phase 1 metering and local smoke test"
 ## Self-Review
 
 **Spec coverage (Phase 1 scope):**
+
 - `usage_events` + RLS + weekly function → Task 1. ✅
 - Cache-first enforcement, Rust gates dictation/meeting, React bridge → Tasks 4 + 5. ✅
 - Offline queue → Task 3. ✅

@@ -23,6 +23,7 @@
 ## File Structure
 
 **Supabase:**
+
 - `supabase/migrations/0003_billing.sql` (new) — `profiles` stripe columns + add `profiles` to the realtime publication.
 - `supabase/functions/_shared/cors.ts` (new) — shared CORS headers.
 - `supabase/functions/_shared/plan.ts` (new) — `planForStatus` pure helper.
@@ -32,10 +33,11 @@
 - `supabase/functions/stripe-webhook/index.ts` (new)
 
 **Frontend (`src/`):**
+
 - `lib/billing.ts` (new) — `startCheckout(interval)`, `openBillingPortal()`.
 - `lib/billing.test.ts` (new)
 - `lib/auth.ts` (modify) — add `subscribePlan(userId, cb)` (Realtime).
-- `lib/authContext.tsx` (modify) — subscribe to plan changes; expose `subscriptionStatus`/`currentPeriodEnd`? (no — keep minimal: re-fetch plan on Realtime). 
+- `lib/authContext.tsx` (modify) — subscribe to plan changes; expose `subscriptionStatus`/`currentPeriodEnd`? (no — keep minimal: re-fetch plan on Realtime).
 - `lib/auth.test.ts` (modify) — test `subscribePlan`.
 - `lib/i18n.tsx` (modify) — billing keys × 15 languages.
 - `routes/Account.tsx` (modify) — "Plans and Billing" UI (toggle, checkout, explore, portal).
@@ -47,9 +49,11 @@
 ## Task 1: Billing schema — `profiles` stripe columns + Realtime
 
 **Files:**
+
 - Create: `supabase/migrations/0003_billing.sql`
 
 **Interfaces:**
+
 - Consumes: the `public.profiles` table (Phase 1 / accounts feature).
 - Produces: columns `stripe_customer_id text`, `stripe_subscription_status text`, `current_period_end timestamptz` on `profiles`; `profiles` added to the `supabase_realtime` publication (so clients receive UPDATE events on plan changes). `stripe_customer_id` readable by its owner (existing select RLS already covers all columns).
 
@@ -83,10 +87,12 @@ Expected: `ALTER TABLE`, `CREATE INDEX`, `ALTER PUBLICATION` with no error. (If 
 - [ ] **Step 3: Verify columns + publication**
 
 Run:
+
 ```bash
 docker exec supabase_db_wisper psql -U postgres -d postgres -tAc "select column_name from information_schema.columns where table_name='profiles' and column_name in ('stripe_customer_id','stripe_subscription_status','current_period_end') order by 1;"
 docker exec supabase_db_wisper psql -U postgres -d postgres -tAc "select 1 from pg_publication_tables where pubname='supabase_realtime' and tablename='profiles';"
 ```
+
 Expected: three columns listed; the publication query returns `1`.
 
 - [ ] **Step 4: Commit**
@@ -101,11 +107,13 @@ git commit -m "feat(billing): add stripe columns to profiles and enable realtime
 ## Task 2: Edge Function shared helpers + plan mapping (Deno-tested)
 
 **Files:**
+
 - Create: `supabase/functions/_shared/cors.ts`
 - Create: `supabase/functions/_shared/plan.ts`
 - Create: `supabase/functions/_shared/plan.test.ts`
 
 **Interfaces:**
+
 - Produces: `export const corsHeaders` (CORS headers object); `export function planForStatus(status: string): "pro" | "free"`. Consumed by all three Edge Functions.
 
 - [ ] **Step 1: Write the failing Deno test**
@@ -176,9 +184,11 @@ git commit -m "feat(billing): add edge-function shared cors + plan mapping helpe
 ## Task 3: Edge Function — `create-checkout-session`
 
 **Files:**
+
 - Create: `supabase/functions/create-checkout-session/index.ts`
 
 **Interfaces:**
+
 - Consumes: `corsHeaders` (Task 2); env `STRIPE_SECRET_KEY`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_ANNUAL`, and the auto-injected `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
 - Produces: an HTTP function. Request body `{ "interval": "month" | "year" }` + `Authorization: Bearer <user JWT>`. Response `{ "url": "<stripe checkout url>" }`. Side effect: creates/stores `profiles.stripe_customer_id` for the user.
 
@@ -198,7 +208,8 @@ const json = (body: unknown, status = 200) =>
   });
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response("ok", { headers: corsHeaders });
   try {
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
       httpClient: Stripe.createFetchHttpClient(),
@@ -222,10 +233,7 @@ Deno.serve(async (req) => {
         ? Deno.env.get("STRIPE_PRICE_ANNUAL")!
         : Deno.env.get("STRIPE_PRICE_MONTHLY")!;
 
-    const admin = createClient(
-      url,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // Reuse the customer if we already created one; else create + store it.
     const { data: profile } = await admin
@@ -280,9 +288,11 @@ git commit -m "feat(billing): add create-checkout-session edge function"
 ## Task 4: Edge Function — `create-portal-session`
 
 **Files:**
+
 - Create: `supabase/functions/create-portal-session/index.ts`
 
 **Interfaces:**
+
 - Consumes: `corsHeaders`; env `STRIPE_SECRET_KEY` + injected Supabase vars.
 - Produces: HTTP function; `Authorization: Bearer <user JWT>`; response `{ "url": "<portal url>" }`. Errors `{ error }` with 400/401 if the user has no `stripe_customer_id`.
 
@@ -302,7 +312,8 @@ const json = (body: unknown, status = 200) =>
   });
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response("ok", { headers: corsHeaders });
   try {
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
       httpClient: Stripe.createFetchHttpClient(),
@@ -357,9 +368,11 @@ git commit -m "feat(billing): add create-portal-session edge function"
 ## Task 5: Edge Function — `stripe-webhook`
 
 **Files:**
+
 - Create: `supabase/functions/stripe-webhook/index.ts`
 
 **Interfaces:**
+
 - Consumes: `corsHeaders`, `planForStatus` (Task 2); env `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` + injected Supabase vars.
 - Produces: HTTP function that verifies the Stripe signature and, on `customer.subscription.*` events, updates `profiles` (matched by `stripe_customer_id`) with `plan` (via `planForStatus`), `stripe_subscription_status`, and `current_period_end`. On `checkout.session.completed`, links the customer to the user by `client_reference_id`. Returns `200 "ok"` (or `400` on bad signature). Idempotent (re-delivering the same event yields the same row state).
 
@@ -454,12 +467,14 @@ git commit -m "feat(billing): add stripe-webhook edge function"
 ## Task 6: Frontend billing lib + Realtime `subscribePlan`
 
 **Files:**
+
 - Create: `src/lib/billing.ts`
 - Create: `src/lib/billing.test.ts`
 - Modify: `src/lib/auth.ts` (add `subscribePlan`)
 - Modify: `src/lib/auth.test.ts` (test `subscribePlan`)
 
 **Interfaces:**
+
 - Consumes: `getSupabase`, `isSupabaseConfigured` (from `./supabase`); `openUrl` (`@tauri-apps/plugin-opener`); `Plan` (`./entitlements`).
 - Produces:
   - `billing.ts`: `export type Interval = "month" | "year"`; `export async function startCheckout(interval: Interval): Promise<void>`; `export async function openBillingPortal(): Promise<void>`.
@@ -488,9 +503,10 @@ beforeEach(() => vi.clearAllMocks());
 
 describe("startCheckout", () => {
   it("invokes the checkout function with the interval and opens the URL", async () => {
-    const invoke = vi
-      .fn()
-      .mockResolvedValue({ data: { url: "https://stripe/checkout" }, error: null });
+    const invoke = vi.fn().mockResolvedValue({
+      data: { url: "https://stripe/checkout" },
+      error: null,
+    });
     vi.mocked(getSupabase).mockReturnValue({ functions: { invoke } } as never);
     await startCheckout("year");
     expect(invoke).toHaveBeenCalledWith("create-checkout-session", {
@@ -500,7 +516,9 @@ describe("startCheckout", () => {
   });
 
   it("throws when the function returns an error", async () => {
-    const invoke = vi.fn().mockResolvedValue({ data: null, error: { message: "x" } });
+    const invoke = vi
+      .fn()
+      .mockResolvedValue({ data: null, error: { message: "x" } });
     vi.mocked(getSupabase).mockReturnValue({ functions: { invoke } } as never);
     await expect(startCheckout("month")).rejects.toBeTruthy();
     expect(mockOpen).not.toHaveBeenCalled();
@@ -509,9 +527,10 @@ describe("startCheckout", () => {
 
 describe("openBillingPortal", () => {
   it("invokes the portal function and opens the URL", async () => {
-    const invoke = vi
-      .fn()
-      .mockResolvedValue({ data: { url: "https://stripe/portal" }, error: null });
+    const invoke = vi.fn().mockResolvedValue({
+      data: { url: "https://stripe/portal" },
+      error: null,
+    });
     vi.mocked(getSupabase).mockReturnValue({ functions: { invoke } } as never);
     await openBillingPortal();
     expect(invoke).toHaveBeenCalledWith("create-portal-session", {});
@@ -664,10 +683,12 @@ git commit -m "feat(billing): add billing lib and realtime subscribePlan"
 ## Task 7: Realtime plan propagation in `authContext`
 
 **Files:**
+
 - Modify: `src/lib/authContext.tsx`
 - Modify: `src/lib/authContext.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `subscribePlan` (Task 6).
 - Produces: when `user` is set, `AuthProvider` subscribes to plan changes and updates its `plan` state live; unsubscribes on user change/unmount. No public API change (consumers still read `plan` from `useAuth`).
 
@@ -709,13 +730,13 @@ Expected: FAIL — `subscribePlan` not used by the provider (plan stays "free").
 In `src/lib/authContext.tsx`, add `subscribePlan` to the import from `./auth`, then add a new effect inside `AuthProvider` (after the existing event-listener effect):
 
 ```tsx
-  // Live plan updates: when the Stripe webhook flips profiles.plan, Realtime
-  // delivers it here so Pro unlocks instantly without a reload.
-  useEffect(() => {
-    if (!user) return;
-    const off = subscribePlan(user.id, (p) => setPlan(p));
-    return off;
-  }, [user]);
+// Live plan updates: when the Stripe webhook flips profiles.plan, Realtime
+// delivers it here so Pro unlocks instantly without a reload.
+useEffect(() => {
+  if (!user) return;
+  const off = subscribePlan(user.id, (p) => setPlan(p));
+  return off;
+}, [user]);
 ```
 
 - [ ] **Step 4: Run it to verify it passes**
@@ -735,10 +756,12 @@ git commit -m "feat(billing): propagate plan changes into AuthProvider via realt
 ## Task 8: Billing i18n strings (all 15 languages)
 
 **Files:**
+
 - Modify: `src/lib/i18n.tsx`
 - Create: `src/lib/i18n.billing.test.ts`
 
 **Interfaces:**
+
 - Produces these keys in every language dict (en values canonical; interpolation `{var}` preserved in all languages):
   - `billing.heading` = "Plans and Billing"
   - `billing.monthly` = "Monthly"
@@ -849,10 +872,12 @@ git commit -m "i18n(billing): add Plans and Billing strings in all 15 languages"
 ## Task 9: Account "Plans and Billing" UI
 
 **Files:**
+
 - Modify: `src/routes/Account.tsx`
 - Modify: `src/routes/Account.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `useAuth` (`plan`, `user`), `startCheckout`/`openBillingPortal` (`./lib/billing`), `openUrl` (`@tauri-apps/plugin-opener`), i18n `billing.*` keys (Task 8). The Pro `current_period_end`/`stripe_subscription_status` come from the `profiles` row — read via a small `useUsage`-style fetch is overkill; instead read them off `user`? They are NOT on `user`. **Decision:** expose `subscriptionStatus`/`currentPeriodEnd` is out of scope; the Pro card shows plan info using `billing.proFeatures` and the portal button. (Date display is a follow-up once the profile row is surfaced — keep this task to the toggle/checkout/explore/portal.)
 - Produces: the Wisper Pro card (free) becomes a billing panel with a Monthly/Annual **toggle (annual selected by default)**, the "save" line, an **Upgrade** button calling `startCheckout(interval)`, and an **Explore features** button opening `https://whisper.chat`. The Pro state shows `billing.proFeatures` + **Manage subscription** (`openBillingPortal`) + **Explore features**.
 
@@ -946,113 +971,117 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 Add an `interval` state (default `"year"`) inside the component:
 
 ```tsx
-  const [interval, setInterval] = useState<"month" | "year">("year");
+const [interval, setInterval] = useState<"month" | "year">("year");
 ```
 
 Replace the existing **Wisper Pro upsell** `Card` (the `{free && (...)}` block) with this billing panel:
 
 ```tsx
-          {free && (
-            <Card className="border-teal-200 bg-gradient-to-br from-teal-50 to-stone-50 dark:border-teal-900/40 dark:from-teal-950/30 dark:to-stone-900">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <div className="text-lg font-semibold text-stone-900 dark:text-stone-100">
-                    Wisper Pro
-                  </div>
-                  <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
-                    {t("billing.proFeatures")}
-                  </p>
-                </div>
-                {/* Monthly / Annual toggle — annual default */}
-                <div className="inline-flex rounded-lg border border-stone-300 p-0.5 text-sm dark:border-stone-700">
-                  <button
-                    type="button"
-                    onClick={() => setInterval("month")}
-                    className={
-                      "rounded-md px-3 py-1.5 " +
-                      (interval === "month"
-                        ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900"
-                        : "text-stone-600 dark:text-stone-300")
-                    }
-                  >
-                    {t("billing.monthly")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setInterval("year")}
-                    className={
-                      "rounded-md px-3 py-1.5 " +
-                      (interval === "year"
-                        ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900"
-                        : "text-stone-600 dark:text-stone-300")
-                    }
-                  >
-                    {t("billing.annual")}
-                  </button>
-                </div>
-              </div>
-              {interval === "year" && (
-                <p className="mt-2 text-xs font-medium text-teal-700 dark:text-teal-400">
-                  {t("billing.saveAnnual")}
-                </p>
-              )}
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => run(() => startCheckout(interval))}
-                  className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900"
-                >
-                  {busy
-                    ? t("billing.opening")
-                    : interval === "year"
-                      ? t("billing.upgradeAnnual")
-                      : t("billing.upgradeMonthly")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void openUrl("https://whisper.chat")}
-                  className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
-                >
-                  {t("billing.exploreFeatures")}
-                </button>
-              </div>
-            </Card>
-          )}
+{
+  free && (
+    <Card className="border-teal-200 bg-gradient-to-br from-teal-50 to-stone-50 dark:border-teal-900/40 dark:from-teal-950/30 dark:to-stone-900">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div className="text-lg font-semibold text-stone-900 dark:text-stone-100">
+            Wisper Pro
+          </div>
+          <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+            {t("billing.proFeatures")}
+          </p>
+        </div>
+        {/* Monthly / Annual toggle — annual default */}
+        <div className="inline-flex rounded-lg border border-stone-300 p-0.5 text-sm dark:border-stone-700">
+          <button
+            type="button"
+            onClick={() => setInterval("month")}
+            className={
+              "rounded-md px-3 py-1.5 " +
+              (interval === "month"
+                ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900"
+                : "text-stone-600 dark:text-stone-300")
+            }
+          >
+            {t("billing.monthly")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setInterval("year")}
+            className={
+              "rounded-md px-3 py-1.5 " +
+              (interval === "year"
+                ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900"
+                : "text-stone-600 dark:text-stone-300")
+            }
+          >
+            {t("billing.annual")}
+          </button>
+        </div>
+      </div>
+      {interval === "year" && (
+        <p className="mt-2 text-xs font-medium text-teal-700 dark:text-teal-400">
+          {t("billing.saveAnnual")}
+        </p>
+      )}
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => run(() => startCheckout(interval))}
+          className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900"
+        >
+          {busy
+            ? t("billing.opening")
+            : interval === "year"
+              ? t("billing.upgradeAnnual")
+              : t("billing.upgradeMonthly")}
+        </button>
+        <button
+          type="button"
+          onClick={() => void openUrl("https://whisper.chat")}
+          className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+        >
+          {t("billing.exploreFeatures")}
+        </button>
+      </div>
+    </Card>
+  );
+}
 ```
 
 And add a **Pro billing card** right after the `{free && (...)}` block (so Pro users get management):
 
 ```tsx
-          {!free && (
-            <Card className="sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="text-lg font-semibold text-stone-900 dark:text-stone-100">
-                  Wisper Pro
-                </div>
-                <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
-                  {t("billing.proFeatures")}
-                </p>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-3 sm:mt-0">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => run(openBillingPortal)}
-                  className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900"
-                >
-                  {busy ? t("billing.opening") : t("billing.manageSubscription")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void openUrl("https://whisper.chat")}
-                  className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
-                >
-                  {t("billing.exploreFeatures")}
-                </button>
-              </div>
-            </Card>
-          )}
+{
+  !free && (
+    <Card className="sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <div className="text-lg font-semibold text-stone-900 dark:text-stone-100">
+          Wisper Pro
+        </div>
+        <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+          {t("billing.proFeatures")}
+        </p>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-3 sm:mt-0">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => run(openBillingPortal)}
+          className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900"
+        >
+          {busy ? t("billing.opening") : t("billing.manageSubscription")}
+        </button>
+        <button
+          type="button"
+          onClick={() => void openUrl("https://whisper.chat")}
+          className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+        >
+          {t("billing.exploreFeatures")}
+        </button>
+      </div>
+    </Card>
+  );
+}
 ```
 
 > The Phase-1 unlimited "∞" card already renders for Pro in the usage area; this adds the management controls below it. Both may show — acceptable.
@@ -1079,9 +1108,11 @@ git commit -m "feat(billing): wire Plans and Billing UI (toggle, checkout, porta
 ## Task 10: Local end-to-end docs (`stripe listen`)
 
 **Files:**
+
 - Create: `docs/STRIPE.md`
 
 **Interfaces:**
+
 - Consumes: everything above.
 - Produces: the runbook for testing the checkout loop locally.
 
@@ -1097,11 +1128,13 @@ prices `price_1Tmjij…` ($8/mo) and `price_1Tmjik…` ($72/yr). Keys + price ID
 in the gitignored `supabase/.env`.
 
 ## One-time
+
 1. Apply migrations (local stack): `supabase stop && supabase start` (re-applies
    `0001`–`0003`) or `docker exec -i supabase_db_wisper psql -U postgres -d postgres < supabase/migrations/0003_billing.sql`.
 2. Stripe CLI login (once): `stripe login`.
 
 ## Run the loop
+
 1. Serve the Edge Functions with the env file:
    ```
    supabase functions serve --no-verify-jwt --env-file supabase/.env
@@ -1137,6 +1170,7 @@ git commit -m "docs(billing): add Stripe Phase 2 local e2e runbook"
 ## Self-Review
 
 **Spec coverage (Phase 2):**
+
 - Edge Functions create-checkout / create-portal / stripe-webhook → Tasks 3, 4, 5. ✅
 - `profiles` stripe columns + Realtime → Task 1. ✅
 - Realtime plan propagation → Tasks 6 (`subscribePlan`) + 7 (authContext). ✅

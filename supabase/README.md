@@ -1,6 +1,7 @@
 # Supabase backend
 
 ## One-time project setup
+
 1. Create a project at https://supabase.com (free tier is fine).
 2. Authentication → Providers → Google: enable it. Create an OAuth client in
    Google Cloud Console (type "Web application"). Set the **Authorized redirect URI**
@@ -12,14 +13,18 @@
    OR use the Supabase CLI: `supabase db push`.
 
 ## Client config
+
 Copy the project URL and the **anon/public** key into the app's `.env`:
+
 ```
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<anon-key>
 ```
+
 The anon key is publishable; RLS enforces data safety. Never ship the service-role key.
 
 ## Verifying RLS
+
 After a test sign-in, in the SQL editor run `select id, email, plan from public.profiles;`
 — you should see exactly one row per user with `plan = 'free'`. As a signed-in client,
 `update profiles set plan = 'pro'` must FAIL (RLS denies the plan change).

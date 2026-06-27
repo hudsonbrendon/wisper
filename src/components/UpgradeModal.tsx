@@ -40,7 +40,11 @@ export default function UpgradeModal() {
               {t("upgrade.limitTitle")}
             </h2>
             <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
-              {t(blocked.metric === "meeting" ? "upgrade.limitBodyMeeting" : "upgrade.limitBodyDictation")}
+              {t(
+                blocked.metric === "meeting"
+                  ? "upgrade.limitBodyMeeting"
+                  : "upgrade.limitBodyDictation",
+              )}
             </p>
             <div className="mt-5 flex gap-3">
               <button
@@ -60,7 +64,9 @@ export default function UpgradeModal() {
                 {t("upgrade.perYear")}
               </button>
             </div>
-            <p className="mt-2 text-center text-xs text-stone-400">{t("upgrade.comingSoon")}</p>
+            <p className="mt-2 text-center text-xs text-stone-400">
+              {t("upgrade.comingSoon")}
+            </p>
           </>
         )}
         <button

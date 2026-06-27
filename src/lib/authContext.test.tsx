@@ -106,7 +106,9 @@ describe("AuthProvider", () => {
   });
 
   it("updates the plan live when subscribePlan delivers a change", async () => {
-    vi.mocked(getSession).mockResolvedValueOnce({ user: { id: "u1" } } as never);
+    vi.mocked(getSession).mockResolvedValueOnce({
+      user: { id: "u1" },
+    } as never);
     vi.mocked(fetchPlan).mockResolvedValueOnce("free");
     let deliver: (p: "pro" | "free") => void = () => {};
     vi.mocked(subscribePlan).mockImplementation((_id, cb) => {
@@ -119,10 +121,15 @@ describe("AuthProvider", () => {
         <Probe />
       </AuthProvider>,
     );
-    await waitFor(() => expect(screen.getByTestId("plan").textContent).toBe("free"));
+    await waitFor(() =>
+      expect(screen.getByTestId("plan").textContent).toBe("free"),
+    );
     // Ensure the realtime effect has subscribed (so `deliver` is the real callback).
     await waitFor(() =>
-      expect(vi.mocked(subscribePlan)).toHaveBeenCalledWith("u1", expect.any(Function)),
+      expect(vi.mocked(subscribePlan)).toHaveBeenCalledWith(
+        "u1",
+        expect.any(Function),
+      ),
     );
 
     await act(async () => deliver("pro"));

@@ -20,7 +20,14 @@ import {
 } from "../components/BrandLogos";
 
 type StepId = "welcome" | "login" | "hotkey" | "model" | "practice" | "done";
-const STEPS: StepId[] = ["welcome", "login", "hotkey", "model", "practice", "done"];
+const STEPS: StepId[] = [
+  "welcome",
+  "login",
+  "hotkey",
+  "model",
+  "practice",
+  "done",
+];
 
 /// First-run tutorial. Shown over the dashboard until the user finishes (or
 /// skips), which persists `onboarded: true`. Re-openable from Settings.

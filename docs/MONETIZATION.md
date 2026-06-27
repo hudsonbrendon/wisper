@@ -4,6 +4,7 @@ Free tier: **2,000 dictation words/week + 2 meetings/week**. Pro: unlimited.
 Billing (Stripe) is Phase 2 — the upgrade buttons are inert here.
 
 ## How it works
+
 - `usage_events` (Supabase, append-only, RLS) is the source of truth; `current_usage()`
   sums the current UTC week (Monday 00:00 — implicit reset, no cron).
 - The React webview (always alive) loads usage, records consumption (with a localStorage
@@ -14,6 +15,7 @@ Billing (Stripe) is Phase 2 — the upgrade buttons are inert here.
 - A free account is required (mandatory onboarding login step).
 
 ## Local smoke test (requires the local Supabase stack + .env, see supabase/README.md)
+
 1. Apply `supabase/migrations/0002_usage_events.sql` (`supabase stop && supabase start` re-applies).
 2. `pnpm tauri dev`, complete onboarding (sign in with Google).
 3. Dictate until you cross 2,000 words this week → the next dictation is blocked and the

@@ -20,23 +20,43 @@ beforeEach(() => vi.clearAllMocks());
 
 describe("Onboarding login gate", () => {
   it("blocks Next on the login step until signed in, and signs in on click", async () => {
-    vi.mocked(useAuth).mockReturnValue({ user: null, loading: false, signIn } as never);
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      loading: false,
+      signIn,
+    } as never);
     render(<Onboarding onDone={vi.fn()} />);
 
     // Advance from welcome to the login step.
-    await userEvent.click(screen.getByRole("button", { name: "onboarding.next" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "onboarding.next" }),
+    );
 
-    expect(screen.getByRole("button", { name: "account.continueGoogle" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "onboarding.next" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "account.continueGoogle" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "onboarding.next" }),
+    ).toBeDisabled();
 
-    await userEvent.click(screen.getByRole("button", { name: "account.continueGoogle" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "account.continueGoogle" }),
+    );
     expect(signIn).toHaveBeenCalledTimes(1);
   });
 
   it("allows Next on the login step once signed in", async () => {
-    vi.mocked(useAuth).mockReturnValue({ user: { id: "u1" }, loading: false, signIn } as never);
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: "u1" },
+      loading: false,
+      signIn,
+    } as never);
     render(<Onboarding onDone={vi.fn()} />);
-    await userEvent.click(screen.getByRole("button", { name: "onboarding.next" }));
-    expect(screen.getByRole("button", { name: "onboarding.next" })).toBeEnabled();
+    await userEvent.click(
+      screen.getByRole("button", { name: "onboarding.next" }),
+    );
+    expect(
+      screen.getByRole("button", { name: "onboarding.next" }),
+    ).toBeEnabled();
   });
 });

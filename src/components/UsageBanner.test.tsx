@@ -17,22 +17,42 @@ beforeEach(() => {
 describe("UsageBanner", () => {
   it("renders nothing for a pro user", () => {
     vi.mocked(useAuth).mockReturnValue({ plan: "pro" } as never);
-    vi.mocked(useUsage).mockReturnValue({ usage: { dictation_words: 1999, meetings: 2 } } as never);
-    const { container } = render(<I18nProvider><UsageBanner /></I18nProvider>);
+    vi.mocked(useUsage).mockReturnValue({
+      usage: { dictation_words: 1999, meetings: 2 },
+    } as never);
+    const { container } = render(
+      <I18nProvider>
+        <UsageBanner />
+      </I18nProvider>,
+    );
     expect(container).toBeEmptyDOMElement();
   });
 
   it("renders nothing for a free user below 80%", () => {
     vi.mocked(useAuth).mockReturnValue({ plan: "free" } as never);
-    vi.mocked(useUsage).mockReturnValue({ usage: { dictation_words: 100, meetings: 0 } } as never);
-    const { container } = render(<I18nProvider><UsageBanner /></I18nProvider>);
+    vi.mocked(useUsage).mockReturnValue({
+      usage: { dictation_words: 100, meetings: 0 },
+    } as never);
+    const { container } = render(
+      <I18nProvider>
+        <UsageBanner />
+      </I18nProvider>,
+    );
     expect(container).toBeEmptyDOMElement();
   });
 
   it("warns when a free metric is at/over 80%", () => {
     vi.mocked(useAuth).mockReturnValue({ plan: "free" } as never);
-    vi.mocked(useUsage).mockReturnValue({ usage: { dictation_words: 1800, meetings: 0 } } as never);
-    render(<I18nProvider><UsageBanner /></I18nProvider>);
-    expect(screen.getByText(/1[.,]?800\s*\/\s*2[.,]?000 words/i)).toBeInTheDocument();
+    vi.mocked(useUsage).mockReturnValue({
+      usage: { dictation_words: 1800, meetings: 0 },
+    } as never);
+    render(
+      <I18nProvider>
+        <UsageBanner />
+      </I18nProvider>,
+    );
+    expect(
+      screen.getByText(/1[.,]?800\s*\/\s*2[.,]?000 words/i),
+    ).toBeInTheDocument();
   });
 });

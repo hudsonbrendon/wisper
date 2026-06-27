@@ -59,7 +59,9 @@ Deno.serve(async (req) => {
       .select();
     if (error) throw error;
     if (!data || data.length === 0) {
-      return new Response("no profile linked to customer; retry", { status: 409 });
+      return new Response("no profile linked to customer; retry", {
+        status: 409,
+      });
     }
   } else if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
