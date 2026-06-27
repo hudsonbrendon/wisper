@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { I18nProvider } from "../lib/i18n";
 
@@ -18,12 +18,18 @@ vi.mock("../lib/billing", () => ({
   startCheckout: vi.fn(),
   openBillingPortal: vi.fn(),
   getBillingInfo: vi.fn(() => Promise.resolve(null)),
+  subscribeBilling: vi.fn(() => () => {}),
 }));
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn() }));
 
 import { useAuth } from "../lib/authContext";
 import { useUsage } from "../lib/usageContext";
-import { startCheckout, openBillingPortal, getBillingInfo } from "../lib/billing";
+import {
+  startCheckout,
+  openBillingPortal,
+  getBillingInfo,
+  subscribeBilling,
+} from "../lib/billing";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import Account from "./Account";
 
@@ -179,5 +185,45 @@ describe("Account", () => {
     });
     render(<I18nProvider><Account /></I18nProvider>);
     expect(await screen.findByText(/cancels on/i)).toBeInTheDocument();
+  });
+
+  it("pro: a live billing update flips the cancellation date to a renewal date", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "u1", email: "a@b.com" } as never,
+      plan: "pro",
+      loading: false,
+      signIn,
+      signOut,
+    });
+    // Initial state: set to cancel at period end.
+    vi.mocked(getBillingInfo).mockResolvedValueOnce({
+      status: "active",
+      currentPeriodEnd: "2026-07-27T00:00:00Z",
+      cancelAtPeriodEnd: true,
+    });
+    // Capture the Realtime callback so we can deliver an un-cancel update.
+    let deliver: (info: {
+      status: string | null;
+      currentPeriodEnd: string | null;
+      cancelAtPeriodEnd: boolean;
+    }) => void = () => {};
+    vi.mocked(subscribeBilling).mockImplementation((_id, cb) => {
+      deliver = cb;
+      return () => {};
+    });
+
+    render(<I18nProvider><Account /></I18nProvider>);
+    expect(await screen.findByText(/cancels on/i)).toBeInTheDocument();
+
+    // The webhook writes cancel_at_period_end=false → Realtime delivers it.
+    await act(async () =>
+      deliver({
+        status: "active",
+        currentPeriodEnd: "2026-07-27T00:00:00Z",
+        cancelAtPeriodEnd: false,
+      }),
+    );
+    expect(await screen.findByText(/renews on/i)).toBeInTheDocument();
+    expect(screen.queryByText(/cancels on/i)).not.toBeInTheDocument();
   });
 });

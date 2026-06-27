@@ -7,6 +7,7 @@ import {
   startCheckout,
   openBillingPortal,
   getBillingInfo,
+  subscribeBilling,
   type BillingInfo,
 } from "../lib/billing";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -48,8 +49,14 @@ export default function Account() {
     void getBillingInfo(userId).then((b) => {
       if (active) setBilling(b);
     });
+    // Cancel/un-cancel keeps the plan at "pro", so the plan effect never
+    // re-fires — subscribe so the renewal/cancellation date updates live.
+    const unsub = subscribeBilling(userId, (b) => {
+      if (active) setBilling(b);
+    });
     return () => {
       active = false;
+      unsub();
     };
   }, [userId, isPro]);
 

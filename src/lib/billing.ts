@@ -56,3 +56,44 @@ export async function getBillingInfo(
     cancelAtPeriodEnd: Boolean(data.cancel_at_period_end),
   };
 }
+
+/// Subscribe to the signed-in user's billing fields via Realtime. The webhook
+/// writes these on every subscription change; cancelling/un-cancelling does NOT
+/// flip `plan` (it stays "pro"), so the Account screen can't rely on the plan
+/// effect to re-fetch — it subscribes here to keep the renewal/cancellation
+/// date live. Returns an unsubscribe function (no-op when unconfigured).
+export function subscribeBilling(
+  userId: string,
+  cb: (info: BillingInfo) => void,
+): () => void {
+  if (!isSupabaseConfigured()) return () => {};
+  const client = getSupabase();
+  const channel = client
+    .channel(`profile-billing-${userId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "profiles",
+        filter: `id=eq.${userId}`,
+      },
+      (payload: {
+        new: {
+          stripe_subscription_status?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean | null;
+        };
+      }) => {
+        cb({
+          status: payload.new?.stripe_subscription_status ?? null,
+          currentPeriodEnd: payload.new?.current_period_end ?? null,
+          cancelAtPeriodEnd: Boolean(payload.new?.cancel_at_period_end),
+        });
+      },
+    )
+    .subscribe();
+  return () => {
+    client.removeChannel(channel);
+  };
+}
