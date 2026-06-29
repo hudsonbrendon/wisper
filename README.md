@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Wisper" width="180">
+  <img src="public/logo-animado.svg" alt="Wisper" width="180">
 </p>
 
 <h1 align="center">Wisper</h1>
