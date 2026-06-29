@@ -1,6 +1,7 @@
 import { useUsage } from "../lib/usageContext";
 import { useAuth } from "../lib/authContext";
 import { useI18n } from "../lib/i18n";
+import { GoogleG } from "./BrandLogos";
 
 /// Shown when the Rust backend blocks an action. `quota` → upgrade prompt
 /// (buttons inert until Phase 2 wires Stripe); `auth` → sign-in prompt.
@@ -29,8 +30,9 @@ export default function UpgradeModal() {
                 clearBlocked();
                 void signIn().catch(() => {});
               }}
-              className="mt-5 w-full rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900"
+              className="mt-5 inline-flex w-full items-center justify-center gap-3 rounded-lg bg-stone-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
             >
+              <GoogleG className="h-5 w-5" />
               {t("account.continueGoogle")}
             </button>
           </>

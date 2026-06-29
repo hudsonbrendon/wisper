@@ -91,7 +91,7 @@ export default function Account() {
           type="button"
           disabled={busy}
           onClick={() => run(signIn)}
-          className="mt-10 inline-flex w-full max-w-sm items-center justify-center gap-3 rounded-xl border border-white/10 bg-stone-900 px-5 py-3.5 text-sm font-medium text-white shadow-sm transition hover:bg-stone-800 disabled:opacity-50"
+          className="mt-10 inline-flex w-full max-w-sm items-center justify-center gap-3 rounded-xl border border-white/10 bg-stone-900 px-5 py-3.5 text-sm font-medium text-white shadow-sm transition hover:bg-stone-800 disabled:opacity-50 dark:border-black/10 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
         >
           <GoogleG className="h-5 w-5" />
           {busy ? t("account.openingBrowser") : t("account.continueGoogle")}
