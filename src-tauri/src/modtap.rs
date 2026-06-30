@@ -54,6 +54,38 @@ extern "C" {
     static kCFRunLoopCommonModes: CFRef;
 }
 
+#[link(name = "IOKit", kind = "framework")]
+extern "C" {
+    fn IOHIDCheckAccess(request: u32) -> u32;
+    fn IOHIDRequestAccess(request: u32) -> bool;
+}
+
+// IOHIDRequestType / IOHIDAccessType values from <IOKit/hid/IOHIDLib.h>.
+const KIOHID_REQUEST_TYPE_LISTEN_EVENT: u32 = 1;
+const KIOHID_ACCESS_TYPE_GRANTED: u32 = 0;
+
+/// True if Input Monitoring (listen-event) access is already granted.
+pub fn input_monitoring_granted() -> bool {
+    unsafe { IOHIDCheckAccess(KIOHID_REQUEST_TYPE_LISTEN_EVENT) == KIOHID_ACCESS_TYPE_GRANTED }
+}
+
+/// Ensure Input Monitoring access for the listen-only `flagsChanged` tap.
+///
+/// A lone-modifier hotkey is driven by a CGEventTap, which — unlike keystroke
+/// injection (Accessibility) — needs the *separate* Input Monitoring
+/// (listen-event) grant. Without it `CGEventTapCreate` returns null and the bare
+/// modifier silently never fires. Requesting access (re-)registers the current
+/// binary in TCC and shows the system dialog when the grant is missing or stale
+/// (e.g. an ad-hoc build's code hash changed on update). The tap-creation retry
+/// loop in [`start`] keeps polling, so a grant given in response to this prompt
+/// is picked up live — no restart needed. No-op when already granted.
+pub fn ensure_input_monitoring() -> bool {
+    if input_monitoring_granted() {
+        return true;
+    }
+    unsafe { IOHIDRequestAccess(KIOHID_REQUEST_TYPE_LISTEN_EVENT) }
+}
+
 /// If `accel` names a single modifier, return its CGEvent flag mask. Otherwise
 /// (a combo, a normal key, or unknown) return `None` — those stay on the
 /// global-shortcut path.

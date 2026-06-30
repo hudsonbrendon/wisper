@@ -817,10 +817,15 @@ pub(crate) fn register_hotkey(app: &tauri::AppHandle, accel: &str) -> Result<(),
     let _ = gs.unregister_all();
 
     // A lone modifier (e.g. Option) can't be a global shortcut — drive it from
-    // the flagsChanged event tap instead (macOS only).
+    // the flagsChanged event tap instead (macOS only). That tap needs Input
+    // Monitoring (separate from the Accessibility grant injection uses), so
+    // prompt for it here — only when the hotkey actually is a bare modifier, so
+    // combo-hotkey users never see the dialog. The tap's retry loop picks up the
+    // grant live, no restart needed.
     #[cfg(target_os = "macos")]
     if let Some(flag) = modtap::modifier_flag(accel) {
         modtap::set_modifier(Some(flag));
+        modtap::ensure_input_monitoring();
         return Ok(());
     }
     #[cfg(target_os = "macos")]
