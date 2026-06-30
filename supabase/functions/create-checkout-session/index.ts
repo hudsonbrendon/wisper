@@ -63,6 +63,8 @@ Deno.serve(async (req) => {
       customer: customerId,
       line_items: [{ price, quantity: 1 }],
       client_reference_id: user.id,
+      // Show the "Add promotion code" field so users can redeem coupons.
+      allow_promotion_codes: true,
       subscription_data: { metadata: { supabase_user_id: user.id } },
       success_url: "https://wisper.chat/?checkout=success",
       cancel_url: "https://wisper.chat/?checkout=cancel",
