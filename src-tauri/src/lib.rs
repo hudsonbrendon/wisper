@@ -200,8 +200,8 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
                         words,
                         duration_ms,
                     };
-                    let data_dir = app.state::<AppState>().data_dir.clone();
-                    if let Err(e) = history::append(&data_dir, &entry) {
+                    let user_dir = app.state::<AppState>().user_dir();
+                    if let Err(e) = history::append(&user_dir, &entry) {
                         eprintln!("history append failed: {e}");
                     } else {
                         let _ = app.emit("history_changed", serde_json::json!({}));
@@ -449,14 +449,15 @@ pub(crate) fn stop_meeting(app: &tauri::AppHandle) {
 
     let app = app.clone();
     std::thread::spawn(move || {
-        let (language, ui_language, prompt, data_dir) = {
+        let (language, ui_language, prompt, meeting_dir) = {
             let st = app.state::<AppState>();
             let c = st.config.lock().unwrap();
             (
                 c.language.clone(),
                 c.ui_language.clone(),
                 text::dictionary_prompt(&c.dictionary),
-                st.data_dir.clone(),
+                // Meeting audio + JSON are scoped to the signed-in account.
+                st.user_dir(),
             )
         };
         // End the live transcription loop BEFORE locking the transcriber.
@@ -470,7 +471,7 @@ pub(crate) fn stop_meeting(app: &tauri::AppHandle) {
             let st = app.state::<AppState>();
             let guard = st.transcriber.lock().unwrap();
             match guard.as_ref() {
-                Some(t) => rec.stop(t, &language, &prompt, &data_dir),
+                Some(t) => rec.stop(t, &language, &prompt, &meeting_dir),
                 None => {
                     let _ = app.emit("error", serde_json::json!({ "message": "no_model" }));
                     let _ = app.emit("meeting_state", serde_json::json!({ "state": "idle" }));
@@ -480,8 +481,8 @@ pub(crate) fn stop_meeting(app: &tauri::AppHandle) {
         };
         // Sequential, localized title ("Meeting 1" / "Reunião 1"). Count is taken
         // before this meeting is written, so the first save gets index 1.
-        meeting.title = meetings::default_title(&ui_language, meetings::count(&data_dir) + 1);
-        match meetings::save(&data_dir, &meeting) {
+        meeting.title = meetings::default_title(&ui_language, meetings::count(&meeting_dir) + 1);
+        match meetings::save(&meeting_dir, &meeting) {
             Ok(()) => {
                 let _ = app.emit("meeting_state", serde_json::json!({ "state": "idle" }));
                 let _ = app.emit("meeting_saved", serde_json::json!({ "id": meeting.id }));
@@ -854,6 +855,17 @@ pub(crate) fn on_shortcut(app: &tauri::AppHandle, pressed: bool) {
     dispatch(app, action);
 }
 
+/// Delete the pre-1.0.4 unscoped history + meetings that lived at the data-dir
+/// root and were shared by every account on the machine. Per-user storage now
+/// lives under `users/<uid>/`, so these root paths are legacy; removing them
+/// stops the next account from inheriting the shared pile. Best-effort and
+/// idempotent — new writes never recreate these paths, so it no-ops after the
+/// first launch. Leaves `models/` and anything under `users/` alone.
+fn wipe_legacy_unscoped_data(data_dir: &std::path::Path) {
+    let _ = std::fs::remove_file(data_dir.join("history.jsonl"));
+    let _ = std::fs::remove_dir_all(data_dir.join("meetings"));
+}
+
 /// Reset the macOS Microphone AND Accessibility TCC grants when the app's
 /// *code-signing identity* changes (so the OS would otherwise keep a stale
 /// "granted" record for a binary it no longer recognizes — microphone capture
@@ -1108,12 +1120,12 @@ fn build_tray_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
 /// Re-inject the most recent transcription into the focused app. Runs on a short
 /// delay so the menu closes and focus returns to the previously-focused app.
 fn paste_last_transcription(app: &tauri::AppHandle) {
-    let (data_dir, method, ui_lang) = {
+    let (user_dir, method, ui_lang) = {
         let st = app.state::<AppState>();
         let c = st.config.lock().unwrap();
-        (st.data_dir.clone(), c.inject_method, c.ui_language.clone())
+        (st.user_dir(), c.inject_method, c.ui_language.clone())
     };
-    let Some(entry) = history::read_all(&data_dir).into_iter().next() else {
+    let Some(entry) = history::read_all(&user_dir).into_iter().next() else {
         let _ = app.emit(
             "error",
             serde_json::json!({ "message": uitext::t(&ui_lang, "err_no_transcription") }),
@@ -1206,6 +1218,14 @@ pub fn run() {
             // Resolve OS dirs and load config.
             let config_dir = handle.path().app_config_dir().expect("config dir");
             let data_dir = handle.path().app_data_dir().expect("data dir");
+
+            // Until 1.0.3 history + meetings were stored unscoped at the data-dir
+            // root, shared by every account on the machine (a privacy leak: after
+            // switching accounts you saw the previous user's data). Storage is now
+            // per-user under `users/<uid>/`; drop the old root-level files once so
+            // nobody inherits the shared pile. Models (`models/`) are untouched.
+            wipe_legacy_unscoped_data(&data_dir);
+
             let mut cfg = config::load(&config_dir);
 
             // After an install/update the ad-hoc signature changes, so macOS
@@ -1268,6 +1288,9 @@ pub fn run() {
                 cancels: Mutex::new(std::collections::HashSet::new()),
                 hotkey: Mutex::new(hotkey::Controller::new()),
                 entitlements: Mutex::new(crate::entitlements::Entitlements::default()),
+                // No account bound until the frontend reports one via
+                // `set_active_user` on auth restore; reads fall back to _guest.
+                active_user: Mutex::new(None),
             });
 
             // Tray menu: Home, updates, paste-last, Microphone submenu, Quit.
@@ -1384,6 +1407,7 @@ pub fn run() {
             commands::get_state,
             commands::get_history,
             commands::clear_history,
+            commands::set_active_user,
             commands::ui_start_recording,
             commands::ui_stop_and_insert,
             commands::ui_cancel_recording,

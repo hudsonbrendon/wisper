@@ -31,6 +31,33 @@ pub struct AppState {
     /// Latest entitlements/quota snapshot pushed by the frontend. Enforced by
     /// the dictation and meeting guards.
     pub entitlements: Mutex<crate::entitlements::Entitlements>,
+    /// Supabase user id of the signed-in account, or None when signed out. Set
+    /// by the frontend via `set_active_user` on every auth change. Scopes the
+    /// per-user data dir so one account never sees another's history/meetings.
+    pub active_user: Mutex<Option<String>>,
+}
+
+impl AppState {
+    /// Per-user data directory: `<data_dir>/users/<uid>/`. History and meetings
+    /// live here, keyed on the signed-in account, so local data is isolated per
+    /// user. Signed out → a single `_guest` bucket. Models stay in `data_dir`
+    /// (unscoped) so they're shared across accounts, not re-downloaded per login.
+    pub fn user_dir(&self) -> PathBuf {
+        let uid = self.active_user.lock().unwrap();
+        let bucket = uid.as_deref().map(sanitize_uid);
+        self.data_dir
+            .join("users")
+            .join(bucket.as_deref().unwrap_or("_guest"))
+    }
+}
+
+/// Keep only path-safe characters from a user id so it can be a directory name.
+/// Supabase ids are UUIDs (`[0-9a-f-]`), already safe; this just guards against
+/// a surprise value escaping the users/ folder.
+fn sanitize_uid(uid: &str) -> String {
+    uid.chars()
+        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
+        .collect()
 }
 
 /// Metadata sent to the frontend for each catalog model.
@@ -93,7 +120,7 @@ pub fn get_launch_at_login(app: AppHandle) -> bool {
 #[tauri::command]
 pub fn reset_app(app: AppHandle, state: tauri::State<AppState>) -> Result<(), String> {
     config::save(&state.config_dir, &Config::default()).map_err(|e| format!("save config: {e}"))?;
-    let _ = crate::history::clear(&state.data_dir);
+    let _ = crate::history::clear(&state.user_dir());
 
     // On macOS, `app.restart()` exits via `std::process::exit`, whose C runtime
     // teardown runs ggml's Metal static destructor and aborts (the same crash
@@ -285,13 +312,27 @@ pub fn get_state(state: tauri::State<AppState>) -> String {
 /// Insights charts (which derive every stat from these entries on the frontend).
 #[tauri::command]
 pub fn get_history(state: tauri::State<AppState>) -> Vec<crate::history::Entry> {
-    crate::history::read_all(&state.data_dir)
+    crate::history::read_all(&state.user_dir())
+}
+
+/// Bind local storage (history + meetings) to the signed-in account. Called by
+/// the frontend on every auth change with the Supabase user id, or None on sign
+/// out. Switching the active user re-points `user_dir()`, so the next reads see
+/// only that account's data; the refresh events make the open views reload.
+#[tauri::command]
+pub fn set_active_user(app: AppHandle, state: tauri::State<AppState>, uid: Option<String>) {
+    *state.active_user.lock().unwrap() = uid;
+    let _ = std::fs::create_dir_all(state.user_dir());
+    // Nudge the Home history list and the Meetings list to refetch under the
+    // new scope (they listen for these events).
+    let _ = app.emit("history_changed", serde_json::json!({}));
+    let _ = app.emit("meeting_saved", serde_json::json!({ "id": "" }));
 }
 
 /// Wipe the local transcription history.
 #[tauri::command]
 pub fn clear_history(app: AppHandle, state: tauri::State<AppState>) -> Result<(), String> {
-    crate::history::clear(&state.data_dir).map_err(|e| format!("clear history: {e}"))?;
+    crate::history::clear(&state.user_dir()).map_err(|e| format!("clear history: {e}"))?;
     let _ = app.emit("history_changed", serde_json::json!({}));
     Ok(())
 }
@@ -373,17 +414,17 @@ pub fn get_meeting_state(state: tauri::State<AppState>) -> String {
 
 #[tauri::command]
 pub fn list_meetings(state: tauri::State<AppState>) -> Vec<crate::meetings::MeetingSummary> {
-    crate::meetings::list(&state.data_dir)
+    crate::meetings::list(&state.user_dir())
 }
 
 #[tauri::command]
 pub fn get_meeting(state: tauri::State<AppState>, id: String) -> Option<crate::meetings::Meeting> {
-    crate::meetings::get(&state.data_dir, &id)
+    crate::meetings::get(&state.user_dir(), &id)
 }
 
 #[tauri::command]
 pub fn delete_meeting(state: tauri::State<AppState>, id: String) -> Result<(), String> {
-    crate::meetings::delete(&state.data_dir, &id).map_err(|e| format!("delete meeting: {e}"))
+    crate::meetings::delete(&state.user_dir(), &id).map_err(|e| format!("delete meeting: {e}"))
 }
 
 #[tauri::command]
@@ -392,7 +433,7 @@ pub fn rename_meeting(
     id: String,
     title: String,
 ) -> Result<(), String> {
-    crate::meetings::rename(&state.data_dir, &id, &title)
+    crate::meetings::rename(&state.user_dir(), &id, &title)
         .map_err(|e| format!("rename meeting: {e}"))
 }
 
@@ -429,7 +470,7 @@ pub async fn export_meeting_file(
 /// The frontend feeds this to `convertFileSrc` for the `<audio>` player.
 #[tauri::command]
 pub fn meeting_audio_path(state: tauri::State<AppState>, id: String) -> Option<String> {
-    let p = crate::meetings::audio_path(&state.data_dir, &id);
+    let p = crate::meetings::audio_path(&state.user_dir(), &id);
     p.exists().then(|| p.to_string_lossy().to_string())
 }
 
@@ -440,11 +481,11 @@ pub async fn export_meeting_audio(app: AppHandle, id: String) -> Result<Option<S
     use tauri_plugin_dialog::DialogExt;
     let (src, default_name) = {
         let state = app.state::<AppState>();
-        let src = crate::meetings::audio_path(&state.data_dir, &id);
+        let src = crate::meetings::audio_path(&state.user_dir(), &id);
         if !src.exists() {
             return Err("no_audio".into());
         }
-        let name = crate::meetings::get(&state.data_dir, &id)
+        let name = crate::meetings::get(&state.user_dir(), &id)
             .map(|m| m.title.replace(['/', '\\', ':'], "-"))
             .unwrap_or_else(|| id.clone());
         (src, format!("{name}.wav"))
@@ -557,8 +598,13 @@ fn summarize_sidecar_path() -> Result<std::path::PathBuf, String> {
 /// Errors: "no_llm_model", "empty_transcript", "summary_unavailable".
 #[tauri::command]
 pub async fn generate_summary(app: AppHandle, id: String) -> Result<String, String> {
-    let data_dir = app.state::<AppState>().data_dir.clone();
-    let mut meeting = crate::meetings::get(&data_dir, &id).ok_or("meeting not found")?;
+    // Models are shared across accounts (data_dir); the meeting itself is scoped
+    // to the signed-in user (user_dir).
+    let (data_dir, user_dir) = {
+        let st = app.state::<AppState>();
+        (st.data_dir.clone(), st.user_dir())
+    };
+    let mut meeting = crate::meetings::get(&user_dir, &id).ok_or("meeting not found")?;
     let transcript = crate::meetings::transcript_text(&meeting);
     if transcript.trim().is_empty() {
         return Err("empty_transcript".to_string());
@@ -620,7 +666,7 @@ pub async fn generate_summary(app: AppHandle, id: String) -> Result<String, Stri
         return Err("summary_unavailable".to_string());
     }
     meeting.summary = Some(markdown.clone());
-    if let Err(e) = crate::meetings::save(&data_dir, &meeting) {
+    if let Err(e) = crate::meetings::save(&user_dir, &meeting) {
         eprintln!("save summary failed: {e}");
     }
     Ok(markdown)

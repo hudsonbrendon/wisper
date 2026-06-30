@@ -55,7 +55,7 @@
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPDATA/meetings/*"]
+        "scope": ["$APPDATA/users/*/meetings/*"]
       }
     }
   },
