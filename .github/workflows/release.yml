@@ -54,15 +54,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest # Apple Silicon
+          # macos-15 (not macos-latest): we need an image that ships Xcode 26 /
+          # the macOS 26 SDK — see the "Select Xcode" step. macos_target stays
+          # 11.0 because the apple-metal Swift package declares .macOS(.v11) as its
+          # minimum (so 10.15 is no longer an option); the macOS-26-only Metal
+          # symbols it uses are #available-gated at runtime, not a deploy minimum.
+          - platform: macos-15 # Apple Silicon
             args: "--target aarch64-apple-darwin"
             macos_target: "11.0"
-          - platform: macos-latest # Intel
+          - platform: macos-15 # Intel
             args: "--target x86_64-apple-darwin"
-            # 11.0, not 10.15: the apple-metal crate's Swift bridge uses
-            # MTLSamplerReductionMode / MTLSamplerDescriptor.reductionMode, which
-            # only exist in the macOS 11 SDK. Building x86_64 against a 10.15
-            # deployment target fails with "cannot find 'MTLSamplerReductionMode'".
             macos_target: "11.0"
           - platform: ubuntu-22.04
             args: ""
@@ -74,6 +75,19 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v6
+
+      # apple-metal (pulled in by screencapturekit / meeting transcription) has a
+      # Swift bridge that references macOS 26 SDK symbols (MTLSamplerReductionMode,
+      # MTLSamplerDescriptor.reductionMode/.lodBias) under `#available(macOS 26)`.
+      # They're runtime-gated, but Swift still needs the macOS 26 SDK to COMPILE
+      # them. The macos-15 image ships Xcode 26 but defaults to 16.4 (macOS 15
+      # SDK), so select 26 explicitly or the build fails with "cannot find
+      # 'MTLSamplerReductionMode' in scope".
+      - name: Select Xcode 26 (macOS 26 SDK)
+        if: runner.os == 'macOS'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26"
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
