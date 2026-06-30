@@ -28,13 +28,20 @@ jobs:
         id: create-release
         uses: actions/github-script@v9
         with:
+          # The app repo (99labdev/wisper) is private, so its release assets 404
+          # for end users and the updater. Publish to the PUBLIC mirror repo
+          # 99labdev/wisper-releases instead — both the site downloads and the
+          # updater endpoint point there. Cross-repo publishing needs a PAT with
+          # contents:write on wisper-releases (the default GITHUB_TOKEN is scoped
+          # to this repo only).
+          github-token: ${{ secrets.RELEASES_TOKEN }}
           script: |
             const tag = process.env.GITHUB_REF_NAME;
             const { data } = await github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+              owner: '99labdev',
+              repo: 'wisper-releases',
               tag_name: tag,
-              name: `OpenWispr ${tag}`,
+              name: `Wisper ${tag}`,
               body: 'Download the installer for your platform from the assets below.',
               draft: true,
               prerelease: false,
@@ -105,7 +112,18 @@ jobs:
       - name: Build and upload to release
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Publish to the public mirror repo (see create-release job). The PAT
+          # authorizes the upload; overriding GITHUB_REPOSITORY makes tauri-action
+          # resolve the release (by releaseId) against wisper-releases instead of
+          # this private repo. Source was already checked out above, so this only
+          # affects the asset-upload target.
+          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          GITHUB_REPOSITORY: 99labdev/wisper-releases
+          # Backend config baked into the client bundle. The Supabase URL and the
+          # anon key are public by design (they ship in every client), but kept as
+          # secrets so the prod values live in one place.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           # whisper.cpp uses std::filesystem (needs macOS 10.15+). The `cmake`
           # crate that builds it does NOT read MACOSX_DEPLOYMENT_TARGET, so the
           # CMake var must be set explicitly or the C++ build fails with
