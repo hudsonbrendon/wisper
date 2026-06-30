@@ -62,15 +62,19 @@ jobs:
           - platform: macos-15 # Apple Silicon
             args: "--target aarch64-apple-darwin"
             macos_target: "11.0"
+            target_triple: "aarch64-apple-darwin"
           - platform: macos-15 # Intel
             args: "--target x86_64-apple-darwin"
             macos_target: "11.0"
+            target_triple: "x86_64-apple-darwin"
           - platform: ubuntu-22.04
             args: ""
             macos_target: ""
+            target_triple: ""
           - platform: windows-latest
             args: ""
             macos_target: ""
+            target_triple: ""
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -136,6 +140,12 @@ jobs:
           # secrets so the prod values live in one place.
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # Tells before-build.sh which triple to build the wisper-summarize
+          # sidecar for. On the arm64 runner the Intel leg must CROSS-build the
+          # sidecar for x86_64, otherwise Tauri's externalBin lookup fails with
+          # "resource path binaries/wisper-summarize-x86_64-apple-darwin doesn't
+          # exist". Empty on Linux/Windows → the script falls back to the host.
+          WISPER_BUILD_TARGET: ${{ matrix.target_triple }}
           # whisper.cpp uses std::filesystem (needs macOS 10.15+). The `cmake`
           # crate that builds it does NOT read MACOSX_DEPLOYMENT_TARGET, so the
           # CMake var must be set explicitly or the C++ build fails with
@@ -179,7 +189,16 @@ jobs:
         run: |
           set -euo pipefail
           mkdir dl && cd dl
-          gh release download "$TAG" --repo "$SRC" --pattern '*'
+          # Draft-release asset blobs can be briefly unavailable right after
+          # upload (GitHub storage eventual-consistency → "BlobNotFound").
+          # Retry a few times before giving up.
+          for i in 1 2 3 4 5; do
+            if gh release download "$TAG" --repo "$SRC" --pattern '*' --clobber; then
+              break
+            fi
+            echo "download attempt $i failed; retrying in 15s..."
+            sleep 15
+          done
           ls -la
 
       - name: Rewrite updater latest.json to public URLs
