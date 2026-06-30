@@ -55,17 +55,20 @@ jobs:
       matrix:
         include:
           # macos-15 (not macos-latest): we need an image that ships Xcode 26 /
-          # the macOS 26 SDK — see the "Select Xcode" step. macos_target stays
-          # 11.0 because the apple-metal Swift package declares .macOS(.v11) as its
-          # minimum (so 10.15 is no longer an option); the macOS-26-only Metal
-          # symbols it uses are #available-gated at runtime, not a deploy minimum.
+          # the macOS 26 SDK — see the "Select Xcode" step. macos_target is 12.0:
+          # the apple-metal Swift bridge pulls a dynamic `libswift_Concurrency.dylib`
+          # dependency, and Swift Concurrency only ships in the OS from macOS 12.
+          # With a target < 12 the toolchain back-deploys it and bakes the build
+          # machine's Xcode path into the binary, so the app aborts at launch on
+          # any Mac without that exact Xcode. 12.0 → dyld loads it from the OS
+          # shared cache. Keep in sync with tauri.conf.json minimumSystemVersion.
           - platform: macos-15 # Apple Silicon
             args: "--target aarch64-apple-darwin"
-            macos_target: "11.0"
+            macos_target: "12.0"
             target_triple: "aarch64-apple-darwin"
           - platform: macos-15 # Intel
             args: "--target x86_64-apple-darwin"
-            macos_target: "11.0"
+            macos_target: "12.0"
             target_triple: "x86_64-apple-darwin"
           - platform: ubuntu-22.04
             args: ""
