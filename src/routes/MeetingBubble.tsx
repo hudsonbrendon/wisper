@@ -93,10 +93,11 @@ export default function MeetingBubble() {
   const label = (s: "me" | "them") =>
     s === "me" ? t("meetings.you") : t("meetings.them");
 
-  // Only the DragHandle (grip dots) carries `data-tauri-drag-region` (needs
-  // core:window:allow-start-dragging), so the bubble drags — and shows the grab
-  // cursor — only over the dots, not the rest of the pill. The eye and Stop
-  // buttons keep pointer events so they stay clickable.
+  // Only the DragHandle (grip dots) is draggable: it moves the window manually
+  // via outerPosition/setPosition (needs core:window:allow-set-position,
+  // allow-outer-position, allow-scale-factor), so the bubble drags — and shows
+  // the grab cursor — only over the dots, not the rest of the pill. The eye and
+  // Stop buttons keep pointer events so they stay clickable.
   return (
     <div className="flex h-screen w-screen flex-col gap-2">
       <div className="flex h-16 shrink-0 select-none items-center gap-3 rounded-full bg-stone-900/95 px-4 text-stone-100 shadow-lg">
