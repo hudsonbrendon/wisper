@@ -20,6 +20,7 @@ import {
   type Feature,
   type Plan,
 } from "./entitlements";
+import { setActiveUser } from "./api";
 
 interface AuthState {
   user: User | null;
@@ -42,6 +43,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const apply = async (u: User | null) => {
       const mine = ++seq;
+      // Scope the local data dir to this account (or _guest) BEFORE the UI reads
+      // history/meetings, so a logout→login never surfaces the old account's
+      // data. Failures must not block auth, so swallow them.
+      await setActiveUser(u?.id ?? null).catch(() => {});
       const p = u ? await fetchPlan(u.id) : DEFAULT_PLAN;
       if (!active || seq !== mine) return;
       setUser(u);

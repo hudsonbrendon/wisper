@@ -39,6 +39,12 @@ export interface HistoryEntry {
 export const getHistory = () => invoke<HistoryEntry[]>("get_history");
 export const clearHistory = () => invoke<void>("clear_history");
 
+/// Bind local storage (history + meetings) to the signed-in account so one
+/// account never reads another's data. Call on every auth change; pass null on
+/// sign out. Must resolve before reading history/meetings under the new scope.
+export const setActiveUser = (uid: string | null) =>
+  invoke<void>("set_active_user", { uid });
+
 export const getConfig = () => invoke<Config>("get_config");
 export const saveConfig = (newConfig: Config) =>
   invoke<void>("save_config", { newConfig });
