@@ -6276,7 +6276,7 @@ dependencies = [
 
 [[package]]
 name = "wisper"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "arboard",
  "block2",
