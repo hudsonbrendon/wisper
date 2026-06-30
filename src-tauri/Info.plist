@@ -5,7 +5,7 @@
     <!-- macOS shows this string when prompting for microphone access. Without
          the key, the OS silently denies capture and recordings are empty. -->
     <key>NSMicrophoneUsageDescription</key>
-    <string>OpenWispr uses the microphone to transcribe your speech on-device. Audio never leaves your computer.</string>
+    <string>Wisper uses the microphone to transcribe your speech on-device. Audio never leaves your computer.</string>
     <!-- ScreenCaptureKit (macOS 13.0–14.3) gates system-audio capture behind the
          Screen Recording permission; this string is shown when prompting. No
          video is recorded — only the meeting's output audio. -->

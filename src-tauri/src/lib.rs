@@ -874,7 +874,7 @@ fn wipe_legacy_unscoped_data(data_dir: &std::path::Path) {
 ///
 /// The check keys on the code-signing **designated requirement**, NOT the binary
 /// mtime. TCC grants are pinned to that requirement. The stable self-signed cert
-/// ("OpenWispr Dev") used for local builds yields a CONSTANT requirement across
+/// ("Wisper Dev") used for local builds yields a CONSTANT requirement across
 /// rebuilds (`… certificate leaf = H"…"`), so the grants stay valid and we must
 /// NOT reset them — keying on mtime used to nuke them on every local reinstall,
 /// forcing a needless re-grant (esp. painful for the lone-modifier hotkey, which
