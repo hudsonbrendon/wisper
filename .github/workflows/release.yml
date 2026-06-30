@@ -28,18 +28,16 @@ jobs:
         id: create-release
         uses: actions/github-script@v9
         with:
-          # The app repo (99labdev/wisper) is private, so its release assets 404
-          # for end users and the updater. Publish to the PUBLIC mirror repo
-          # 99labdev/wisper-releases instead — both the site downloads and the
-          # updater endpoint point there. Cross-repo publishing needs a PAT with
-          # contents:write on wisper-releases (the default GITHUB_TOKEN is scoped
-          # to this repo only).
-          github-token: ${{ secrets.RELEASES_TOKEN }}
+          # tauri-action can only upload to a release in the repo it runs in, and
+          # it needs to write the updater latest.json with URLs to that same repo.
+          # So we stage the build's release HERE (private wisper) and let a later
+          # `mirror` job copy everything to the PUBLIC 99labdev/wisper-releases
+          # (rewriting latest.json URLs). End users only ever see wisper-releases.
           script: |
             const tag = process.env.GITHUB_REF_NAME;
             const { data } = await github.rest.repos.createRelease({
-              owner: '99labdev',
-              repo: 'wisper-releases',
+              owner: context.repo.owner,
+              repo: context.repo.repo,
               tag_name: tag,
               name: `Wisper ${tag}`,
               body: 'Download the installer for your platform from the assets below.',
@@ -61,7 +59,11 @@ jobs:
             macos_target: "11.0"
           - platform: macos-latest # Intel
             args: "--target x86_64-apple-darwin"
-            macos_target: "10.15"
+            # 11.0, not 10.15: the apple-metal crate's Swift bridge uses
+            # MTLSamplerReductionMode / MTLSamplerDescriptor.reductionMode, which
+            # only exist in the macOS 11 SDK. Building x86_64 against a 10.15
+            # deployment target fails with "cannot find 'MTLSamplerReductionMode'".
+            macos_target: "11.0"
           - platform: ubuntu-22.04
             args: ""
             macos_target: ""
@@ -112,13 +114,9 @@ jobs:
       - name: Build and upload to release
         uses: tauri-apps/tauri-action@v0
         env:
-          # Publish to the public mirror repo (see create-release job). The PAT
-          # authorizes the upload; overriding GITHUB_REPOSITORY makes tauri-action
-          # resolve the release (by releaseId) against wisper-releases instead of
-          # this private repo. Source was already checked out above, so this only
-          # affects the asset-upload target.
-          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
-          GITHUB_REPOSITORY: 99labdev/wisper-releases
+          # Upload to THIS repo's staging release (mirrored to the public repo by
+          # the `mirror` job). Default GITHUB_TOKEN is enough — same-repo upload.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Backend config baked into the client bundle. The Supabase URL and the
           # anon key are public by design (they ship in every client), but kept as
           # secrets so the prod values live in one place.
@@ -143,3 +141,77 @@ jobs:
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
+
+  # Mirror the staged (private) release to the PUBLIC 99labdev/wisper-releases:
+  # end users download from there and the updater endpoint points there. We copy
+  # every asset, rewrite the updater latest.json URLs from the private repo to
+  # the public one, and additionally publish version-less aliases (the site links
+  # to stable `/releases/latest/download/<name>` URLs that never change between
+  # versions). The versioned originals stay for the updater; the aliases serve
+  # the website downloads.
+  mirror:
+    needs: [create-release, publish-tauri]
+    if: ${{ always() && needs.create-release.result == 'success' }}
+    runs-on: ubuntu-22.04
+    env:
+      # Classic PAT with `repo` scope: reads the private staging repo AND writes
+      # the public mirror. (The default GITHUB_TOKEN can't reach wisper-releases.)
+      GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+      TAG: ${{ github.ref_name }}
+      SRC: 99labdev/wisper
+      DST: 99labdev/wisper-releases
+    steps:
+      - name: Download staged assets
+        run: |
+          set -euo pipefail
+          mkdir dl && cd dl
+          gh release download "$TAG" --repo "$SRC" --pattern '*'
+          ls -la
+
+      - name: Rewrite updater latest.json to public URLs
+        run: |
+          set -euo pipefail
+          cd dl
+          if [ -f latest.json ]; then
+            sed -i 's#/99labdev/wisper/releases/#/99labdev/wisper-releases/releases/#g' latest.json
+            echo "--- latest.json ---"; cat latest.json
+          fi
+
+      - name: Ensure public draft release exists
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" --repo "$DST" >/dev/null 2>&1 || \
+            gh release create "$TAG" --repo "$DST" --draft \
+              --title "Wisper $TAG" \
+              --notes "Download the installer for your platform from the assets below."
+
+      - name: Upload originals + version-less aliases
+        run: |
+          set -euo pipefail
+          cd dl
+          shopt -s nullglob
+          # 1) Upload every staged asset verbatim (installers, msi, updater
+          #    sidecars, and the rewritten latest.json).
+          for f in *; do
+            [ -f "$f" ] || continue
+            gh release upload "$TAG" "$f" --repo "$DST" --clobber
+          done
+          # 2) Add stable, version-less aliases for the website download buttons.
+          alias_for() {
+            case "$1" in
+              *_aarch64.dmg)    echo Wisper_aarch64.dmg ;;
+              *_x64.dmg)        echo Wisper_x64.dmg ;;
+              *_x64-setup.exe)  echo Wisper_x64-setup.exe ;;
+              *_amd64.AppImage) echo Wisper_amd64.AppImage ;;
+              *_amd64.deb)      echo Wisper_amd64.deb ;;
+              *.x86_64.rpm)     echo Wisper.x86_64.rpm ;;
+              *)                echo "" ;;
+            esac
+          }
+          for f in *; do
+            a=$(alias_for "$f"); [ -n "$a" ] || continue
+            [ "$f" = "$a" ] && continue
+            cp -f "$f" "$a"
+            gh release upload "$TAG" "$a" --repo "$DST" --clobber
+            echo "alias: $f -> $a"
+          done
