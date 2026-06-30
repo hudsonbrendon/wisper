@@ -18,15 +18,13 @@ fn main() {
         if let Some(dir) = swift_runtime_search_path() {
             println!("cargo:rustc-link-search=native={dir}");
         }
-        // The Swift bridge also pulls a *dynamic* dependency on
-        // `libswift_Concurrency.dylib`. On a Command-Line-Tools-only machine the
-        // back-deployment dynamic runtime lives under `swift-5.5/macosx` and is
-        // not in dyld's default search set, so executables abort at load time
-        // with "Library not loaded: @rpath/libswift_Concurrency.dylib". Add that
-        // directory to the runtime rpath so dyld can resolve it.
-        if let Some(dir) = swift_dynamic_runtime_path() {
-            println!("cargo:rustc-link-arg=-Wl,-rpath,{dir}");
-        }
+        // `libswift_Concurrency.dylib` is part of the OS since macOS 12, so with
+        // a deployment target of 12.0+ dyld resolves the bridge's dynamic
+        // `@rpath/libswift_Concurrency.dylib` dependency straight from the shared
+        // cache (`/usr/lib/swift`). We must NOT add a toolchain rpath here: doing
+        // so bakes the *build machine's* absolute Xcode path
+        // (`.../Xcode_xx.app/.../swift-5.5/macosx`) into the shipped binary,
+        // which then aborts at launch on any Mac without that exact Xcode.
     }
 
     tauri_build::build()
@@ -61,34 +59,4 @@ fn swift_runtime_search_path() -> Option<String> {
     candidates
         .into_iter()
         .find(|p| Path::new(&format!("{p}/libswiftCompatibility56.a")).exists())
-}
-
-/// Locate the directory holding the *dynamic* Swift back-deployment runtime
-/// (`libswift_Concurrency.dylib`) for the active toolchain. Used to set an
-/// rpath so executables can load it at runtime. Returns `None` if not found
-/// (e.g. when the runtime is already provided by the dyld shared cache).
-#[cfg(target_os = "macos")]
-fn swift_dynamic_runtime_path() -> Option<String> {
-    use std::path::Path;
-    use std::process::Command;
-
-    let developer_dir = Command::new("xcode-select")
-        .arg("-p")
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .and_then(|o| String::from_utf8(o.stdout).ok())
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())?;
-
-    let candidates = [
-        format!("{developer_dir}/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx"),
-        format!("{developer_dir}/usr/lib/swift-5.5/macosx"),
-        format!("{developer_dir}/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx"),
-        format!("{developer_dir}/usr/lib/swift/macosx"),
-    ];
-
-    candidates
-        .into_iter()
-        .find(|p| Path::new(&format!("{p}/libswift_Concurrency.dylib")).exists())
 }
