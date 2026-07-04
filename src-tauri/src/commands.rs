@@ -56,7 +56,13 @@ impl AppState {
 /// a surprise value escaping the users/ folder.
 fn sanitize_uid(uid: &str) -> String {
     uid.chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '-'
+            }
+        })
         .collect()
 }
 
