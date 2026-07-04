@@ -20,6 +20,14 @@ else
   SRC="src-tauri/target/${TARGET}/release/wisper-summarize"
 fi
 
+# Windows binaries carry a `.exe` suffix. cargo emits `wisper-summarize.exe`, and
+# Tauri's externalBin lookup expects the staged copy to keep it
+# (binaries/wisper-summarize-<triple>.exe) — without this the Windows build fails
+# with "resource path binaries/wisper-summarize-x86_64-pc-windows-msvc.exe doesn't
+# exist". No-op on macOS/Linux, where the triple has no `.exe`.
+EXT=""
+case "$TARGET" in *windows*) EXT=".exe" ;; esac
+
 mkdir -p src-tauri/binaries
-cp "$SRC" "src-tauri/binaries/wisper-summarize-${TARGET}"
+cp "${SRC}${EXT}" "src-tauri/binaries/wisper-summarize-${TARGET}${EXT}"
 pnpm build
