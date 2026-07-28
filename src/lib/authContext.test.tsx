@@ -14,8 +14,13 @@ vi.mock("./api", () => ({
   setSignedIn: vi.fn(() => Promise.resolve()),
 }));
 
+vi.mock("./supabase", () => ({
+  isSupabaseConfigured: vi.fn(() => true),
+}));
+
 import { getSession } from "./auth";
 import { setSignedIn } from "./api";
+import { isSupabaseConfigured } from "./supabase";
 import { AuthProvider, useAuth } from "./authContext";
 
 function Probe() {
@@ -55,6 +60,22 @@ describe("AuthProvider", () => {
       </AuthProvider>,
     );
 
+    await waitFor(() => expect(setSignedIn).toHaveBeenCalledWith(true));
+  });
+
+  it("keeps dictation/meetings unlocked when Supabase is unconfigured, even with no user", async () => {
+    vi.mocked(isSupabaseConfigured).mockReturnValueOnce(false);
+    vi.mocked(getSession).mockResolvedValueOnce(null);
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    // A fork with no .env has nobody to sign in as, so the gate must stay
+    // open regardless of `u` — this pins the `||` in
+    // `!isSupabaseConfigured() || !!u` against being flipped to `&&`.
     await waitFor(() => expect(setSignedIn).toHaveBeenCalledWith(true));
   });
 });
