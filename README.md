@@ -63,10 +63,14 @@
 ## What it is
 
 Wisper is a free, open alternative to cloud dictation tools like Wispr Flow.
-Everything runs on your machine — **no cloud, no account, no telemetry, no
-subscription**. Your audio never leaves your computer; transcription happens
-entirely on-device via [whisper.cpp](https://github.com/ggerganov/whisper.cpp),
-with Metal GPU acceleration on Apple Silicon.
+Everything runs on your machine — **no cloud, no telemetry, no
+subscription**. A free Google sign-in identifies you; your audio never leaves
+your computer. Transcription happens entirely on-device via
+[whisper.cpp](https://github.com/ggerganov/whisper.cpp), with Metal GPU
+acceleration on Apple Silicon.
+
+Wisper is free — every feature is in this repository and there is nothing to
+upgrade to.
 
 It lives in your system tray as a small floating "pill" and stays out of the way
 until you press your hotkey.
@@ -76,7 +80,7 @@ until you press your hotkey.
 |                      | Wisper                       | Typical cloud dictation |
 | -------------------- | ---------------------------- | ----------------------- |
 | **Where audio goes** | Stays on your device         | Uploaded to a server    |
-| **Account required** | No                           | Usually yes             |
+| **Account required** | Free account                 | Usually yes             |
 | **Cost**             | Free &amp; open source (MIT) | Subscription            |
 | **Works offline**    | Yes                          | No                      |
 | **Telemetry**        | None                         | Common                  |
@@ -252,7 +256,7 @@ focus from the app you're typing into.
 
 - Audio is processed **entirely on your device** and is **not stored** after
   transcription.
-- **No account, no telemetry, no network calls** for transcription.
+- **No telemetry, no network calls** for transcription.
 - The only network activity is **downloading models** you ask for and
   **checking for app updates** from GitHub Releases.
 - History and insights are kept **locally** and never leave your machine.
