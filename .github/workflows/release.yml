@@ -30,9 +30,9 @@ jobs:
         with:
           # tauri-action can only upload to a release in the repo it runs in, and
           # it needs to write the updater latest.json with URLs to that same repo.
-          # So we stage the build's release HERE (private wisper) and let a later
-          # `mirror` job copy everything to the PUBLIC 99labdev/wisper-releases
-          # (rewriting latest.json URLs). End users only ever see wisper-releases.
+          # So we stage the build's release HERE (99labdev/wisper) and let a later
+          # `mirror` job copy everything to 99labdev/wisper-releases (rewriting
+          # latest.json URLs). End users only ever see wisper-releases.
           script: |
             const tag = process.env.GITHUB_REF_NAME;
             const { data } = await github.rest.repos.createRelease({
@@ -135,8 +135,8 @@ jobs:
       - name: Build and upload to release
         uses: tauri-apps/tauri-action@v0
         env:
-          # Upload to THIS repo's staging release (mirrored to the public repo by
-          # the `mirror` job). Default GITHUB_TOKEN is enough — same-repo upload.
+          # Upload to THIS repo's staging release (mirrored to the downloads repo
+          # by the `mirror` job). Default GITHUB_TOKEN is enough — same-repo upload.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Backend config baked into the client bundle. The Supabase URL and the
           # anon key are public by design (they ship in every client), but kept as
@@ -169,10 +169,10 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
 
-  # Mirror the staged (private) release to the PUBLIC 99labdev/wisper-releases:
+  # Mirror the staged release to the downloads repo, 99labdev/wisper-releases:
   # end users download from there and the updater endpoint points there. We copy
-  # every asset, rewrite the updater latest.json URLs from the private repo to
-  # the public one, and additionally publish version-less aliases (the site links
+  # every asset, rewrite the updater latest.json URLs from this repo to the
+  # releases repo, and additionally publish version-less aliases (the site links
   # to stable `/releases/latest/download/<name>` URLs that never change between
   # versions). The versioned originals stay for the updater; the aliases serve
   # the website downloads.
@@ -181,8 +181,8 @@ jobs:
     if: ${{ always() && needs.create-release.result == 'success' }}
     runs-on: ubuntu-22.04
     env:
-      # Classic PAT with `repo` scope: reads the private staging repo AND writes
-      # the public mirror. (The default GITHUB_TOKEN can't reach wisper-releases.)
+      # Classic PAT with `repo` scope: reads the staging release here AND writes
+      # the mirror. (The default GITHUB_TOKEN can't reach wisper-releases.)
       GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
       TAG: ${{ github.ref_name }}
       SRC: 99labdev/wisper
