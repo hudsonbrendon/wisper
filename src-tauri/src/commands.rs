@@ -28,9 +28,10 @@ pub struct AppState {
     pub cancels: Mutex<std::collections::HashSet<String>>,
     /// Hotkey gesture detector (hold vs double-tap).
     pub hotkey: Mutex<crate::hotkey::Controller>,
-    /// Latest entitlements/quota snapshot pushed by the frontend. Enforced by
-    /// the dictation and meeting guards.
-    pub entitlements: Mutex<crate::entitlements::Entitlements>,
+    /// Whether someone is signed in, pushed by the frontend on every auth
+    /// change. Starts `true` so the first dictation after launch is never
+    /// blocked before the webview has reported in.
+    pub signed_in: Mutex<bool>,
     /// Supabase user id of the signed-in account, or None when signed out. Set
     /// by the frontend via `set_active_user` on every auth change. Scopes the
     /// per-user data dir so one account never sees another's history/meetings.
@@ -56,7 +57,13 @@ impl AppState {
 /// a surprise value escaping the users/ folder.
 fn sanitize_uid(uid: &str) -> String {
     uid.chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '-'
+            }
+        })
         .collect()
 }
 
