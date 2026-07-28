@@ -164,12 +164,6 @@ describe("useI18n – throws outside provider", () => {
 describe("no paid-tier copy", () => {
   const GONE = [
     "usage.banner",
-    "upgrade.limitTitle",
-    "upgrade.limitBodyDictation",
-    "upgrade.limitBodyMeeting",
-    "upgrade.perMonth",
-    "upgrade.perYear",
-    "upgrade.comingSoon",
     "account.planBadge",
     "account.plan.free",
     "account.plan.pro",
@@ -180,10 +174,12 @@ describe("no paid-tier copy", () => {
     "account.benefit.plan",
   ];
 
-  it("has no billing keys in any language", () => {
+  // There is nothing to upgrade to, so the whole `upgrade.` namespace is gone —
+  // the sign-in prompt copy lives under `signin.` now.
+  it("has no billing or upgrade keys in any language", () => {
     for (const lang of LANGS) {
-      const offenders = Object.keys(DICTS[lang]).filter((k) =>
-        k.startsWith("billing."),
+      const offenders = Object.keys(DICTS[lang]).filter(
+        (k) => k.startsWith("billing.") || k.startsWith("upgrade."),
       );
       expect(offenders, lang).toEqual([]);
     }
@@ -198,8 +194,8 @@ describe("no paid-tier copy", () => {
   });
 
   it("keeps the sign-in prompt copy in English", () => {
-    expect(DICTS["en"]["upgrade.signInTitle"]).toBeTruthy();
-    expect(DICTS["en"]["upgrade.signInBody"]).toBeTruthy();
-    expect(DICTS["en"]["upgrade.notNow"]).toBeTruthy();
+    expect(DICTS["en"]["signin.title"]).toBeTruthy();
+    expect(DICTS["en"]["signin.body"]).toBeTruthy();
+    expect(DICTS["en"]["signin.notNow"]).toBeTruthy();
   });
 });

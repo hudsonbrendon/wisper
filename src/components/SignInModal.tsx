@@ -25,10 +25,10 @@ export default function SignInModal() {
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-stone-950/50 p-6">
       <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-800 dark:bg-stone-900">
         <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100">
-          {t("upgrade.signInTitle")}
+          {t("signin.title")}
         </h2>
         <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
-          {t("upgrade.signInBody")}
+          {t("signin.body")}
         </p>
         <button
           type="button"
@@ -46,7 +46,7 @@ export default function SignInModal() {
           onClick={() => setOpen(false)}
           className="mt-4 w-full rounded-lg px-3 py-2 text-sm text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800"
         >
-          {t("upgrade.notNow")}
+          {t("signin.notNow")}
         </button>
       </div>
     </div>

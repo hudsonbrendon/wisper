@@ -286,10 +286,10 @@ const en: Dict = {
   "account.cancel": "Cancel",
   "account.signInHeadline": "Sign in to Wisper",
   "account.benefit.local": "Your audio is transcribed on your device",
-  "upgrade.signInTitle": "Sign in to continue",
-  "upgrade.signInBody":
+  "signin.title": "Sign in to continue",
+  "signin.body":
     "Wisper needs a free account to use dictation and meetings. Your audio still stays on your device.",
-  "upgrade.notNow": "Not now",
+  "signin.notNow": "Not now",
   "onboarding.login.title": "Create your free account",
   "onboarding.login.body":
     "Wisper needs a free account to use dictation and meetings. Your audio and transcripts stay 100% on your device — the account is just for sign-in.",
@@ -546,10 +546,10 @@ const pt: Dict = {
   "account.cancel": "Cancelar",
   "account.signInHeadline": "Entre na sua conta",
   "account.benefit.local": "Seu áudio é transcrito no seu dispositivo",
-  "upgrade.signInTitle": "Entre para continuar",
-  "upgrade.signInBody":
+  "signin.title": "Entre para continuar",
+  "signin.body":
     "O Wisper precisa de uma conta gratuita para usar o ditado e as reuniões. Seu áudio continua no seu dispositivo.",
-  "upgrade.notNow": "Agora não",
+  "signin.notNow": "Agora não",
   "onboarding.login.title": "Crie sua conta gratuita",
   "onboarding.login.body":
     "O Wisper precisa de uma conta gratuita para usar o ditado e as reuniões. Seu áudio e transcrições ficam 100% no seu dispositivo — a conta é só para login.",
@@ -649,10 +649,10 @@ const es: Dict = {
   "account.cancel": "Cancelar",
   "account.signInHeadline": "Inicia sesión en Wisper",
   "account.benefit.local": "Tu audio se transcribe en tu dispositivo",
-  "upgrade.signInTitle": "Inicia sesión para continuar",
-  "upgrade.signInBody":
+  "signin.title": "Inicia sesión para continuar",
+  "signin.body":
     "Wisper necesita una cuenta gratuita para usar el dictado y las reuniones. Tu audio sigue en tu dispositivo.",
-  "upgrade.notNow": "Ahora no",
+  "signin.notNow": "Ahora no",
   "onboarding.skip": "Omitir",
   "onboarding.back": "Atrás",
   "onboarding.next": "Continuar",
@@ -784,10 +784,10 @@ const fr: Dict = {
   "account.cancel": "Annuler",
   "account.signInHeadline": "Connectez-vous à Wisper",
   "account.benefit.local": "Votre audio est transcrit sur votre appareil",
-  "upgrade.signInTitle": "Connectez-vous pour continuer",
-  "upgrade.signInBody":
+  "signin.title": "Connectez-vous pour continuer",
+  "signin.body":
     "Wisper nécessite un compte gratuit pour utiliser la dictée et les réunions. Votre audio reste sur votre appareil.",
-  "upgrade.notNow": "Pas maintenant",
+  "signin.notNow": "Pas maintenant",
   "onboarding.skip": "Passer",
   "onboarding.back": "Retour",
   "onboarding.next": "Continuer",
@@ -920,10 +920,10 @@ const de: Dict = {
   "account.cancel": "Abbrechen",
   "account.signInHeadline": "Bei Wisper anmelden",
   "account.benefit.local": "Dein Audio wird auf deinem Gerät transkribiert",
-  "upgrade.signInTitle": "Anmelden, um fortzufahren",
-  "upgrade.signInBody":
+  "signin.title": "Anmelden, um fortzufahren",
+  "signin.body":
     "Wisper benötigt ein kostenloses Konto für Diktierfunktion und Meetings. Dein Audio bleibt auf deinem Gerät.",
-  "upgrade.notNow": "Nicht jetzt",
+  "signin.notNow": "Nicht jetzt",
   "onboarding.skip": "Überspringen",
   "onboarding.back": "Zurück",
   "onboarding.next": "Weiter",
@@ -1055,10 +1055,10 @@ const it: Dict = {
   "account.cancel": "Annulla",
   "account.signInHeadline": "Accedi a Wisper",
   "account.benefit.local": "Il tuo audio viene trascritto sul tuo dispositivo",
-  "upgrade.signInTitle": "Accedi per continuare",
-  "upgrade.signInBody":
+  "signin.title": "Accedi per continuare",
+  "signin.body":
     "Wisper ha bisogno di un account gratuito per usare la dettatura e le riunioni. Il tuo audio rimane sul tuo dispositivo.",
-  "upgrade.notNow": "Non ora",
+  "signin.notNow": "Non ora",
   "onboarding.skip": "Salta",
   "onboarding.back": "Indietro",
   "onboarding.next": "Continua",
@@ -1191,10 +1191,10 @@ const nl: Dict = {
   "account.cancel": "Annuleren",
   "account.signInHeadline": "Aanmelden bij Wisper",
   "account.benefit.local": "Je audio wordt op je apparaat getranscribeerd",
-  "upgrade.signInTitle": "Meld je aan om door te gaan",
-  "upgrade.signInBody":
+  "signin.title": "Meld je aan om door te gaan",
+  "signin.body":
     "Wisper heeft een gratis account nodig voor dicteren en vergaderen. Je audio blijft op je apparaat.",
-  "upgrade.notNow": "Niet nu",
+  "signin.notNow": "Niet nu",
   "onboarding.skip": "Overslaan",
   "onboarding.back": "Terug",
   "onboarding.next": "Doorgaan",
@@ -1327,10 +1327,10 @@ const ru: Dict = {
   "account.cancel": "Отмена",
   "account.signInHeadline": "Вход в Wisper",
   "account.benefit.local": "Аудио расшифровывается на вашем устройстве",
-  "upgrade.signInTitle": "Войдите, чтобы продолжить",
-  "upgrade.signInBody":
+  "signin.title": "Войдите, чтобы продолжить",
+  "signin.body":
     "Wisper требует бесплатный аккаунт для диктовки и встреч. Ваше аудио остаётся на устройстве.",
-  "upgrade.notNow": "Не сейчас",
+  "signin.notNow": "Не сейчас",
   "onboarding.skip": "Пропустить",
   "onboarding.back": "Назад",
   "onboarding.next": "Продолжить",
@@ -1462,10 +1462,10 @@ const pl: Dict = {
   "account.signInHeadline": "Zaloguj się do Wisper",
   "account.benefit.local":
     "Twój dźwięk jest transkrybowany na Twoim urządzeniu",
-  "upgrade.signInTitle": "Zaloguj się, aby kontynuować",
-  "upgrade.signInBody":
+  "signin.title": "Zaloguj się, aby kontynuować",
+  "signin.body":
     "Wisper potrzebuje bezpłatnego konta do dyktowania i spotkań. Twoje audio pozostaje na urządzeniu.",
-  "upgrade.notNow": "Nie teraz",
+  "signin.notNow": "Nie teraz",
   "onboarding.skip": "Pomiń",
   "onboarding.back": "Wstecz",
   "onboarding.next": "Kontynuuj",
@@ -1597,10 +1597,10 @@ const tr: Dict = {
   "account.cancel": "İptal",
   "account.signInHeadline": "Wisper'a giriş yap",
   "account.benefit.local": "Sesin cihazında yazıya dökülür",
-  "upgrade.signInTitle": "Devam etmek için giriş yap",
-  "upgrade.signInBody":
+  "signin.title": "Devam etmek için giriş yap",
+  "signin.body":
     "Wisper, dikte ve toplantılar için ücretsiz bir hesap gerektirir. Sesin cihazında kalır.",
-  "upgrade.notNow": "Şimdi değil",
+  "signin.notNow": "Şimdi değil",
   "onboarding.skip": "Atla",
   "onboarding.back": "Geri",
   "onboarding.next": "Devam",
@@ -1730,10 +1730,10 @@ const ja: Dict = {
   "account.cancel": "キャンセル",
   "account.signInHeadline": "Wisper にサインイン",
   "account.benefit.local": "音声はデバイス上で文字起こしされます",
-  "upgrade.signInTitle": "続けるにはサインインしてください",
-  "upgrade.signInBody":
+  "signin.title": "続けるにはサインインしてください",
+  "signin.body":
     "Wisperはディクテーションと会議に無料アカウントが必要です。音声はデバイスに残ります。",
-  "upgrade.notNow": "今はしない",
+  "signin.notNow": "今はしない",
   "onboarding.skip": "スキップ",
   "onboarding.back": "戻る",
   "onboarding.next": "続ける",
@@ -1864,10 +1864,10 @@ const ko: Dict = {
   "account.cancel": "취소",
   "account.signInHeadline": "Wisper에 로그인",
   "account.benefit.local": "오디오가 기기에서 변환됩니다",
-  "upgrade.signInTitle": "계속하려면 로그인하세요",
-  "upgrade.signInBody":
+  "signin.title": "계속하려면 로그인하세요",
+  "signin.body":
     "Wisper는 받아쓰기와 회의를 사용하려면 무료 계정이 필요합니다. 오디오는 기기에 그대로 남습니다.",
-  "upgrade.notNow": "나중에",
+  "signin.notNow": "나중에",
   "onboarding.skip": "건너뛰기",
   "onboarding.back": "뒤로",
   "onboarding.next": "계속",
@@ -1993,10 +1993,10 @@ const zh: Dict = {
   "account.cancel": "取消",
   "account.signInHeadline": "登录 Wisper",
   "account.benefit.local": "你的音频在本地设备上转录",
-  "upgrade.signInTitle": "登录以继续",
-  "upgrade.signInBody":
+  "signin.title": "登录以继续",
+  "signin.body":
     "Wisper 需要免费账户才能使用听写和会议功能。您的音频仍保留在设备上。",
-  "upgrade.notNow": "暂不",
+  "signin.notNow": "暂不",
   "onboarding.skip": "跳过",
   "onboarding.back": "返回",
   "onboarding.next": "继续",
@@ -2124,10 +2124,10 @@ const ar: Dict = {
   "account.cancel": "إلغاء",
   "account.signInHeadline": "تسجيل الدخول إلى Wisper",
   "account.benefit.local": "يتم تحويل صوتك إلى نص على جهازك",
-  "upgrade.signInTitle": "سجّل دخولك للمتابعة",
-  "upgrade.signInBody":
+  "signin.title": "سجّل دخولك للمتابعة",
+  "signin.body":
     "يحتاج Wisper إلى حساب مجاني لاستخدام الإملاء والاجتماعات. يبقى صوتك على جهازك.",
-  "upgrade.notNow": "ليس الآن",
+  "signin.notNow": "ليس الآن",
   "onboarding.skip": "تخطّي",
   "onboarding.back": "رجوع",
   "onboarding.next": "متابعة",
@@ -2258,10 +2258,10 @@ const hi: Dict = {
   "account.cancel": "रद्द करें",
   "account.signInHeadline": "Wisper में साइन इन करें",
   "account.benefit.local": "आपका ऑडियो आपके डिवाइस पर ट्रांसक्राइब होता है",
-  "upgrade.signInTitle": "जारी रखने के लिए साइन इन करें",
-  "upgrade.signInBody":
+  "signin.title": "जारी रखने के लिए साइन इन करें",
+  "signin.body":
     "Wisper को डिक्टेशन और मीटिंग के लिए एक मुफ़्त खाते की ज़रूरत है। आपकी ऑडियो आपके डिवाइस पर ही रहती है।",
-  "upgrade.notNow": "अभी नहीं",
+  "signin.notNow": "अभी नहीं",
   "onboarding.skip": "छोड़ें",
   "onboarding.back": "वापस",
   "onboarding.next": "जारी रखें",

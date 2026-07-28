@@ -23,14 +23,14 @@ beforeEach(() => {
 describe("SignInModal", () => {
   it("stays hidden until the backend asks for sign-in", () => {
     render(<SignInModal />);
-    expect(screen.queryByText("upgrade.signInTitle")).toBeNull();
+    expect(screen.queryByText("signin.title")).toBeNull();
   });
 
   it("opens on signin_required and starts the Google sign-in", async () => {
     render(<SignInModal />);
     await waitFor(() => expect(handlers["signin_required"]).toBeDefined());
     handlers["signin_required"]({ metric: "dictation" });
-    await screen.findByText("upgrade.signInTitle");
+    await screen.findByText("signin.title");
 
     await userEvent.click(screen.getByText("account.continueGoogle"));
     expect(signIn).toHaveBeenCalled();
