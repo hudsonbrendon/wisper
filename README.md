@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/99labdev/wisper-releases/releases/latest">Download</a> ·
+  <a href="https://github.com/hudsonbrendon/wisper/releases/latest">Download</a> ·
   <a href="#-quick-start">Quick start</a> ·
   <a href="#-build-from-source">Build from source</a> ·
   <a href="#-troubleshooting">Troubleshooting</a> ·
@@ -26,7 +26,7 @@
 <p align="center">
   <a href="https://github.com/hudsonbrendon/wisper/actions/workflows/ci.yml"><img src="https://github.com/hudsonbrendon/wisper/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://codecov.io/gh/hudsonbrendon/wisper"><img src="https://codecov.io/gh/hudsonbrendon/wisper/branch/main/graph/badge.svg" alt="Coverage"></a>
-  <a href="https://github.com/99labdev/wisper-releases/releases/latest"><img src="https://img.shields.io/github/v/release/99labdev/wisper-releases?sort=semver" alt="Latest release"></a>
+  <a href="https://github.com/hudsonbrendon/wisper/releases/latest"><img src="https://img.shields.io/github/v/release/hudsonbrendon/wisper?sort=semver" alt="Latest release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/hudsonbrendon/wisper" alt="License"></a>
   <img src="https://img.shields.io/badge/built%20with-Tauri-24C8DB?logo=tauri&logoColor=white" alt="Built with Tauri">
   <img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-blue" alt="Platforms">
@@ -133,7 +133,7 @@ until you press your hotkey.
 
 ## 🚀 Quick start
 
-1. [Download](https://github.com/99labdev/wisper-releases/releases/latest) and
+1. [Download](https://github.com/hudsonbrendon/wisper/releases/latest) and
    install for your OS.
 2. Launch it and complete the short onboarding.
 3. Grant **Microphone** (and on macOS, **Accessibility**) permission — see
@@ -145,7 +145,7 @@ until you press your hotkey.
 ## 📥 Install
 
 Grab the installer for your platform from the
-[latest release](https://github.com/99labdev/wisper-releases/releases/latest):
+[latest release](https://github.com/hudsonbrendon/wisper/releases/latest):
 
 | Platform                          | Asset                |
 | --------------------------------- | -------------------- |

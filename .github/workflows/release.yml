@@ -28,11 +28,11 @@ jobs:
         id: create-release
         uses: actions/github-script@v9
         with:
-          # tauri-action can only upload to a release in the repo it runs in, and
-          # it needs to write the updater latest.json with URLs to that same repo.
-          # So we stage the build's release HERE (hudsonbrendon/wisper) and let a later
-          # `mirror` job copy everything to 99labdev/wisper-releases (rewriting
-          # latest.json URLs). End users only ever see wisper-releases.
+          # This repo is public, so releases live here: tauri-action uploads the
+          # installers and writes the updater latest.json pointing at this same
+          # release. (While the repo was private the build was staged here and
+          # mirrored to 99labdev/wisper-releases; that mirror is gone — see
+          # legacy-updater-mirror.yml for the one leftover it kept.)
           script: |
             const tag = process.env.GITHUB_REF_NAME;
             const { data } = await github.rest.repos.createRelease({
@@ -135,8 +135,7 @@ jobs:
       - name: Build and upload to release
         uses: tauri-apps/tauri-action@v0
         env:
-          # Upload to THIS repo's staging release (mirrored to the downloads repo
-          # by the `mirror` job). Default GITHUB_TOKEN is enough — same-repo upload.
+          # Same-repo upload, so the default GITHUB_TOKEN is enough.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Backend config baked into the client bundle. The Supabase URL and the
           # anon key are public by design (they ship in every client), but kept as
@@ -169,26 +168,23 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
 
-  # Mirror the staged release to the downloads repo, 99labdev/wisper-releases:
-  # end users download from there and the updater endpoint points there. We copy
-  # every asset, rewrite the updater latest.json URLs from this repo to the
-  # releases repo, and additionally publish version-less aliases (the site links
-  # to stable `/releases/latest/download/<name>` URLs that never change between
-  # versions). The versioned originals stay for the updater; the aliases serve
-  # the website downloads.
-  mirror:
+  # tauri-action uploads versioned filenames (Wisper_1.2.3_aarch64.dmg), but the
+  # website links to stable URLs that must not change between versions. Copy each
+  # installer to a version-less alias in the same release, so
+  # /releases/latest/download/Wisper_aarch64.dmg always resolves. The versioned
+  # originals stay untouched — the updater's latest.json points at those.
+  aliases:
     needs: [create-release, publish-tauri]
     if: ${{ always() && needs.create-release.result == 'success' }}
+    permissions:
+      contents: write
     runs-on: ubuntu-22.04
     env:
-      # Classic PAT with `repo` scope: reads the staging release here AND writes
-      # the mirror. (The default GITHUB_TOKEN can't reach wisper-releases.)
-      GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       TAG: ${{ github.ref_name }}
-      SRC: hudsonbrendon/wisper
-      DST: 99labdev/wisper-releases
+      REPO: ${{ github.repository }}
     steps:
-      - name: Download staged assets
+      - name: Download the release assets
         run: |
           set -euo pipefail
           mkdir dl && cd dl
@@ -196,7 +192,7 @@ jobs:
           # upload (GitHub storage eventual-consistency → "BlobNotFound").
           # Retry a few times before giving up.
           for i in 1 2 3 4 5; do
-            if gh release download "$TAG" --repo "$SRC" --pattern '*' --clobber; then
+            if gh release download "$TAG" --repo "$REPO" --pattern '*' --clobber; then
               break
             fi
             echo "download attempt $i failed; retrying in 15s..."
@@ -204,35 +200,11 @@ jobs:
           done
           ls -la
 
-      - name: Rewrite updater latest.json to public URLs
-        run: |
-          set -euo pipefail
-          cd dl
-          if [ -f latest.json ]; then
-            sed -i 's#/hudsonbrendon/wisper/releases/#/99labdev/wisper-releases/releases/#g' latest.json
-            echo "--- latest.json ---"; cat latest.json
-          fi
-
-      - name: Ensure public draft release exists
-        run: |
-          set -euo pipefail
-          gh release view "$TAG" --repo "$DST" >/dev/null 2>&1 || \
-            gh release create "$TAG" --repo "$DST" --draft \
-              --title "Wisper $TAG" \
-              --notes "Download the installer for your platform from the assets below."
-
-      - name: Upload originals + version-less aliases
+      - name: Upload version-less aliases
         run: |
           set -euo pipefail
           cd dl
           shopt -s nullglob
-          # 1) Upload every staged asset verbatim (installers, msi, updater
-          #    sidecars, and the rewritten latest.json).
-          for f in *; do
-            [ -f "$f" ] || continue
-            gh release upload "$TAG" "$f" --repo "$DST" --clobber
-          done
-          # 2) Add stable, version-less aliases for the website download buttons.
           alias_for() {
             case "$1" in
               *_aarch64.dmg)    echo Wisper_aarch64.dmg ;;
@@ -248,6 +220,6 @@ jobs:
             a=$(alias_for "$f"); [ -n "$a" ] || continue
             [ "$f" = "$a" ] && continue
             cp -f "$f" "$a"
-            gh release upload "$TAG" "$a" --repo "$DST" --clobber
+            gh release upload "$TAG" "$a" --repo "$REPO" --clobber
             echo "alias: $f -> $a"
           done

@@ -80,7 +80,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/99labdev/wisper-releases/releases/latest/download/latest.json"
+        "https://github.com/hudsonbrendon/wisper/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVBRThBMDU1QkRCQzYwNTIKUldSU1lMeTlWYURvV3BBWENCamg1ZTJ4SHYwcFpSYzJyM1d3Um44dUoyUEVwSUx3NXhFelFmWkcK"
     }

@@ -1,0 +1,55 @@
+name: Legacy updater mirror
+
+# Copies the updater manifest to 99labdev/wisper-releases when a release here is
+# published.
+#
+# Why this exists: the updater endpoint is compiled into every shipped binary.
+# Builds up to 1.0.5 poll
+# https://github.com/99labdev/wisper-releases/releases/latest/download/latest.json,
+# from back when this repo was private and every release was mirrored there.
+# Newer builds point at this repo (see src-tauri/tauri.conf.json). Without this
+# job those older installs would never see another update.
+#
+# Only latest.json travels — the URLs inside it point at this repo's public
+# assets, so old clients download the installers straight from here.
+#
+# DELETE THIS FILE once the <= 1.0.5 installs have moved on (they update
+# themselves the first time this runs; a couple of releases is plenty). Deleting
+# it early only strands users who never opened the app in between.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to mirror (e.g. v1.0.6)"
+        required: true
+
+jobs:
+  mirror-manifest:
+    runs-on: ubuntu-22.04
+    env:
+      # Classic PAT with `repo` scope — the default GITHUB_TOKEN cannot write to
+      # another repository.
+      GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+      TAG: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+      SRC: ${{ github.repository }}
+      DST: 99labdev/wisper-releases
+    steps:
+      - name: Fetch latest.json from the published release
+        run: |
+          set -euo pipefail
+          gh release download "$TAG" --repo "$SRC" --pattern 'latest.json' --clobber
+          echo "--- latest.json ---"; cat latest.json
+
+      - name: Publish it to the legacy downloads repo
+        run: |
+          set -euo pipefail
+          # The manifest must sit in a PUBLISHED release: old clients read
+          # /releases/latest/download/latest.json, and drafts never resolve there.
+          gh release view "$TAG" --repo "$DST" >/dev/null 2>&1 || \
+            gh release create "$TAG" --repo "$DST" \
+              --title "Wisper $TAG" \
+              --notes "Update manifest only. Downloads live at https://github.com/${SRC}/releases/latest"
+          gh release upload "$TAG" latest.json --repo "$DST" --clobber
