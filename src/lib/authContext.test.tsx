@@ -19,7 +19,7 @@ vi.mock("./supabase", () => ({
 }));
 
 import { getSession, onAuthChange } from "./auth";
-import { setSignedIn } from "./api";
+import { setActiveUser, setSignedIn } from "./api";
 import { isSupabaseConfigured } from "./supabase";
 import { AuthProvider, useAuth } from "./authContext";
 
@@ -66,6 +66,8 @@ describe("AuthProvider", () => {
 
     // No session AND no error = we positively know nobody is signed in.
     await waitFor(() => expect(setSignedIn).toHaveBeenCalledWith(false));
+    // Knowing that, scoping the data dir to _guest is correct.
+    expect(setActiveUser).toHaveBeenCalledWith(null);
   });
 
   it("keeps the gate open when the session could not be refreshed (offline)", async () => {
@@ -87,6 +89,10 @@ describe("AuthProvider", () => {
     // backend flag stays at its last known-good value, so dictation and
     // meetings keep working on a plane.
     expect(setSignedIn).not.toHaveBeenCalled();
+    // ...and the data dir must not be demoted to _guest either, or History and
+    // Meetings render empty and everything recorded offline is filed under the
+    // guest account, vanishing from the UI once the session refreshes.
+    expect(setActiveUser).not.toHaveBeenCalled();
   });
 
   it("locks the gate on an explicit SIGNED_OUT event", async () => {

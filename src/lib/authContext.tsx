@@ -36,17 +36,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // we have no user object right now.
     const apply = async (u: User | null, signedOut: boolean) => {
       const mine = ++seq;
+      // A session we hold but could not refresh (no network) tells us nothing:
+      // pushing it would demote the data dir to _guest — hiding the user's own
+      // history and filing everything dictated offline under the guest account —
+      // and slam the gate shut. A local-first app must keep working on a plane,
+      // so leave both exactly where they were and wait for a real answer.
+      if (!(u || signedOut)) return;
       // Scope the local data dir to this account (or _guest) BEFORE the UI reads
       // history/meetings, so a logout→login never surfaces the old account's
       // data. Failures must not block auth, so swallow them.
       await setActiveUser(u?.id ?? null).catch(() => {});
       // Without Supabase credentials there is nobody to sign in as, so the gate
       // stays open — a fork with no .env is fully usable.
-      const open = !isSupabaseConfigured() || !!u;
-      // Only push a `false` we are sure of. A session we hold but could not
-      // refresh (no network) leaves the gate exactly where it was: a local-first
-      // dictation app must keep working on a plane.
-      if (open || signedOut) await setSignedIn(open).catch(() => {});
+      await setSignedIn(!isSupabaseConfigured() || !!u).catch(() => {});
       if (!active || seq !== mine) return;
       setUser(u);
     };
