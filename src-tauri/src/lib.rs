@@ -221,10 +221,7 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
                     // sign in. The already-transcribed text is dropped — we do
                     // not inject it.
                     if !*app_inj.state::<AppState>().signed_in.lock().unwrap() {
-                        let _ = app_inj.emit(
-                            "signin_required",
-                            serde_json::json!({ "metric": "dictation" }),
-                        );
+                        signin::require_signin(&app_inj, "dictation");
                         transition(&app_inj, SmEvent::InjectionDone);
                         return_key_to_target(&app_inj);
                         return;
@@ -284,10 +281,7 @@ pub(crate) fn start_meeting(app: &tauri::AppHandle) -> Result<(), String> {
     }
     // Sign-in gate: block before recording starts.
     if !*st.signed_in.lock().unwrap() {
-        let _ = app.emit(
-            "signin_required",
-            serde_json::json!({ "metric": "meeting" }),
-        );
+        signin::require_signin(app, "meeting");
         return Err("auth_required".to_string());
     }
     let mic_device = st.config.lock().unwrap().mic_device.clone();
@@ -1054,6 +1048,11 @@ fn build_tray_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
 /// Re-inject the most recent transcription into the focused app. Runs on a short
 /// delay so the menu closes and focus returns to the previously-focused app.
 fn paste_last_transcription(app: &tauri::AppHandle) {
+    // Same sign-in gate as a fresh dictation: this injects text too.
+    if !*app.state::<AppState>().signed_in.lock().unwrap() {
+        signin::require_signin(app, "dictation");
+        return;
+    }
     let (user_dir, method, ui_lang) = {
         let st = app.state::<AppState>();
         let c = st.config.lock().unwrap();

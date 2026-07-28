@@ -31,6 +31,14 @@ skipped entirely when it isn't.
   `src/components/SignInModal.tsx` shows the Google prompt.
 - Builds without `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` push `true`, so
   a fork with no backend is fully usable.
+- A session that exists but can't be refreshed (offline, backend unreachable)
+  never pushes `false` — the gate keeps its last known-good value, so losing the
+  network doesn't lock dictation out. Only an explicit sign-out, or a machine
+  with no stored session at all, closes it.
+- The gate is a **product gate, not a security boundary**: it decides what the
+  UI offers, not what the machine can reach. Local history and meetings are
+  plain files in the user's data dir either way, and anyone who can run the
+  binary can edit the flag.
 
 ## Manual smoke test (requires a configured Supabase project + `.env`)
 
