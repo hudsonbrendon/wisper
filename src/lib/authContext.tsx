@@ -32,7 +32,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let active = true;
     let seq = 0;
 
-    const apply = async (u: User | null) => {
+    // `signedOut` means we POSITIVELY know there is no account, not merely that
+    // we have no user object right now.
+    const apply = async (u: User | null, signedOut: boolean) => {
       const mine = ++seq;
       // Scope the local data dir to this account (or _guest) BEFORE the UI reads
       // history/meetings, so a logout→login never surfaces the old account's
@@ -40,17 +42,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await setActiveUser(u?.id ?? null).catch(() => {});
       // Without Supabase credentials there is nobody to sign in as, so the gate
       // stays open — a fork with no .env is fully usable.
-      await setSignedIn(!isSupabaseConfigured() || !!u).catch(() => {});
+      const open = !isSupabaseConfigured() || !!u;
+      // Only push a `false` we are sure of. A session we hold but could not
+      // refresh (no network) leaves the gate exactly where it was: a local-first
+      // dictation app must keep working on a plane.
+      if (open || signedOut) await setSignedIn(open).catch(() => {});
       if (!active || seq !== mine) return;
       setUser(u);
     };
 
     getSession()
-      .then((session) => apply(session?.user ?? null))
+      .then(({ session, error }) => apply(session?.user ?? null, !error))
       .finally(() => active && setLoading(false));
 
-    const unsub = onAuthChange((session) => {
-      void apply(session?.user ?? null);
+    const unsub = onAuthChange((event, session) => {
+      void apply(session?.user ?? null, event === "SIGNED_OUT");
     });
 
     return () => {

@@ -169,7 +169,7 @@ describe("getSession", () => {
   it("returns null without calling getSupabase when not configured", async () => {
     vi.mocked(isSupabaseConfigured).mockReturnValueOnce(false);
 
-    expect(await getSession()).toBeNull();
+    expect(await getSession()).toEqual({ session: null, error: null });
     expect(getSupabase).not.toHaveBeenCalled();
   });
 
@@ -179,8 +179,22 @@ describe("getSession", () => {
       error: null,
     });
 
-    expect(await getSession()).toEqual({ user: { id: "u1" } });
+    expect(await getSession()).toEqual({
+      session: { user: { id: "u1" } },
+      error: null,
+    });
     expect(mockClient.auth.getSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("surfaces the error when the session could not be refreshed", async () => {
+    const error = new Error("Failed to fetch");
+    mockClient.auth.getSession.mockResolvedValueOnce({
+      data: { session: null },
+      error,
+    });
+
+    // Callers use this to tell "offline" apart from "no account".
+    expect(await getSession()).toEqual({ session: null, error });
   });
 });
 
@@ -211,8 +225,8 @@ describe("onAuthChange", () => {
     const handler = mockClient.auth.onAuthStateChange.mock.calls[0][0];
     handler("SIGNED_IN", { user: { id: "u1" } } as never);
 
-    // Verify the callback was invoked with the session.
-    expect(cb).toHaveBeenCalledWith({ user: { id: "u1" } });
+    // Verify the callback was invoked with the event name and the session.
+    expect(cb).toHaveBeenCalledWith("SIGNED_IN", { user: { id: "u1" } });
 
     // Verify the returned function is callable and invokes unsubscribe.
     expect(off).toBeInstanceOf(Function);

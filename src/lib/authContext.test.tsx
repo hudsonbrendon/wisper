@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import type { Session } from "@supabase/supabase-js";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
 vi.mock("./auth", () => ({
   getSession: vi.fn(),
@@ -18,7 +18,7 @@ vi.mock("./supabase", () => ({
   isSupabaseConfigured: vi.fn(() => true),
 }));
 
-import { getSession } from "./auth";
+import { getSession, onAuthChange } from "./auth";
 import { setSignedIn } from "./api";
 import { isSupabaseConfigured } from "./supabase";
 import { AuthProvider, useAuth } from "./authContext";
@@ -37,7 +37,10 @@ beforeEach(() => vi.clearAllMocks());
 
 describe("AuthProvider", () => {
   it("exposes the logged-out default state (no user)", async () => {
-    vi.mocked(getSession).mockResolvedValueOnce(null);
+    vi.mocked(getSession).mockResolvedValueOnce({
+      session: null,
+      error: null,
+    });
     render(
       <AuthProvider>
         <Probe />
@@ -49,10 +52,70 @@ describe("AuthProvider", () => {
     expect(screen.getByTestId("user").textContent).toBe("none");
   });
 
+  it("locks the gate when Supabase is configured and there is no account", async () => {
+    vi.mocked(getSession).mockResolvedValueOnce({
+      session: null,
+      error: null,
+    });
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    // No session AND no error = we positively know nobody is signed in.
+    await waitFor(() => expect(setSignedIn).toHaveBeenCalledWith(false));
+  });
+
+  it("keeps the gate open when the session could not be refreshed (offline)", async () => {
+    vi.mocked(getSession).mockResolvedValueOnce({
+      session: null,
+      error: new Error("Failed to fetch"),
+    });
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("loading").textContent).toBe("false"),
+    );
+    // A stored-but-unverifiable session must never read as "signed out": the
+    // backend flag stays at its last known-good value, so dictation and
+    // meetings keep working on a plane.
+    expect(setSignedIn).not.toHaveBeenCalled();
+  });
+
+  it("locks the gate on an explicit SIGNED_OUT event", async () => {
+    vi.mocked(getSession).mockResolvedValueOnce({
+      session: null,
+      error: new Error("Failed to fetch"),
+    });
+    let emit: ((e: AuthChangeEvent, s: Session | null) => void) | undefined;
+    vi.mocked(onAuthChange).mockImplementationOnce((cb) => {
+      emit = cb;
+      return () => {};
+    });
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    await waitFor(() => expect(emit).toBeDefined());
+    emit!("SIGNED_OUT", null);
+    await waitFor(() => expect(setSignedIn).toHaveBeenCalledWith(false));
+  });
+
   it("pushes the signed-in state to the backend on auth changes", async () => {
     vi.mocked(getSession).mockResolvedValue({
-      user: { id: "u1" },
-    } as unknown as Session);
+      session: { user: { id: "u1" } } as unknown as Session,
+      error: null,
+    });
 
     render(
       <AuthProvider>
@@ -65,7 +128,10 @@ describe("AuthProvider", () => {
 
   it("keeps dictation/meetings unlocked when Supabase is unconfigured, even with no user", async () => {
     vi.mocked(isSupabaseConfigured).mockReturnValueOnce(false);
-    vi.mocked(getSession).mockResolvedValueOnce(null);
+    vi.mocked(getSession).mockResolvedValueOnce({
+      session: null,
+      error: null,
+    });
 
     render(
       <AuthProvider>
