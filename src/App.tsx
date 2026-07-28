@@ -5,7 +5,6 @@ import MeetingBubble from "./routes/MeetingBubble";
 import Overlay from "./routes/Overlay";
 import { I18nProvider } from "./lib/i18n";
 import { AuthProvider } from "./lib/authContext";
-import { UsageProvider } from "./lib/usageContext";
 
 export default function App() {
   const [label] = useState(() => getCurrentWindow().label);
@@ -18,9 +17,7 @@ export default function App() {
         <MeetingBubble />
       ) : (
         <AuthProvider>
-          <UsageProvider>
-            <Dashboard />
-          </UsageProvider>
+          <Dashboard />
         </AuthProvider>
       )}
     </I18nProvider>

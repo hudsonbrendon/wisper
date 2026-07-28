@@ -31,9 +31,7 @@ import {
   signInWithGoogle,
   signOut,
   getSession,
-  fetchPlan,
   onAuthChange,
-  subscribePlan,
 } from "./auth";
 
 const mockInvoke = vi.mocked(invoke);
@@ -186,30 +184,6 @@ describe("getSession", () => {
   });
 });
 
-describe("fetchPlan", () => {
-  it("returns the plan from the profiles row", async () => {
-    const single = vi.fn().mockResolvedValueOnce({
-      data: { plan: "pro" },
-      error: null,
-    });
-    const eq = vi.fn(() => ({ single }));
-    const select = vi.fn(() => ({ eq }));
-    mockClient.from.mockReturnValueOnce({ select });
-
-    expect(await fetchPlan("u1")).toBe("pro");
-    expect(mockClient.from).toHaveBeenCalledWith("profiles");
-  });
-
-  it("falls back to 'free' when the row or column is missing", async () => {
-    const single = vi.fn().mockResolvedValueOnce({ data: null, error: null });
-    const eq = vi.fn(() => ({ single }));
-    const select = vi.fn(() => ({ eq }));
-    mockClient.from.mockReturnValueOnce({ select });
-
-    expect(await fetchPlan("u1")).toBe("free");
-  });
-});
-
 describe("onAuthChange", () => {
   it("returns a no-op unsubscribe and never calls getSupabase when not configured", () => {
     vi.mocked(isSupabaseConfigured).mockReturnValueOnce(false);
@@ -244,34 +218,5 @@ describe("onAuthChange", () => {
     expect(off).toBeInstanceOf(Function);
     off();
     expect(unsubscribe).toHaveBeenCalledOnce();
-  });
-});
-
-describe("subscribePlan", () => {
-  it("subscribes to the user's profile row and forwards plan updates", () => {
-    const cb = vi.fn();
-    let handler: (p: { new: { plan: string } }) => void = () => {};
-    const channel = {
-      on: vi.fn((_evt: string, _cfg: unknown, h: typeof handler) => {
-        handler = h;
-        return channel;
-      }),
-      subscribe: vi.fn(() => channel),
-    };
-    const removeChannel = vi.fn();
-    vi.mocked(getSupabase).mockReturnValue({
-      channel: vi.fn(() => channel),
-      removeChannel,
-    } as never);
-
-    const off = subscribePlan("u1", cb);
-    // The realtime payload delivers the new row; only valid plans forward.
-    handler({ new: { plan: "pro" } });
-    expect(cb).toHaveBeenCalledWith("pro");
-    handler({ new: { plan: "garbage" } });
-    expect(cb).toHaveBeenCalledTimes(1); // unchanged
-
-    off();
-    expect(removeChannel).toHaveBeenCalledWith(channel);
   });
 });

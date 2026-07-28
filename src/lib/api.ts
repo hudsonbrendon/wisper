@@ -172,12 +172,7 @@ export const downloadLlmModel = () => invoke<void>("download_llm_model");
 
 export type LlmDownloadProgressPayload = { received: number; total: number };
 
-export interface EntitlementsSnapshot {
-  loggedIn: boolean;
-  pro: boolean;
-  remainingWords: number;
-  remainingMeetings: number;
-}
-
-export const setEntitlements = (ent: EntitlementsSnapshot) =>
-  invoke<void>("set_entitlements", { ent });
+/// Tell the backend whether someone is signed in. Dictation and meetings are
+/// blocked while signed out; there are no plans or quotas.
+export const setSignedIn = (signedIn: boolean) =>
+  invoke<void>("set_signed_in", { signedIn });

@@ -9,22 +9,14 @@ import type { User } from "@supabase/supabase-js";
 import {
   getSession,
   onAuthChange,
-  fetchPlan,
-  subscribePlan,
   signInWithGoogle,
   signOut as signOutFn,
 } from "./auth";
-import {
-  canUseFeature,
-  DEFAULT_PLAN,
-  type Feature,
-  type Plan,
-} from "./entitlements";
-import { setActiveUser } from "./api";
+import { isSupabaseConfigured } from "./supabase";
+import { setActiveUser, setSignedIn } from "./api";
 
 interface AuthState {
   user: User | null;
-  plan: Plan;
   loading: boolean;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -34,7 +26,6 @@ const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [plan, setPlan] = useState<Plan>(DEFAULT_PLAN);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,10 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // history/meetings, so a logout→login never surfaces the old account's
       // data. Failures must not block auth, so swallow them.
       await setActiveUser(u?.id ?? null).catch(() => {});
-      const p = u ? await fetchPlan(u.id) : DEFAULT_PLAN;
+      // Without Supabase credentials there is nobody to sign in as, so the gate
+      // stays open — a fork with no .env is fully usable.
+      await setSignedIn(!isSupabaseConfigured() || !!u).catch(() => {});
       if (!active || seq !== mine) return;
       setUser(u);
-      setPlan(p);
     };
 
     getSession()
@@ -67,17 +59,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Live plan updates: when the Stripe webhook flips profiles.plan, Realtime
-  // delivers it here so Pro unlocks instantly without a reload.
-  useEffect(() => {
-    if (!user) return;
-    const off = subscribePlan(user.id, (p) => setPlan(p));
-    return off;
-  }, [user]);
-
   const value: AuthState = {
     user,
-    plan,
     loading,
     signIn: signInWithGoogle,
     signOut: signOutFn,
@@ -90,11 +73,4 @@ export function useAuth(): AuthState {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
   return ctx;
-}
-
-/// Feature gate bound to the current user's plan. `can(feature)` is what UI
-/// calls to decide whether to show/enable a feature. Today: always true.
-export function useEntitlements(): { can: (feature: Feature) => boolean } {
-  const { plan } = useAuth();
-  return { can: (feature: Feature) => canUseFeature(plan, feature) };
 }
