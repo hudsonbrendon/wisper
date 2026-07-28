@@ -10,6 +10,7 @@ drop table if exists public.usage_events;
 -- dropping the column; 0004's column-level grant (full_name, avatar_url only)
 -- still governs what a client may actually write.
 drop policy if exists "profiles_update_own_no_plan" on public.profiles;
+drop policy if exists "profiles_update_own" on public.profiles;
 create policy "profiles_update_own"
   on public.profiles for update
   using (auth.uid() = id)
@@ -24,3 +25,18 @@ alter table public.profiles
 
 -- 0004 revoked blanket UPDATE and re-granted only (full_name, avatar_url),
 -- which is still exactly what a client needs — nothing to re-grant here.
+
+-- 0003 published profiles to `supabase_realtime` only so the client saw the
+-- plan flip live. No plan, no reason to stream profile rows. `alter publication
+-- ... drop table` has no `if exists`, so guard the re-run / never-added case.
+do $$
+begin
+  if exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'profiles'
+  ) then
+    alter publication supabase_realtime drop table public.profiles;
+  end if;
+end $$;

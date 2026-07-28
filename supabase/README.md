@@ -12,6 +12,11 @@
 4. Apply the schema: paste each file in `migrations/`, in order, into the SQL Editor and run it,
    OR use the Supabase CLI: `supabase db push`.
 
+Migrations `0002`–`0006` build the old billing schema (Stripe columns, `plan`,
+usage metering) and `0007` drops it again, so a fresh `supabase db push` creates
+and then destroys it — that is expected. The history is kept intact so existing
+projects can migrate forward.
+
 ## Client config
 
 Copy the project URL and the **anon/public** key into the app's `.env`:
