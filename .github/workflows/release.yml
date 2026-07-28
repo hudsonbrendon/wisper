@@ -133,7 +133,7 @@ jobs:
         run: pnpm install
 
       - name: Build and upload to release
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v1
         env:
           # Same-repo upload, so the default GITHUB_TOKEN is enough.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
