@@ -35,23 +35,10 @@ vi.mock("./lib/authContext", () => ({
   AuthProvider: ({ children }: { children: any }) => children,
   useAuth: vi.fn(() => ({
     user: null,
-    plan: "free",
     loading: false,
     signIn: vi.fn(),
     signOut: vi.fn(),
   })),
-  useEntitlements: vi.fn(() => ({ can: () => true })),
-}));
-
-vi.mock("./lib/usageContext", () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  UsageProvider: ({ children }: { children: any }) => children,
-  useUsage: () => ({
-    usage: { dictation_words: 0, meetings: 0 },
-    refresh: vi.fn(),
-    blocked: null,
-    clearBlocked: vi.fn(),
-  }),
 }));
 
 vi.mock("./lib/api", () => ({
