@@ -22,7 +22,7 @@ jobs:
     outputs:
       release_id: ${{ steps.create-release.outputs.result }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Create draft release
         id: create-release
@@ -81,7 +81,7 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # apple-metal (pulled in by screencapturekit / meeting transcription) has a
       # Swift bridge that references macOS 26 SDK symbols (MTLSamplerReductionMode,
