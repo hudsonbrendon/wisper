@@ -30,7 +30,7 @@ jobs:
         with:
           # tauri-action can only upload to a release in the repo it runs in, and
           # it needs to write the updater latest.json with URLs to that same repo.
-          # So we stage the build's release HERE (99labdev/wisper) and let a later
+          # So we stage the build's release HERE (hudsonbrendon/wisper) and let a later
           # `mirror` job copy everything to 99labdev/wisper-releases (rewriting
           # latest.json URLs). End users only ever see wisper-releases.
           script: |
@@ -185,7 +185,7 @@ jobs:
       # the mirror. (The default GITHUB_TOKEN can't reach wisper-releases.)
       GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
       TAG: ${{ github.ref_name }}
-      SRC: 99labdev/wisper
+      SRC: hudsonbrendon/wisper
       DST: 99labdev/wisper-releases
     steps:
       - name: Download staged assets
@@ -209,7 +209,7 @@ jobs:
           set -euo pipefail
           cd dl
           if [ -f latest.json ]; then
-            sed -i 's#/99labdev/wisper/releases/#/99labdev/wisper-releases/releases/#g' latest.json
+            sed -i 's#/hudsonbrendon/wisper/releases/#/99labdev/wisper-releases/releases/#g' latest.json
             echo "--- latest.json ---"; cat latest.json
           fi
 

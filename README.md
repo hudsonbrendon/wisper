@@ -24,15 +24,15 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/99labdev/wisper/actions/workflows/ci.yml"><img src="https://github.com/99labdev/wisper/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://codecov.io/gh/99labdev/wisper"><img src="https://codecov.io/gh/99labdev/wisper/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://github.com/hudsonbrendon/wisper/actions/workflows/ci.yml"><img src="https://github.com/hudsonbrendon/wisper/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/hudsonbrendon/wisper"><img src="https://codecov.io/gh/hudsonbrendon/wisper/branch/main/graph/badge.svg" alt="Coverage"></a>
   <a href="https://github.com/99labdev/wisper-releases/releases/latest"><img src="https://img.shields.io/github/v/release/99labdev/wisper-releases?sort=semver" alt="Latest release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/99labdev/wisper" alt="License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/hudsonbrendon/wisper" alt="License"></a>
   <img src="https://img.shields.io/badge/built%20with-Tauri-24C8DB?logo=tauri&logoColor=white" alt="Built with Tauri">
   <img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-blue" alt="Platforms">
-  <a href="https://github.com/99labdev/wisper/commits/main"><img src="https://img.shields.io/github/last-commit/99labdev/wisper" alt="Last commit"></a>
-  <a href="https://github.com/99labdev/wisper/issues"><img src="https://img.shields.io/github/issues/99labdev/wisper" alt="Open issues"></a>
-  <a href="https://github.com/99labdev/wisper/stargazers"><img src="https://img.shields.io/github/stars/99labdev/wisper?style=flat" alt="Stars"></a>
+  <a href="https://github.com/hudsonbrendon/wisper/commits/main"><img src="https://img.shields.io/github/last-commit/hudsonbrendon/wisper" alt="Last commit"></a>
+  <a href="https://github.com/hudsonbrendon/wisper/issues"><img src="https://img.shields.io/github/issues/hudsonbrendon/wisper" alt="Open issues"></a>
+  <a href="https://github.com/hudsonbrendon/wisper/stargazers"><img src="https://img.shields.io/github/stars/hudsonbrendon/wisper?style=flat" alt="Stars"></a>
 </p>
 
 ---
@@ -270,7 +270,7 @@ focus from the app you're typing into.
 [Tauri system dependencies](https://tauri.app/start/prerequisites/) for your OS.
 
 ```bash
-git clone https://github.com/99labdev/wisper.git
+git clone https://github.com/hudsonbrendon/wisper.git
 cd wisper
 pnpm install
 pnpm tauri dev      # run in development
@@ -377,7 +377,7 @@ one-time step.
 
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md), keep
 changes focused, and run the checks above before opening a PR. Bug reports and
-feature ideas are great as [issues](https://github.com/99labdev/wisper/issues).
+feature ideas are great as [issues](https://github.com/hudsonbrendon/wisper/issues).
 
 ## 📄 License
 

@@ -111,7 +111,7 @@ describe("Sidebar", () => {
     const helpLink = screen.getByRole("link", { name: /^help$/i });
     expect(helpLink).toHaveAttribute(
       "href",
-      "https://github.com/99labdev/wisper",
+      "https://github.com/hudsonbrendon/wisper",
     );
     expect(helpLink).toHaveAttribute("target", "_blank");
   });
