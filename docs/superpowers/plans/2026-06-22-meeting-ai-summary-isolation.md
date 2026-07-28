@@ -232,7 +232,7 @@ Run: `echo 'Você: bom dia' | src-tauri/target/debug/wisper-summarize --model /t
 
 ```bash
 cd src-tauri && cargo fmt
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 git add src-tauri/Cargo.toml src-tauri/wisper-summarize
 git commit -m "feat(summarize): workspace helper crate with the pure prompt + CLI skeleton"
 ```
@@ -302,7 +302,7 @@ Expected: prints a markdown summary with the four sections. If the model isn't d
 
 ```bash
 cd src-tauri && cargo fmt
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 git add src-tauri/wisper-summarize
 git commit -m "feat(summarize): real llama.cpp generation in the helper process"
 ```
@@ -359,7 +359,7 @@ Run: `cd src-tauri && cargo clippy --all-targets -- -D warnings 2>&1 | tail -8` 
 
 ```bash
 cd src-tauri && cargo fmt
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 git add src-tauri/Cargo.toml src-tauri/src/lib.rs src-tauri/src/commands.rs
 git commit -m "fix(summary): drop in-process llama from the app to restore whisper"
 ```
@@ -429,7 +429,7 @@ Verify it's signed: `codesign -dv src-tauri/target/release/bundle/macos/Wisper.a
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 git add scripts/before-build.sh src-tauri/tauri.conf.json src-tauri/binaries/.gitignore
 git commit -m "build(summary): build + bundle the wisper-summarize sidecar"
 ```
@@ -546,7 +546,7 @@ Run: `cd src-tauri && cargo clippy --all-targets -- -D warnings 2>&1 | tail -8` 
 
 ```bash
 cd src-tauri && cargo fmt
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 git add src-tauri/src/commands.rs
 git commit -m "feat(summary): generate_summary spawns the isolated sidecar"
 ```
@@ -562,7 +562,7 @@ git commit -m "feat(summary): generate_summary spawns the isolated sidecar"
 - [ ] **Step 1: Full automated verification**
 
 Run: `cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings 2>&1 | tail -8 && cargo test 2>&1 | tail -5` (all green; `cargo tree -p wisper | grep -c llama-cpp` → 0).
-Run: `cd /Users/hudsonbrendon/Github/openwispr && pnpm lint && pnpm test 2>&1 | tail -5 && git ls-files | grep -E '\.(md|ts|tsx|json)$' | xargs npx prettier --check`.
+Run: `cd "$(git rev-parse --show-toplevel)" && pnpm lint && pnpm test 2>&1 | tail -5 && git ls-files | grep -E '\.(md|ts|tsx|json)$' | xargs npx prettier --check`.
 
 - [ ] **Step 2: Build + reinstall (project workflow)**
 
@@ -582,7 +582,7 @@ The README already documents the local AI summary (prior task). Update only if w
 - [ ] **Step 5: Commit (if README changed)**
 
 ```bash
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 pnpm format
 git add README.md
 git commit -m "docs: note the summary runs in an isolated process"

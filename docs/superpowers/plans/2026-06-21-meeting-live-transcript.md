@@ -69,7 +69,7 @@ Função pura que transforma um stream de flags do VAD em segmentos de fala fech
 `meeting.rs` precisa de um submódulo (`live`). Converta o arquivo único num diretório:
 
 ```bash
-cd /Users/hudsonbrendon/Github/openwispr/src-tauri/src
+cd "$(git rev-parse --show-toplevel)"/src-tauri/src
 mkdir -p meeting
 git mv meeting.rs meeting/mod.rs
 ```
@@ -80,7 +80,7 @@ No topo de `meeting/mod.rs`, declare o submódulo (após o doc-comment do módul
 mod live;
 ```
 
-Confirme que ainda compila: `cd /Users/hudsonbrendon/Github/openwispr/src-tauri && cargo build 2>&1 | tail -3` (deve compilar; `live` ainda não existe → crie o arquivo vazio no Step 2).
+Confirme que ainda compila: `cd "$(git rev-parse --show-toplevel)"/src-tauri && cargo build 2>&1 | tail -3` (deve compilar; `live` ainda não existe → crie o arquivo vazio no Step 2).
 
 - [ ] **Step 2: Write the failing test**
 
@@ -192,7 +192,7 @@ Expected: PASS (5 testes).
 
 ```bash
 cd src-tauri && cargo fmt
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 git add -A src-tauri/src/meeting
 git commit -m "feat(meeting/live): VAD closed-speech segmentation helper"
 ```
@@ -308,7 +308,7 @@ Expected: compila.
 
 ```bash
 cd src-tauri && cargo fmt
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 git add src-tauri/src/audio.rs
 git commit -m "feat(audio): non-destructive read_new cursor on Recorder"
 ```
@@ -422,7 +422,7 @@ Expected: compila. Run: `cd src-tauri && cargo test 2>&1 | tail -5` — suíte v
 
 ```bash
 cd src-tauri && cargo fmt
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 git add src-tauri/src/sysaudio
 git commit -m "feat(sysaudio): read_new + format on capturer trait (SCK + interim CATap)"
 ```
@@ -500,7 +500,7 @@ Captura real do CATap só é verificável num Mac 14.4+ numa call (Task 8). Por 
 
 ```bash
 cd src-tauri && cargo fmt
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 git add src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/src/sysaudio/catap.rs
 git commit -m "perf(sysaudio): CATap capture via lock-free ring buffer"
 ```
@@ -725,7 +725,7 @@ Expected: compila (corrija a API do VAD até fechar).
 
 ```bash
 cd src-tauri && cargo fmt
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 git add src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/src/meeting/live.rs
 git commit -m "feat(meeting/live): LiveTranscriber loop with webrtc-vad segmentation"
 ```
@@ -924,7 +924,7 @@ Run: `cd src-tauri && cargo clippy 2>&1 | tail -8` — sem novos warnings.
 
 ```bash
 cd src-tauri && cargo fmt
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 git add src-tauri/src/meeting src-tauri/src/audio.rs src-tauri/src/sysaudio src-tauri/src/lib.rs
 git commit -m "feat(meeting): run the live transcription loop during a meeting"
 ```
@@ -1096,7 +1096,7 @@ Run: `pnpm test 2>&1 | tail -5` — verde.
 - [ ] **Step 6: Format + commit**
 
 ```bash
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 pnpm format
 git add src/lib/api.ts src/routes/LiveMeeting.tsx src/routes/Dashboard.tsx src/lib/i18n.tsx
 git commit -m "feat(meetings): live transcript view during recording"
@@ -1114,7 +1114,7 @@ git commit -m "feat(meetings): live transcript view during recording"
 
 Run: `cd src-tauri && cargo fmt --check && cargo clippy 2>&1 | tail -8 && cargo test 2>&1 | tail -5`
 Expected: fmt limpo, clippy sem novos warnings, testes verdes.
-Run: `cd /Users/hudsonbrendon/Github/openwispr && pnpm lint && pnpm format:check && pnpm test 2>&1 | tail -5 && pnpm build 2>&1 | tail -3`
+Run: `cd "$(git rev-parse --show-toplevel)" && pnpm lint && pnpm format:check && pnpm test 2>&1 | tail -5 && pnpm build 2>&1 | tail -3`
 Expected: tudo verde (lembre: `format:check` cobre o repo inteiro, incluindo markdown).
 
 - [ ] **Step 2: Build + reinstall (workflow do projeto)**
@@ -1138,7 +1138,7 @@ Adicione ao `README.md` uma nota curta na descrição de reuniões: agora mostra
 - [ ] **Step 5: Format + commit**
 
 ```bash
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 pnpm format
 git add README.md
 git commit -m "docs: document live meeting transcription"

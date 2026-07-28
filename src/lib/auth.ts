@@ -1,9 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { once } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import type { Session } from "@supabase/supabase-js";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { getSupabase, isSupabaseConfigured } from "./supabase";
-import { DEFAULT_PLAN, type Plan } from "./entitlements";
 
 export type { Session };
 
@@ -81,60 +80,28 @@ export async function signOut(): Promise<void> {
   if (error) throw error;
 }
 
-export async function getSession(): Promise<Session | null> {
-  if (!isSupabaseConfigured()) return null;
-  const { data } = await getSupabase().auth.getSession();
-  return data.session;
+/// Restore the persisted session. `error` is what tells "there is no account"
+/// apart from "we could not check": a stored-but-unrefreshable session (offline,
+/// Supabase unreachable) comes back as `session: null` WITH an error, while a
+/// machine that was never signed in comes back null with no error at all.
+export async function getSession(): Promise<{
+  session: Session | null;
+  error: unknown;
+}> {
+  if (!isSupabaseConfigured()) return { session: null, error: null };
+  const { data, error } = await getSupabase().auth.getSession();
+  return { session: data.session, error: error ?? null };
 }
 
-/// Subscribe to login/logout. Returns an unsubscribe function.
+/// Subscribe to login/logout. The event name is forwarded because only an
+/// explicit `SIGNED_OUT` positively means "no account". Returns an unsubscribe
+/// function.
 export function onAuthChange(
-  cb: (session: Session | null) => void,
+  cb: (event: AuthChangeEvent, session: Session | null) => void,
 ): () => void {
   if (!isSupabaseConfigured()) return () => {};
-  const { data } = getSupabase().auth.onAuthStateChange((_event, session) => {
-    cb(session);
+  const { data } = getSupabase().auth.onAuthStateChange((event, session) => {
+    cb(event, session);
   });
   return () => data.subscription.unsubscribe();
-}
-
-/// Subscribe to the signed-in user's plan via Realtime. The webhook writes
-/// `profiles.plan`; this delivers the new value so the UI updates instantly.
-/// Returns an unsubscribe function (no-op when Supabase is unconfigured).
-export function subscribePlan(
-  userId: string,
-  cb: (plan: Plan) => void,
-): () => void {
-  if (!isSupabaseConfigured()) return () => {};
-  const client = getSupabase();
-  const channel = client
-    .channel(`profile-plan-${userId}`)
-    .on(
-      "postgres_changes",
-      {
-        event: "UPDATE",
-        schema: "public",
-        table: "profiles",
-        filter: `id=eq.${userId}`,
-      },
-      (payload: { new: { plan?: string } }) => {
-        const p = payload.new?.plan;
-        if (p === "pro" || p === "free") cb(p);
-      },
-    )
-    .subscribe();
-  return () => {
-    client.removeChannel(channel);
-  };
-}
-
-/// Read the signed-in user's plan from `profiles`. Any miss → free.
-export async function fetchPlan(userId: string): Promise<Plan> {
-  const { data, error } = await getSupabase()
-    .from("profiles")
-    .select("plan")
-    .eq("id", userId)
-    .single();
-  if (error || !data?.plan) return DEFAULT_PLAN;
-  return data.plan as Plan;
 }

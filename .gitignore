@@ -35,7 +35,8 @@ coverage
 # Local environment variables (never commit real credentials)
 .env
 
-# Stray root-level Deno lockfile (the real one lives at supabase/functions/deno.lock)
+# Leftover Deno lockfile from the removed Supabase edge functions. Nothing in
+# the repo uses Deno any more; this just keeps the stray file out of git status.
 /deno.lock
 
 .superpowers/

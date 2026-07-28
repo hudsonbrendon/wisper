@@ -169,7 +169,7 @@ Expected: PASS (all existing + 4 new).
 
 ```bash
 cd src-tauri && cargo fmt
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 git add src-tauri/src/meetings.rs
 git commit -m "feat(meetings): summary field + transcript_text for AI summary"
 ```
@@ -296,7 +296,7 @@ Expected: PASS (4 tests).
 
 ```bash
 cd src-tauri && cargo fmt
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 git add src-tauri/src/summarizer.rs src-tauri/src/lib.rs
 git commit -m "feat(summarizer): structured summary prompt + transcript truncation"
 ```
@@ -431,7 +431,7 @@ Functional summary needs the 4.5 GB model on a real Mac — deferred to Task 7. 
 
 ```bash
 cd src-tauri && cargo fmt
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 git add src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/src/summarizer.rs
 git commit -m "feat(summarizer): load + run a local GGUF model via llama-cpp-2"
 ```
@@ -500,7 +500,7 @@ Expected: PASS.
 
 ```bash
 cd src-tauri && cargo fmt
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 git add src-tauri/src/model_manager.rs
 git commit -m "feat(model_manager): catalog entry for the local summary LLM"
 ```
@@ -629,7 +629,7 @@ Run: `cd src-tauri && cargo clippy --all-targets -- -D warnings 2>&1 | tail -8` 
 
 ```bash
 cd src-tauri && cargo fmt
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 git add src-tauri/src/commands.rs src-tauri/src/lib.rs
 git commit -m "feat(summary): tauri commands + summarizer state wiring"
 ```
@@ -856,7 +856,7 @@ Run: `pnpm lint 2>&1 | tail -3` (eslint clean)
 - [ ] **Step 5: Format + commit**
 
 ```bash
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 pnpm format
 git add src/lib/api.ts src/routes/MeetingDetail.tsx src/lib/i18n.tsx
 git commit -m "feat(meetings): AI summary section in the meeting detail"
@@ -874,7 +874,7 @@ git commit -m "feat(meetings): AI summary section in the meeting detail"
 
 Run: `cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings 2>&1 | tail -8 && cargo test 2>&1 | tail -5`
 Expected: fmt clean, clippy clean, tests green.
-Run: `cd /Users/hudsonbrendon/Github/openwispr && pnpm lint && pnpm test 2>&1 | tail -5 && pnpm build 2>&1 | tail -3`
+Run: `cd "$(git rev-parse --show-toplevel)" && pnpm lint && pnpm test 2>&1 | tail -5 && pnpm build 2>&1 | tail -3`
 Expected: all green. Verify tracked-file prettier: `git ls-files | grep -E '\.(md|ts|tsx|json)$' | xargs npx prettier --check`.
 
 - [ ] **Step 2: Build + reinstall (project workflow)**
@@ -897,7 +897,7 @@ Add a short note to `README.md` (near the meeting feature) that meetings can gen
 - [ ] **Step 5: Format + commit**
 
 ```bash
-cd /Users/hudsonbrendon/Github/openwispr
+cd "$(git rev-parse --show-toplevel)"
 pnpm format
 git add README.md
 git commit -m "docs: document local AI meeting summary"

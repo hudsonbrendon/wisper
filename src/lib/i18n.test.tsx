@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
 import React from "react";
-import { I18nProvider, useI18n } from "./i18n";
+import { I18nProvider, useI18n, DICTS, LANGS } from "./i18n";
 
 beforeEach(() => {
   localStorage.clear();
@@ -158,5 +158,44 @@ describe("useI18n – throws outside provider", () => {
       "useI18n must be used within I18nProvider",
     );
     consoleSpy.mockRestore();
+  });
+});
+
+describe("no paid-tier copy", () => {
+  const GONE = [
+    "usage.banner",
+    "account.planBadge",
+    "account.plan.free",
+    "account.plan.pro",
+    "account.wordsThisWeek",
+    "account.meetingsThisWeek",
+    "account.unlimited",
+    "account.benefit.usage",
+    "account.benefit.plan",
+  ];
+
+  // There is nothing to upgrade to, so the whole `upgrade.` namespace is gone —
+  // the sign-in prompt copy lives under `signin.` now.
+  it("has no billing or upgrade keys in any language", () => {
+    for (const lang of LANGS) {
+      const offenders = Object.keys(DICTS[lang]).filter(
+        (k) => k.startsWith("billing.") || k.startsWith("upgrade."),
+      );
+      expect(offenders, lang).toEqual([]);
+    }
+  });
+
+  it("has no plan or quota keys in any language", () => {
+    for (const lang of LANGS) {
+      for (const key of GONE) {
+        expect(DICTS[lang][key], `${lang}/${key}`).toBeUndefined();
+      }
+    }
+  });
+
+  it("keeps the sign-in prompt copy in English", () => {
+    expect(DICTS["en"]["signin.title"]).toBeTruthy();
+    expect(DICTS["en"]["signin.body"]).toBeTruthy();
+    expect(DICTS["en"]["signin.notNow"]).toBeTruthy();
   });
 });

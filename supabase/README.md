@@ -9,8 +9,13 @@
    Paste the Google client ID + secret into the Supabase Google provider form.
 3. Authentication → URL Configuration → **Redirect URLs**: add `http://127.0.0.1:*`
    (the desktop app uses an ephemeral loopback port — the wildcard allows any port).
-4. Apply the schema: paste `migrations/0001_profiles.sql` into the SQL Editor and run it,
+4. Apply the schema: paste each file in `migrations/`, in order, into the SQL Editor and run it,
    OR use the Supabase CLI: `supabase db push`.
+
+Migrations `0002`–`0006` build the old billing schema (Stripe columns, `plan`,
+usage metering) and `0007` drops it again, so a fresh `supabase db push` creates
+and then destroys it — that is expected. The history is kept intact so existing
+projects can migrate forward.
 
 ## Client config
 
@@ -25,6 +30,6 @@ The anon key is publishable; RLS enforces data safety. Never ship the service-ro
 
 ## Verifying RLS
 
-After a test sign-in, in the SQL editor run `select id, email, plan from public.profiles;`
-— you should see exactly one row per user with `plan = 'free'`. As a signed-in client,
-`update profiles set plan = 'pro'` must FAIL (RLS denies the plan change).
+After a test sign-in, in the SQL editor run `select id, email from public.profiles;`
+— you should see exactly one row per user. As a signed-in client, updating another
+user's row must FAIL (RLS scopes access to your own row).

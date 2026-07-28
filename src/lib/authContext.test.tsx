@@ -1,27 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
 vi.mock("./auth", () => ({
   getSession: vi.fn(),
   onAuthChange: vi.fn(() => () => {}),
-  fetchPlan: vi.fn(),
-  subscribePlan: vi.fn(() => () => {}),
   signInWithGoogle: vi.fn(),
   signOut: vi.fn(),
 }));
 
-import { getSession, onAuthChange, fetchPlan, subscribePlan } from "./auth";
-import { AuthProvider, useAuth, useEntitlements } from "./authContext";
+vi.mock("./api", () => ({
+  setActiveUser: vi.fn(() => Promise.resolve()),
+  setSignedIn: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock("./supabase", () => ({
+  isSupabaseConfigured: vi.fn(() => true),
+}));
+
+import { getSession, onAuthChange } from "./auth";
+import { setActiveUser, setSignedIn } from "./api";
+import { isSupabaseConfigured } from "./supabase";
+import { AuthProvider, useAuth } from "./authContext";
 
 function Probe() {
-  const { user, plan, loading } = useAuth();
-  const { can } = useEntitlements();
+  const { user, loading } = useAuth();
   return (
     <div>
       <span data-testid="loading">{String(loading)}</span>
       <span data-testid="user">{user?.id ?? "none"}</span>
-      <span data-testid="plan">{plan}</span>
-      <span data-testid="meetings">{String(can("meetings"))}</span>
     </div>
   );
 }
@@ -29,8 +36,11 @@ function Probe() {
 beforeEach(() => vi.clearAllMocks());
 
 describe("AuthProvider", () => {
-  it("exposes the logged-out default state (free plan, no user)", async () => {
-    vi.mocked(getSession).mockResolvedValueOnce(null);
+  it("exposes the logged-out default state (no user)", async () => {
+    vi.mocked(getSession).mockResolvedValueOnce({
+      session: null,
+      error: null,
+    });
     render(
       <AuthProvider>
         <Probe />
@@ -40,42 +50,59 @@ describe("AuthProvider", () => {
       expect(screen.getByTestId("loading").textContent).toBe("false"),
     );
     expect(screen.getByTestId("user").textContent).toBe("none");
-    expect(screen.getByTestId("plan").textContent).toBe("free");
-    expect(screen.getByTestId("meetings").textContent).toBe("true");
   });
 
-  it("loads the user and their plan when a session exists", async () => {
+  it("locks the gate when Supabase is configured and there is no account", async () => {
     vi.mocked(getSession).mockResolvedValueOnce({
-      user: { id: "u1" },
-    } as never);
-    vi.mocked(fetchPlan).mockResolvedValueOnce("pro");
+      session: null,
+      error: null,
+    });
+
     render(
       <AuthProvider>
         <Probe />
       </AuthProvider>,
     );
-    await waitFor(() =>
-      expect(screen.getByTestId("user").textContent).toBe("u1"),
-    );
-    expect(screen.getByTestId("plan").textContent).toBe("pro");
+
+    // No session AND no error = we positively know nobody is signed in.
+    await waitFor(() => expect(setSignedIn).toHaveBeenCalledWith(false));
+    // Knowing that, scoping the data dir to _guest is correct.
+    expect(setActiveUser).toHaveBeenCalledWith(null);
   });
 
-  it("stale signed-in fetchPlan does not clobber a subsequent logged-out state", async () => {
-    // Deferred promise simulating a slow fetchPlan for user "u1"
-    let resolveSlowPlan!: (plan: string) => void;
-    const slowPlan = new Promise<string>((resolve) => {
-      resolveSlowPlan = resolve;
+  it("keeps the gate open when the session could not be refreshed (offline)", async () => {
+    vi.mocked(getSession).mockResolvedValueOnce({
+      session: null,
+      error: new Error("Failed to fetch"),
     });
 
-    vi.mocked(getSession).mockResolvedValueOnce({
-      user: { id: "u1" },
-    } as never);
-    vi.mocked(fetchPlan).mockReturnValueOnce(slowPlan as never);
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
 
-    // Capture the onAuthChange callback so we can fire it manually
-    let authChangeHandler!: (session: { user: { id: string } } | null) => void;
-    vi.mocked(onAuthChange).mockImplementationOnce((handler) => {
-      authChangeHandler = handler as typeof authChangeHandler;
+    await waitFor(() =>
+      expect(screen.getByTestId("loading").textContent).toBe("false"),
+    );
+    // A stored-but-unverifiable session must never read as "signed out": the
+    // backend flag stays at its last known-good value, so dictation and
+    // meetings keep working on a plane.
+    expect(setSignedIn).not.toHaveBeenCalled();
+    // ...and the data dir must not be demoted to _guest either, or History and
+    // Meetings render empty and everything recorded offline is filed under the
+    // guest account, vanishing from the UI once the session refreshes.
+    expect(setActiveUser).not.toHaveBeenCalled();
+  });
+
+  it("locks the gate on an explicit SIGNED_OUT event", async () => {
+    vi.mocked(getSession).mockResolvedValueOnce({
+      session: null,
+      error: new Error("Failed to fetch"),
+    });
+    let emit: ((e: AuthChangeEvent, s: Session | null) => void) | undefined;
+    vi.mocked(onAuthChange).mockImplementationOnce((cb) => {
+      emit = cb;
       return () => {};
     });
 
@@ -85,35 +112,15 @@ describe("AuthProvider", () => {
       </AuthProvider>,
     );
 
-    // Wait for the AuthProvider to register the onAuthChange callback
-    await waitFor(() => expect(authChangeHandler).toBeDefined());
-
-    // Fire a logout event — this is the second (winning) apply call
-    await act(async () => {
-      authChangeHandler(null);
-    });
-
-    // Now resolve the slow fetchPlan for the stale signed-in call
-    await act(async () => {
-      resolveSlowPlan("pro");
-    });
-
-    // The stale "pro" plan must not land; final state must reflect the logout
-    await waitFor(() =>
-      expect(screen.getByTestId("user").textContent).toBe("none"),
-    );
-    expect(screen.getByTestId("plan").textContent).toBe("free");
+    await waitFor(() => expect(emit).toBeDefined());
+    emit!("SIGNED_OUT", null);
+    await waitFor(() => expect(setSignedIn).toHaveBeenCalledWith(false));
   });
 
-  it("updates the plan live when subscribePlan delivers a change", async () => {
-    vi.mocked(getSession).mockResolvedValueOnce({
-      user: { id: "u1" },
-    } as never);
-    vi.mocked(fetchPlan).mockResolvedValueOnce("free");
-    let deliver: (p: "pro" | "free") => void = () => {};
-    vi.mocked(subscribePlan).mockImplementation((_id, cb) => {
-      deliver = cb;
-      return () => {};
+  it("pushes the signed-in state to the backend on auth changes", async () => {
+    vi.mocked(getSession).mockResolvedValue({
+      session: { user: { id: "u1" } } as unknown as Session,
+      error: null,
     });
 
     render(
@@ -121,18 +128,26 @@ describe("AuthProvider", () => {
         <Probe />
       </AuthProvider>,
     );
-    await waitFor(() =>
-      expect(screen.getByTestId("plan").textContent).toBe("free"),
-    );
-    // Ensure the realtime effect has subscribed (so `deliver` is the real callback).
-    await waitFor(() =>
-      expect(vi.mocked(subscribePlan)).toHaveBeenCalledWith(
-        "u1",
-        expect.any(Function),
-      ),
+
+    await waitFor(() => expect(setSignedIn).toHaveBeenCalledWith(true));
+  });
+
+  it("keeps dictation/meetings unlocked when Supabase is unconfigured, even with no user", async () => {
+    vi.mocked(isSupabaseConfigured).mockReturnValueOnce(false);
+    vi.mocked(getSession).mockResolvedValueOnce({
+      session: null,
+      error: null,
+    });
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
     );
 
-    await act(async () => deliver("pro"));
-    expect(screen.getByTestId("plan").textContent).toBe("pro");
+    // A fork with no .env has nobody to sign in as, so the gate must stay
+    // open regardless of `u` — this pins the `||` in
+    // `!isSupabaseConfigured() || !!u` against being flipped to `&&`.
+    await waitFor(() => expect(setSignedIn).toHaveBeenCalledWith(true));
   });
 });

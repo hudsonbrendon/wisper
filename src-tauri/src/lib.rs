@@ -1,7 +1,6 @@
 mod audio;
 mod commands;
 mod config;
-mod entitlements;
 mod history;
 mod hotkey;
 mod inject;
@@ -13,6 +12,7 @@ mod modtap;
 mod oauth;
 mod overlay;
 mod secure_store;
+mod signin;
 mod state;
 pub mod stt;
 mod sysaudio;
@@ -217,54 +217,17 @@ pub(crate) fn stop_and_insert(app: &tauri::AppHandle) {
                 let app_inj = app.clone();
                 let text_inj = text.clone();
                 let dispatched = app.run_on_main_thread(move || {
-                    let words = text_inj.split_whitespace().count();
-                    // Quota gate: a logged-out user is blocked (sign-in prompt); a free
-                    // user over the weekly word cap is blocked (upgrade prompt). The
-                    // already-transcribed text is dropped — we do not inject it.
-                    {
-                        let st = app_inj.state::<AppState>();
-                        let decision = {
-                            let ent = st.entitlements.lock().unwrap();
-                            crate::entitlements::decide_dictation(&ent)
-                        };
-                        use crate::entitlements::Decision;
-                        match decision {
-                            Decision::BlockAuth => {
-                                let _ = app_inj.emit(
-                                    "quota_blocked",
-                                    serde_json::json!({ "reason": "auth", "metric": "dictation" }),
-                                );
-                                transition(&app_inj, SmEvent::InjectionDone);
-                                return_key_to_target(&app_inj);
-                                return;
-                            }
-                            Decision::BlockQuota => {
-                                let _ = app_inj.emit(
-                                    "quota_blocked",
-                                    serde_json::json!({ "reason": "quota", "metric": "dictation" }),
-                                );
-                                transition(&app_inj, SmEvent::InjectionDone);
-                                return_key_to_target(&app_inj);
-                                return;
-                            }
-                            Decision::Allow => {
-                                // Decrement the local cache so the NEXT dictation is
-                                // blocked once the cap is reached; the frontend records
-                                // the event to Supabase and re-pushes the true total.
-                                let mut ent = st.entitlements.lock().unwrap();
-                                if !ent.pro {
-                                    ent.remaining_words -= words as i64;
-                                }
-                            }
-                        }
+                    // Sign-in gate: a logged-out user is blocked and prompted to
+                    // sign in. The already-transcribed text is dropped — we do
+                    // not inject it.
+                    if !*app_inj.state::<AppState>().signed_in.lock().unwrap() {
+                        signin::require_signin(&app_inj, "dictation");
+                        transition(&app_inj, SmEvent::InjectionDone);
+                        return_key_to_target(&app_inj);
+                        return;
                     }
                     match inject::insert(&text_inj, method) {
-                        Ok(()) => {
-                            let _ = app_inj.emit(
-                                "usage_consumed",
-                                serde_json::json!({ "metric": "dictation_words", "amount": words }),
-                            );
-                        }
+                        Ok(()) => {}
                         Err(e) => {
                             eprintln!("inject failed: {e}");
                             let _ = app_inj.emit("error", serde_json::json!({ "message": e }));
@@ -316,31 +279,10 @@ pub(crate) fn start_meeting(app: &tauri::AppHandle) -> Result<(), String> {
     if st.meeting.lock().unwrap().is_some() {
         return Err("already_recording".to_string());
     }
-    // Quota gate: block before recording starts. The frontend pre-checks too
-    // (to show the right prompt), but this is the real enforcement.
-    {
-        use crate::entitlements::Decision;
-        let decision = {
-            let ent = st.entitlements.lock().unwrap();
-            crate::entitlements::decide_meeting(&ent)
-        };
-        match decision {
-            Decision::BlockAuth => {
-                let _ = app.emit(
-                    "quota_blocked",
-                    serde_json::json!({ "reason": "auth", "metric": "meeting" }),
-                );
-                return Err("auth_required".to_string());
-            }
-            Decision::BlockQuota => {
-                let _ = app.emit(
-                    "quota_blocked",
-                    serde_json::json!({ "reason": "quota", "metric": "meeting" }),
-                );
-                return Err("quota_exhausted".to_string());
-            }
-            Decision::Allow => {}
-        }
+    // Sign-in gate: block before recording starts.
+    if !*st.signed_in.lock().unwrap() {
+        signin::require_signin(app, "meeting");
+        return Err("auth_required".to_string());
     }
     let mic_device = st.config.lock().unwrap().mic_device.clone();
     let started_ms = now_ms();
@@ -393,20 +335,6 @@ pub(crate) fn start_meeting(app: &tauri::AppHandle) -> Result<(), String> {
         let _ = w.hide();
     }
     let _ = app.emit("meeting_state", serde_json::json!({ "state": "recording" }));
-
-    // Count this meeting toward the weekly quota. Recorded for everyone (server
-    // keeps full history); only free plans decrement the local cache so the next
-    // start is blocked in-session before the async refresh re-syncs.
-    {
-        let mut ent = st.entitlements.lock().unwrap();
-        if !ent.pro {
-            ent.remaining_meetings -= 1;
-        }
-    }
-    let _ = app.emit(
-        "usage_consumed",
-        serde_json::json!({ "metric": "meeting", "amount": 1 }),
-    );
 
     // Live level ticker for the bubble meter.
     let app2 = app.clone();
@@ -1120,6 +1048,11 @@ fn build_tray_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
 /// Re-inject the most recent transcription into the focused app. Runs on a short
 /// delay so the menu closes and focus returns to the previously-focused app.
 fn paste_last_transcription(app: &tauri::AppHandle) {
+    // Same sign-in gate as a fresh dictation: this injects text too.
+    if !*app.state::<AppState>().signed_in.lock().unwrap() {
+        signin::require_signin(app, "dictation");
+        return;
+    }
     let (user_dir, method, ui_lang) = {
         let st = app.state::<AppState>();
         let c = st.config.lock().unwrap();
@@ -1277,6 +1210,14 @@ pub fn run() {
 
             let hotkey_accel = cfg.hotkey.clone();
 
+            // Seed from the last account `set_active_user` persisted to disk,
+            // so an offline relaunch (expired token, frontend never reports
+            // in) still reads/writes that account's data instead of falling
+            // back to `_guest`. A machine that has never signed in has no
+            // persisted file, so this stays `None`. Read before the struct
+            // literal below moves `config_dir`.
+            let active_user = commands::load_active_user(&config_dir);
+
             app.manage(AppState {
                 config: Mutex::new(cfg),
                 machine: Mutex::new(State::Idle),
@@ -1287,10 +1228,8 @@ pub fn run() {
                 data_dir,
                 cancels: Mutex::new(std::collections::HashSet::new()),
                 hotkey: Mutex::new(hotkey::Controller::new()),
-                entitlements: Mutex::new(crate::entitlements::Entitlements::default()),
-                // No account bound until the frontend reports one via
-                // `set_active_user` on auth restore; reads fall back to _guest.
-                active_user: Mutex::new(None),
+                signed_in: Mutex::new(true),
+                active_user: Mutex::new(active_user),
             });
 
             // Tray menu: Home, updates, paste-last, Microphone submenu, Quit.
@@ -1444,7 +1383,7 @@ pub fn run() {
             secure_store::secure_get,
             secure_store::secure_delete,
             oauth::start_oauth_server,
-            entitlements::set_entitlements,
+            signin::set_signed_in,
             set_ui_language,
         ])
         .build(tauri::generate_context!())

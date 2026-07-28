@@ -31,9 +31,7 @@ import {
   signInWithGoogle,
   signOut,
   getSession,
-  fetchPlan,
   onAuthChange,
-  subscribePlan,
 } from "./auth";
 
 const mockInvoke = vi.mocked(invoke);
@@ -171,7 +169,7 @@ describe("getSession", () => {
   it("returns null without calling getSupabase when not configured", async () => {
     vi.mocked(isSupabaseConfigured).mockReturnValueOnce(false);
 
-    expect(await getSession()).toBeNull();
+    expect(await getSession()).toEqual({ session: null, error: null });
     expect(getSupabase).not.toHaveBeenCalled();
   });
 
@@ -181,32 +179,22 @@ describe("getSession", () => {
       error: null,
     });
 
-    expect(await getSession()).toEqual({ user: { id: "u1" } });
-    expect(mockClient.auth.getSession).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("fetchPlan", () => {
-  it("returns the plan from the profiles row", async () => {
-    const single = vi.fn().mockResolvedValueOnce({
-      data: { plan: "pro" },
+    expect(await getSession()).toEqual({
+      session: { user: { id: "u1" } },
       error: null,
     });
-    const eq = vi.fn(() => ({ single }));
-    const select = vi.fn(() => ({ eq }));
-    mockClient.from.mockReturnValueOnce({ select });
-
-    expect(await fetchPlan("u1")).toBe("pro");
-    expect(mockClient.from).toHaveBeenCalledWith("profiles");
+    expect(mockClient.auth.getSession).toHaveBeenCalledTimes(1);
   });
 
-  it("falls back to 'free' when the row or column is missing", async () => {
-    const single = vi.fn().mockResolvedValueOnce({ data: null, error: null });
-    const eq = vi.fn(() => ({ single }));
-    const select = vi.fn(() => ({ eq }));
-    mockClient.from.mockReturnValueOnce({ select });
+  it("surfaces the error when the session could not be refreshed", async () => {
+    const error = new Error("Failed to fetch");
+    mockClient.auth.getSession.mockResolvedValueOnce({
+      data: { session: null },
+      error,
+    });
 
-    expect(await fetchPlan("u1")).toBe("free");
+    // Callers use this to tell "offline" apart from "no account".
+    expect(await getSession()).toEqual({ session: null, error });
   });
 });
 
@@ -237,41 +225,12 @@ describe("onAuthChange", () => {
     const handler = mockClient.auth.onAuthStateChange.mock.calls[0][0];
     handler("SIGNED_IN", { user: { id: "u1" } } as never);
 
-    // Verify the callback was invoked with the session.
-    expect(cb).toHaveBeenCalledWith({ user: { id: "u1" } });
+    // Verify the callback was invoked with the event name and the session.
+    expect(cb).toHaveBeenCalledWith("SIGNED_IN", { user: { id: "u1" } });
 
     // Verify the returned function is callable and invokes unsubscribe.
     expect(off).toBeInstanceOf(Function);
     off();
     expect(unsubscribe).toHaveBeenCalledOnce();
-  });
-});
-
-describe("subscribePlan", () => {
-  it("subscribes to the user's profile row and forwards plan updates", () => {
-    const cb = vi.fn();
-    let handler: (p: { new: { plan: string } }) => void = () => {};
-    const channel = {
-      on: vi.fn((_evt: string, _cfg: unknown, h: typeof handler) => {
-        handler = h;
-        return channel;
-      }),
-      subscribe: vi.fn(() => channel),
-    };
-    const removeChannel = vi.fn();
-    vi.mocked(getSupabase).mockReturnValue({
-      channel: vi.fn(() => channel),
-      removeChannel,
-    } as never);
-
-    const off = subscribePlan("u1", cb);
-    // The realtime payload delivers the new row; only valid plans forward.
-    handler({ new: { plan: "pro" } });
-    expect(cb).toHaveBeenCalledWith("pro");
-    handler({ new: { plan: "garbage" } });
-    expect(cb).toHaveBeenCalledTimes(1); // unchanged
-
-    off();
-    expect(removeChannel).toHaveBeenCalledWith(channel);
   });
 });

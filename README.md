@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/99labdev/wisper.chat/releases/latest">Download</a> ·
+  <a href="https://github.com/99labdev/wisper-releases/releases/latest">Download</a> ·
   <a href="#-quick-start">Quick start</a> ·
   <a href="#-build-from-source">Build from source</a> ·
   <a href="#-troubleshooting">Troubleshooting</a> ·
@@ -24,15 +24,15 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/99labdev/wisper.chat/actions/workflows/ci.yml"><img src="https://github.com/99labdev/wisper.chat/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://codecov.io/gh/99labdev/wisper.chat"><img src="https://codecov.io/gh/99labdev/wisper.chat/branch/main/graph/badge.svg" alt="Coverage"></a>
-  <a href="https://github.com/99labdev/wisper.chat/releases/latest"><img src="https://img.shields.io/github/v/release/99labdev/wisper.chat?sort=semver" alt="Latest release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/99labdev/wisper.chat" alt="License"></a>
+  <a href="https://github.com/99labdev/wisper/actions/workflows/ci.yml"><img src="https://github.com/99labdev/wisper/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/99labdev/wisper"><img src="https://codecov.io/gh/99labdev/wisper/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://github.com/99labdev/wisper-releases/releases/latest"><img src="https://img.shields.io/github/v/release/99labdev/wisper-releases?sort=semver" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/99labdev/wisper" alt="License"></a>
   <img src="https://img.shields.io/badge/built%20with-Tauri-24C8DB?logo=tauri&logoColor=white" alt="Built with Tauri">
   <img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-blue" alt="Platforms">
-  <a href="https://github.com/99labdev/wisper.chat/commits/main"><img src="https://img.shields.io/github/last-commit/99labdev/wisper.chat" alt="Last commit"></a>
-  <a href="https://github.com/99labdev/wisper.chat/issues"><img src="https://img.shields.io/github/issues/99labdev/wisper.chat" alt="Open issues"></a>
-  <a href="https://github.com/99labdev/wisper.chat/stargazers"><img src="https://img.shields.io/github/stars/99labdev/wisper.chat?style=flat" alt="Stars"></a>
+  <a href="https://github.com/99labdev/wisper/commits/main"><img src="https://img.shields.io/github/last-commit/99labdev/wisper" alt="Last commit"></a>
+  <a href="https://github.com/99labdev/wisper/issues"><img src="https://img.shields.io/github/issues/99labdev/wisper" alt="Open issues"></a>
+  <a href="https://github.com/99labdev/wisper/stargazers"><img src="https://img.shields.io/github/stars/99labdev/wisper?style=flat" alt="Stars"></a>
 </p>
 
 ---
@@ -63,10 +63,14 @@
 ## What it is
 
 Wisper is a free, open alternative to cloud dictation tools like Wispr Flow.
-Everything runs on your machine — **no cloud, no account, no telemetry, no
-subscription**. Your audio never leaves your computer; transcription happens
-entirely on-device via [whisper.cpp](https://github.com/ggerganov/whisper.cpp),
-with Metal GPU acceleration on Apple Silicon.
+Everything runs on your machine — **no cloud, no telemetry, no
+subscription**. A free Google sign-in identifies you; your audio never leaves
+your computer. Transcription happens entirely on-device via
+[whisper.cpp](https://github.com/ggerganov/whisper.cpp), with Metal GPU
+acceleration on Apple Silicon.
+
+Wisper is free — every feature is in this repository and there is nothing to
+upgrade to.
 
 It lives in your system tray as a small floating "pill" and stays out of the way
 until you press your hotkey.
@@ -76,9 +80,9 @@ until you press your hotkey.
 |                      | Wisper                       | Typical cloud dictation |
 | -------------------- | ---------------------------- | ----------------------- |
 | **Where audio goes** | Stays on your device         | Uploaded to a server    |
-| **Account required** | No                           | Usually yes             |
+| **Account required** | Free account                 | Usually yes             |
 | **Cost**             | Free &amp; open source (MIT) | Subscription            |
-| **Works offline**    | Yes                          | No                      |
+| **Works offline**    | Yes, after first sign-in     | No                      |
 | **Telemetry**        | None                         | Common                  |
 | **Languages**        | 99 (Whisper)                 | Varies                  |
 | **Customizable**     | Source is yours              | Closed                  |
@@ -129,7 +133,7 @@ until you press your hotkey.
 
 ## 🚀 Quick start
 
-1. [Download](https://github.com/99labdev/wisper.chat/releases/latest) and
+1. [Download](https://github.com/99labdev/wisper-releases/releases/latest) and
    install for your OS.
 2. Launch it and complete the short onboarding.
 3. Grant **Microphone** (and on macOS, **Accessibility**) permission — see
@@ -141,7 +145,7 @@ until you press your hotkey.
 ## 📥 Install
 
 Grab the installer for your platform from the
-[latest release](https://github.com/99labdev/wisper.chat/releases/latest):
+[latest release](https://github.com/99labdev/wisper-releases/releases/latest):
 
 | Platform                          | Asset                |
 | --------------------------------- | -------------------- |
@@ -252,9 +256,11 @@ focus from the app you're typing into.
 
 - Audio is processed **entirely on your device** and is **not stored** after
   transcription.
-- **No account, no telemetry, no network calls** for transcription.
-- The only network activity is **downloading models** you ask for and
-  **checking for app updates** from GitHub Releases.
+- **No telemetry, no network calls** for transcription.
+- The only network activity is **signing in** (Google via Supabase, in the
+  official build), **downloading models** you ask for, and **checking for app
+  updates** from GitHub Releases. After the first sign-in the app keeps working
+  offline; a build without Supabase credentials never talks to a backend at all.
 - History and insights are kept **locally** and never leave your machine.
 
 ## 🏗️ Build from source
@@ -264,8 +270,8 @@ focus from the app you're typing into.
 [Tauri system dependencies](https://tauri.app/start/prerequisites/) for your OS.
 
 ```bash
-git clone https://github.com/99labdev/wisper.chat.git
-cd wisper.chat
+git clone https://github.com/99labdev/wisper.git
+cd wisper
 pnpm install
 pnpm tauri dev      # run in development
 pnpm tauri build    # produce a release bundle for your platform
@@ -371,7 +377,7 @@ one-time step.
 
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md), keep
 changes focused, and run the checks above before opening a PR. Bug reports and
-feature ideas are great as [issues](https://github.com/99labdev/wisper.chat/issues).
+feature ideas are great as [issues](https://github.com/99labdev/wisper/issues).
 
 ## 📄 License
 
