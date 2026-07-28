@@ -1210,6 +1210,14 @@ pub fn run() {
 
             let hotkey_accel = cfg.hotkey.clone();
 
+            // Seed from the last account `set_active_user` persisted to disk,
+            // so an offline relaunch (expired token, frontend never reports
+            // in) still reads/writes that account's data instead of falling
+            // back to `_guest`. A machine that has never signed in has no
+            // persisted file, so this stays `None`. Read before the struct
+            // literal below moves `config_dir`.
+            let active_user = commands::load_active_user(&config_dir);
+
             app.manage(AppState {
                 config: Mutex::new(cfg),
                 machine: Mutex::new(State::Idle),
@@ -1221,9 +1229,7 @@ pub fn run() {
                 cancels: Mutex::new(std::collections::HashSet::new()),
                 hotkey: Mutex::new(hotkey::Controller::new()),
                 signed_in: Mutex::new(true),
-                // No account bound until the frontend reports one via
-                // `set_active_user` on auth restore; reads fall back to _guest.
-                active_user: Mutex::new(None),
+                active_user: Mutex::new(active_user),
             });
 
             // Tray menu: Home, updates, paste-last, Microphone submenu, Quit.

@@ -2,7 +2,7 @@ use crate::config::{self, Config};
 use crate::model_manager::{self, ModelInfo};
 use crate::state::State;
 use crate::stt::Transcriber;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 // Tauri 2.x: Emitter and Manager are traits at the crate root (tauri::Emitter,
 // tauri::Manager). They are NOT re-exported inside a sub-module. AppHandle
@@ -65,6 +65,51 @@ fn sanitize_uid(uid: &str) -> String {
             }
         })
         .collect()
+}
+
+/// Path to the file that remembers the last signed-in account id. Lives next
+/// to `config.toml` in the same app config dir (see `config::config_path`) —
+/// deliberately not a field on `Config`, since that struct is serialized
+/// straight to the frontend and this value is backend-only bookkeeping. Not
+/// the keychain either: it isn't a secret, and a keychain read on startup
+/// would be a new failure mode.
+fn active_user_path(config_dir: &Path) -> PathBuf {
+    config_dir.join("active_user")
+}
+
+/// Persist (or clear) the last known account id, so a later startup can seed
+/// `AppState.active_user` from it. Called by `set_active_user` alongside the
+/// in-memory update. Best-effort: a failure here must never block sign-in or
+/// sign-out, so errors are swallowed.
+fn persist_active_user(config_dir: &Path, uid: Option<&str>) {
+    let path = active_user_path(config_dir);
+    match uid {
+        Some(u) => {
+            let _ = std::fs::create_dir_all(config_dir);
+            let _ = std::fs::write(path, u);
+        }
+        None => {
+            let _ = std::fs::remove_file(path);
+        }
+    }
+}
+
+/// Load the last known account id to seed `AppState.active_user` at startup.
+/// This is what lets an offline relaunch (expired Supabase token, so the
+/// frontend never calls `set_active_user`) keep reading and writing the
+/// right account's history/meetings instead of falling back to `_guest`.
+/// Sanitized here exactly as `user_dir()` sanitizes on every read, so a
+/// hand-edited file can never point outside the users directory. A missing,
+/// empty, or unreadable file — including a machine that has never signed
+/// in — degrades to `None`, i.e. `_guest`; this never panics.
+pub fn load_active_user(config_dir: &Path) -> Option<String> {
+    let raw = std::fs::read_to_string(active_user_path(config_dir)).ok()?;
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(sanitize_uid(trimmed))
+    }
 }
 
 /// Metadata sent to the frontend for each catalog model.
@@ -328,6 +373,7 @@ pub fn get_history(state: tauri::State<AppState>) -> Vec<crate::history::Entry> 
 /// only that account's data; the refresh events make the open views reload.
 #[tauri::command]
 pub fn set_active_user(app: AppHandle, state: tauri::State<AppState>, uid: Option<String>) {
+    persist_active_user(&state.config_dir, uid.as_deref());
     *state.active_user.lock().unwrap() = uid;
     let _ = std::fs::create_dir_all(state.user_dir());
     // Nudge the Home history list and the Meetings list to refetch under the
@@ -677,4 +723,96 @@ pub async fn generate_summary(app: AppHandle, id: String) -> Result<String, Stri
         eprintln!("save summary failed: {e}");
     }
     Ok(markdown)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A fresh, empty temp dir unique to this test name.
+    fn fresh_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("wisper_active_user_test_{name}"));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn load_returns_none_when_file_missing() {
+        let dir = fresh_dir("missing");
+        assert_eq!(load_active_user(&dir), None);
+    }
+
+    #[test]
+    fn load_returns_none_when_file_empty() {
+        let dir = fresh_dir("empty");
+        std::fs::write(active_user_path(&dir), "").unwrap();
+        assert_eq!(load_active_user(&dir), None);
+
+        // Whitespace-only content is treated the same as empty.
+        std::fs::write(active_user_path(&dir), "  \n\t ").unwrap();
+        assert_eq!(load_active_user(&dir), None);
+    }
+
+    #[test]
+    fn persist_then_load_round_trips() {
+        let dir = fresh_dir("roundtrip");
+        let uid = "8f14e45f-ceea-467e-9678-0242ac120002";
+        persist_active_user(&dir, Some(uid));
+        assert_eq!(load_active_user(&dir), Some(uid.to_string()));
+    }
+
+    #[test]
+    fn persist_none_clears_a_previously_persisted_value() {
+        let dir = fresh_dir("clear");
+        persist_active_user(&dir, Some("some-uid"));
+        assert_eq!(load_active_user(&dir), Some("some-uid".to_string()));
+
+        persist_active_user(&dir, None);
+        assert_eq!(load_active_user(&dir), None);
+        assert!(!active_user_path(&dir).exists());
+    }
+
+    #[test]
+    fn persist_none_on_a_never_persisted_dir_does_not_panic() {
+        let dir = fresh_dir("clear_missing");
+        // No prior persisted file; clearing must be a harmless no-op.
+        persist_active_user(&dir, None);
+        assert_eq!(load_active_user(&dir), None);
+    }
+
+    /// A hand-edited (or otherwise malicious) persisted file must never let a
+    /// path component escape the `users/` directory when the loaded value is
+    /// later joined onto it by `AppState::user_dir()`.
+    #[test]
+    fn load_sanitizes_a_malicious_stored_value() {
+        let dir = fresh_dir("malicious");
+        std::fs::write(active_user_path(&dir), "../../etc/passwd").unwrap();
+
+        let loaded = load_active_user(&dir).expect("non-empty file loads Some");
+
+        // No path separators or traversal segments survive sanitization.
+        assert!(!loaded.contains('/'));
+        assert!(!loaded.contains('\\'));
+        assert!(!loaded.contains(".."));
+
+        // Joining the sanitized value onto a users dir stays a direct child,
+        // never escaping via a parent-dir (`..`) component.
+        let users_dir = dir.join("users");
+        let joined = users_dir.join(&loaded);
+        assert_eq!(joined.parent(), Some(users_dir.as_path()));
+        assert!(joined
+            .components()
+            .all(|c| !matches!(c, std::path::Component::ParentDir)));
+    }
+
+    #[test]
+    fn sanitize_uid_matches_load_sanitization() {
+        // `load_active_user` sanitizes exactly the same way `sanitize_uid`
+        // does elsewhere (e.g. in `user_dir()`), so the two never diverge.
+        let dir = fresh_dir("sanitize_matches");
+        let raw = "weird/id:with*chars";
+        std::fs::write(active_user_path(&dir), raw).unwrap();
+        assert_eq!(load_active_user(&dir), Some(sanitize_uid(raw)));
+    }
 }
